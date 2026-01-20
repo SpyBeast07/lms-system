@@ -1,0 +1,28 @@
+Generic single-database configuration.
+
+# Run:
+uv run alembic revision --autogenerate -m "Initial LMS schema"
+
+# Apply Migration:
+uv run alembic upgrade head
+
+# Verify tables in Postgres
+docker exec -it lms_postgres psql -U lms_user -d lms_db
+# Inside psql
+\dt
+# See:
+users
+teacher
+student
+course
+student_course
+teacher_course
+learning_material
+notes
+assignments
+questions
+mcq_options
+student_assignments
+student_answers
+teacher_principal_consent
+alembic_version

@@ -17,3 +17,10 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+def get_db():
+    db = SessionLocal()   # open DB session
+    try:
+        yield db          # give it to the API route
+    finally:
+        db.close()        # close after request

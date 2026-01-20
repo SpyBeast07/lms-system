@@ -1,15 +1,23 @@
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 
 class MaterialType(str, Enum):
     notes = "notes"
     assignment = "assignment"
 
-class LearningMaterialCreate(BaseModel):
+class BaseMaterialCreate(BaseModel):
     course_id: int
     title: str
-    type: MaterialType
+
+class NotesCreate(BaseMaterialCreate):
+    content_url: str
+
+class AssignmentCreate(BaseMaterialCreate):
+    assignment_type: str  # mcq | long
+    total_marks: float
+    due_date: date
+    max_attempts: int = 1
 
 class LearningMaterialRead(BaseModel):
     id: int

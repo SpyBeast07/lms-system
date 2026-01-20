@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from sqlalchemy import text
+
+from app.db.session import engine
 
 app = FastAPI(title="LMS Backend") # Object of fastAPI class
 
@@ -8,9 +11,18 @@ def hello_world():
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "ok",
-        "database": "not connected yet"
-    }
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {
+            "status": "ok",
+            "database": "connected"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "database": "not connected",
+            "detail": str(e)
+        }
 
 # uv run uvicorn app.main:app --reload

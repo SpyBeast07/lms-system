@@ -1,4 +1,3 @@
-```
 # LMS Backend (FastAPI)
 
 A backend system for a **Learning Management System (LMS)** built using **FastAPI**, **PostgreSQL**, **SQLAlchemy**, and **JWT authentication**.
@@ -89,11 +88,7 @@ Exit:
 
 ## **🐍 Step 3 — Install Dependencies**
 
-### **Using**
-
-### **uv**
-
-### **(recommended)**
+### **Using uv (recommended)**
 
 ```
 uv venv

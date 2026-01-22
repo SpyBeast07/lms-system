@@ -4,6 +4,9 @@ from datetime import datetime, UTC
 from app.db.models.course import Course
 from app.schemas.course import CourseCreate, CourseUpdate
 
+from app.db.models.teacher_course import TeacherCourse
+from app.db.models.student_course import StudentCourse
+from app.db.models.user import User
 
 def create_course(db: Session, course_in: CourseCreate) -> Course:
     course = Course(
@@ -16,13 +19,48 @@ def create_course(db: Session, course_in: CourseCreate) -> Course:
     return course
 
 
-def list_courses(db: Session):
+def get_courses(db: Session):
     return (
         db.query(Course)
         .filter(Course.is_deleted == False)
         .all()
     )
 
+
+def get_courses_for_user(db: Session, user: User):
+    # Admin & Principal → all courses
+    if user.role in ("super_admin", "principal"):
+        return (
+            db.query(Course)
+            .filter(Course.is_deleted == False)
+            .all()
+        )
+
+    # Teacher → assigned courses
+    if user.role == "teacher":
+        return (
+            db.query(Course)
+            .join(TeacherCourse, TeacherCourse.course_id == Course.id)
+            .filter(
+                TeacherCourse.teacher_id == user.id,
+                Course.is_deleted == False,
+            )
+            .all()
+        )
+
+    # Student → enrolled courses
+    if user.role == "student":
+        return (
+            db.query(Course)
+            .join(StudentCourse, StudentCourse.course_id == Course.id)
+            .filter(
+                StudentCourse.student_id == user.id,
+                Course.is_deleted == False,
+            )
+            .all()
+        )
+
+    return []
 
 def get_course(db: Session, course_id: int):
     return (
@@ -33,7 +71,6 @@ def get_course(db: Session, course_id: int):
         )
         .first()
     )
-
 
 def get_course_any(db: Session, course_id: int):
     return db.query(Course).filter(Course.id == course_id).first()

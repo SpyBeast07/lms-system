@@ -5,9 +5,9 @@ from app.crud.user import hash_password
 
 db: Session = SessionLocal()
 
-user = db.query(User).filter(User.email == "alice@example.com").first()
+user = db.query(User).filter(User.email == "principal@example.com").first()
 
-user.password_hash = hash_password("NewPassword123")
+user.password_hash = hash_password("Principal123")
 db.commit()
 
 print("Password reset successful")

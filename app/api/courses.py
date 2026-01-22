@@ -25,7 +25,7 @@ def list_courses_api(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return course_crud.get_courses(db)
+    return course_crud.get_courses_for_user(db, current_user)
 
 
 # GET → any logged-in user

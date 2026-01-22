@@ -4,56 +4,45 @@ from datetime import datetime, UTC
 from app.db.models.learning_material import LearningMaterial
 from app.db.models.notes import Notes
 from app.db.models.assignment import Assignment
-from app.schemas.learning_material import NotesCreate, AssignmentCreate
+from app.schemas.learning_material import (
+    NotesCreate,
+    AssignmentCreate,
+    LearningMaterialUpdate,
+)
 
 
-# -------------------- CREATE NOTES --------------------
+# -------------------- CREATE --------------------
 
-def create_notes(
-    db: Session,
-    teacher_id: int,
-    data: NotesCreate,
-):
-    # create learning material
+def create_notes(db: Session, teacher_id: int, data: NotesCreate) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
         created_by_teacher_id=teacher_id,
         title=data.title,
         type="notes",
-        created_at=datetime.now(UTC),
     )
-
     db.add(material)
-    db.flush()  # get material.id without commit
+    db.flush()  # get material.id
 
-    # create notes entry
     notes = Notes(
         material_id=material.id,
         content_url=data.content_url,
     )
-
     db.add(notes)
+
     db.commit()
     db.refresh(material)
-
     return material
 
 
-# -------------------- CREATE ASSIGNMENT --------------------
-
 def create_assignment(
-    db: Session,
-    teacher_id: int,
-    data: AssignmentCreate,
-):
+    db: Session, teacher_id: int, data: AssignmentCreate
+) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
         created_by_teacher_id=teacher_id,
         title=data.title,
         type="assignment",
-        created_at=datetime.now(UTC),
     )
-
     db.add(material)
     db.flush()
 
@@ -64,9 +53,64 @@ def create_assignment(
         due_date=data.due_date,
         max_attempts=data.max_attempts,
     )
-
     db.add(assignment)
+
     db.commit()
     db.refresh(material)
-
     return material
+
+
+# -------------------- READ --------------------
+
+def get_material(db: Session, material_id: int):
+    return (
+        db.query(LearningMaterial)
+        .filter(
+            LearningMaterial.id == material_id,
+            LearningMaterial.is_deleted == False,
+        )
+        .first()
+    )
+
+
+def get_material_any(db: Session, material_id: int):
+    return (
+        db.query(LearningMaterial)
+        .filter(LearningMaterial.id == material_id)
+        .first()
+    )
+
+
+# -------------------- UPDATE --------------------
+
+def update_material(
+    db: Session,
+    material: LearningMaterial,
+    data: LearningMaterialUpdate,
+):
+    for field, value in data.dict(exclude_unset=True).items():
+        setattr(material, field, value)
+
+    material.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(material)
+    return material
+
+
+# -------------------- DELETE / RESTORE --------------------
+
+def soft_delete_material(db: Session, material: LearningMaterial):
+    material.is_deleted = True
+    material.updated_at = datetime.now(UTC)
+    db.commit()
+
+
+def restore_material(db: Session, material: LearningMaterial):
+    material.is_deleted = False
+    material.updated_at = datetime.now(UTC)
+    db.commit()
+
+
+def hard_delete_material(db: Session, material: LearningMaterial):
+    db.delete(material)
+    db.commit()

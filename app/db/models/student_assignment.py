@@ -1,6 +1,7 @@
-from sqlalchemy import Integer, Enum, TIMESTAMP, Numeric, ForeignKey, UniqueConstraint
+from sqlalchemy import Integer, Enum, TIMESTAMP, Numeric, ForeignKey, UniqueConstraint, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from datetime import datetime, UTC
 
 from app.db.base import Base
 
@@ -15,22 +16,20 @@ class StudentAssignment(Base):
     )
 
     student_id: Mapped[int] = mapped_column(
-        Integer,
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False
     )
 
     assignment_id: Mapped[int] = mapped_column(
-        Integer,
         ForeignKey("assignments.material_id", ondelete="CASCADE"),
         nullable=False
     )
 
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    submitted_at: Mapped[str | None] = mapped_column(
+    submitted_at: Mapped[datetime | None] = mapped_column(
         TIMESTAMP(timezone=True),
-        server_default=func.now()
+        nullable=True
     )
 
     total_score: Mapped[float | None] = mapped_column(Numeric)
@@ -39,7 +38,23 @@ class StudentAssignment(Base):
         Enum("submitted", "evaluated", name="assignment_status"),
         nullable=False
     )
-    
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
     student = relationship("User")
     assignment = relationship("Assignment")
-    answers = relationship("StudentAnswer", back_populates="student_assignment")
+    answers = relationship(
+        "StudentAnswer",
+        back_populates="student_assignment"
+    )

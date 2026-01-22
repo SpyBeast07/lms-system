@@ -1,5 +1,6 @@
-from sqlalchemy import Integer, String, Enum, TIMESTAMP, func
+from sqlalchemy import Integer, String, Enum, TIMESTAMP, func, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime, UTC
 
 from app.db.base import Base
 
@@ -16,29 +17,34 @@ class User(Base):
         String, nullable=False, unique=True
     )
 
-    password_hash: Mapped[str] = mapped_column(
-        String, nullable=False
-    )
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     role: Mapped[str] = mapped_column(
-        Enum("super_admin", "principal", "teacher", "student", name="user_roles"),
+        Enum(
+            "super_admin", "principal", "teacher", "student",
+            name="user_roles"
+        ),
         nullable=False
     )
 
-    created_at: Mapped[str] = mapped_column(
+    created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         server_default=func.now(),
         nullable=False
     )
-    
-    teacher = relationship(
-        "Teacher",
-        back_populates="user",
-        uselist=False
+
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False
     )
-    
-    student = relationship(
-        "Student",
-        back_populates="user",
-        uselist=False
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
     )
+
+    teacher = relationship("Teacher", back_populates="user", uselist=False)
+    student = relationship("Student", back_populates="user", uselist=False)

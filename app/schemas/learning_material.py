@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime, date
 from enum import Enum
+from typing import Optional
 
 class MaterialType(str, Enum):
     notes = "notes"
@@ -29,3 +30,6 @@ class LearningMaterialRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LearningMaterialUpdate(BaseModel):
+    title: Optional[str] = None

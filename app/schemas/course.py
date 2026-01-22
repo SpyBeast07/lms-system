@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
+from typing import Optional
 
 class CourseCreate(BaseModel):
     name: str
@@ -22,3 +23,7 @@ class CourseRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CourseUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None

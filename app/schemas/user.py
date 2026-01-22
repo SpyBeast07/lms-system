@@ -24,3 +24,8 @@ class UserRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    role: Optional[str] = None

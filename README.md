@@ -1,51 +1,81 @@
-# LMS Backend (FastAPI)
+# LMS Backend System
 
-A backend system for a **Learning Management System (LMS)** built using **FastAPI**, **PostgreSQL**, **SQLAlchemy**, and **JWT authentication**.
+A robust, enterprise-grade Learning Management System (LMS) backend built with **FastAPI**, designed using **Domain-Driven Design (DDD)** principles and a **Feature-Based Architecture**.
 
-This project implements:
-- User management
-- Course management
-- Teacher–course & student–course mapping
-- Learning materials (notes & assignments)
-- Secure authentication with **access + refresh tokens**
-- Role-based authorization
-- Soft delete & restore logic
+## 🚀 Overview
 
----
+This backend powers an educational platform supporting Students, Teachers, Principals, and Super Admins. It handles complex workflows including course management, enrollment, authentication, and content delivery with a focus on scalability, maintainability, and security.
 
-## 🚀 Tech Stack
-
-- **FastAPI** – API framework
-- **PostgreSQL** – Database
-- **SQLAlchemy ORM**
-- **Alembic** – Migrations
-- **JWT (python-jose)** – Authentication
-- **Argon2 (passlib)** – Password hashing
-- **Docker** – Database container
-- **uv** – Python package & runtime manager
+### Key Features
+- **Role-Based Access Control (RBAC)**: Fine-grained permissions for Super Admin, Principal, Teacher, and Student.
+- **Secure Authentication**: Implementation of OAuth2 with JWT Access & Refresh Token rotation.
+- **Domain-Driven Architecture**: Codebase organized by business domains (Auth, Users, Courses, Enrollments) for better modularity.
+- **Service Layer Pattern**: Business logic isolated from API routes for reusability and testing.
+- **Soft Delete System**: Data preservation with soft delete and restore capabilities.
 
 ---
 
-## 📁 Project Structure (High Level)
+## � Tech Stack
+
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (High performance, async python)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/)
+- **Migrations**: [Alembic](https://alembic.sqlalchemy.org/)
+- **Authentication**: JWT (JSON Web Tokens) with Argon2 hashing
+- **Containerization**: Docker & Docker Compose
+- **Package Manager**: [uv](https://github.com/astral-sh/uv) (Blazing fast Python package manager)
+
+---
+
+## � Project Structure
+
+The project follows a **Feature-Based** directory structure, grouping related logic (Routes, Models, Schemas, Services) together.
 
 ```
 app/
-├── api/                # API routes
-├── auth/               # Authentication & authorization
-├── crud/               # Business logic
-├── db/
-│   ├── models/         # ORM models
-│   ├── session.py
-├── schemas/            # Pydantic schemas
-├── main.py             # App entry point
-alembic/                # Migrations
-
+├── core/               # Shared infrastructure (DB connection, Security, Config)
+├── features/           # Feature modules
+│   ├── auth/           # Authentication (Login, Refresh, Logout)
+│   ├── users/          # User management & Roles
+│   ├── courses/        # Course creation, Materials, Assignments
+│   └── enrollments/    # Student/Teacher Course mappings
+└── main.py             # Application entry point
 ```
+
+### Architectural Pattern
+- **Router (Controller)**: Handles HTTP requests/responses. Delegates logic to Service.
+- **Service (Business Layer)**: Contains all business logic, validation, and transaction management.
+- **Model (Data Layer)**: SQLAlchemy ORM models representing database tables.
+- **Schema (DTOs)**: Pydantic models for request/response validation.
+
 ---
 
-## 🐳 Step 1 — Run PostgreSQL using Docker
+## ⚡️ Quick Start
 
-### Pull & run Postgres container
+### Prerequisites
+- Python 3.12+
+- Docker & Docker Compose
+- `uv` (recommended) or `pip`
+
+### 1. Setup Environment
+Clone the repository and create a virtual environment.
+
+```bash
+# Install uv (if not installed)
+pip install uv
+
+# Create virtual environment
+uv venv
+
+# Activate virtual environment
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+```
+
+### 2. Configure Database
+Start a PostgreSQL container using Docker.
 
 ```bash
 docker run --name lms_postgres \
@@ -56,148 +86,49 @@ docker run --name lms_postgres \
   -d postgres
 ```
 
-### **Check container status**
+### 3. Run Migrations
+Apply database schema changes.
 
-```
-docker ps
-```
-
----
-
-## **🗄️ Step 2 — Access the Database**
-
-```
-docker exec -it lms_postgres psql -U lms_user -d lms_db
-```
-
-Useful commands inside psql:
-
-```
-\dt            -- list tables
-\d users       -- describe table
-SELECT * FROM users;
-```
-
-Exit:
-
-```
-\q
-```
-
----
-
-## **🐍 Step 3 — Install Dependencies**
-
-### **Using uv (recommended)**
-
-```
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-```
-
-### **Or using pip**
-
-```
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
----
-
-## **🧬 Step 4 — Run Database Migrations**
-
-```
+```bash
 uv run alembic upgrade head
 ```
 
-This creates all tables in PostgreSQL.
+### 4. Start the Server
+Run the FastAPI development server.
 
----
-
-## **▶️ Step 5 — Run the Application**
-
-```
+```bash
 uv run uvicorn app.main:app --reload
 ```
 
-Server will start at:
-
-```
-http://127.0.0.1:8000
-```
+The API will be available at: **http://127.0.0.1:8000**
 
 ---
 
-## **📖 Swagger API Docs**
+## 📖 API Documentation
 
-Open in browser:
+FastAPI provides automatic interactive documentation.
 
-```
-http://127.0.0.1:8000/docs
-```
+- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
-Features available in Swagger:
-
-- Login (/auth/login)
-- JWT authorization (Authorize button)
-- All CRUD APIs
-- Refresh token flow
+### Authentication Workflow
+1.  **Login**: `POST /auth/login` with credentials.
+2.  **Authorize**: Copy `access_token` and click **Authorize** in Swagger UI (enter `Bearer <token>`).
+3.  **Use API**: Authenticated endpoints can now be accessed.
+4.  **Refresh**: When access token expires, use `POST /auth/refresh` with your `refresh_token`.
 
 ---
 
-## **🔐 Authentication Flow (Quick)**
+## ✅ Development Guidelines
 
-1. **Login** → /auth/login
-    - Returns access_token + refresh_token
-2. Click **Authorize** in Swagger
-    - Use: Bearer <access_token>
-3. Call protected APIs
-4. When access token expires → /auth/refresh
-
----
-
-## **👥 Roles Supported**
-
-- super_admin
-- principal
-- teacher
-- student
-
-Role-based access is enforced at route level.
+- **New Features**: Create a new directory in `app/features/`.
+- **Database Changes**:
+    1.  Modify/Add models in the respective feature `models.py`.
+    2.  Import the model in `app/core/db_base.py`.
+    3.  Run `alembic revision --autogenerate -m "message"`.
+    4.  Run `alembic upgrade head`.
 
 ---
 
-## **🧹 Soft Delete Logic**
-
-- Records are **never removed immediately**
-- is_deleted = true
-- Can be restored
-- CRUD layer always filters deleted records
-
----
-
-## **🧪 Health Check**
-
-```
-GET /health
-```
-
----
-
-## **✅ Status**
-
-- Authentication & authorization implemented
-- Refresh token rotation implemented
-- Secure session handling
-- Ready for further features (assignments, submissions, evaluation)
-
----
-
-## **🛠️ Run Again (Quick Commands)**
-
-```
-docker start lms_postgres
-uv run uvicorn app.main:app --reload
-```
+## � License
+This project is proprietary and confidential.

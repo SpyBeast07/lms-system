@@ -1,17 +1,21 @@
 from fastapi import FastAPI
 from sqlalchemy import text
-from app.db.session import engine
+from app.core.database import engine
 
 app = FastAPI(title="LMS Backend") # Object of fastAPI class
 
-from app.api import users, courses, teacher_course, student_course, learning_material
-from app.auth.router import router as auth_router
+from app.features.users.router import router as users_router
+from app.features.courses.router import router as courses_router
+from app.features.enrollments.router_teacher import router as teacher_course_router
+from app.features.enrollments.router_student import router as student_course_router
+from app.features.courses.router_materials import router as learning_material_router
+from app.features.auth.router import router as auth_router
 
-app.include_router(users.router)
-app.include_router(courses.router)
-app.include_router(teacher_course.router)
-app.include_router(student_course.router)
-app.include_router(learning_material.router)
+app.include_router(users_router)
+app.include_router(courses_router)
+app.include_router(teacher_course_router)
+app.include_router(student_course_router)
+app.include_router(learning_material_router)
 app.include_router(auth_router)
 
 @app.get("/hello_world") # decorator - A function that wraps another function and adds behavior to it.

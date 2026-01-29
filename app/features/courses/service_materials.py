@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from datetime import datetime, UTC
 
 from app.features.courses.models_materials import LearningMaterial
@@ -13,7 +14,7 @@ from app.features.courses.schemas_materials import (
 
 # -------------------- CREATE --------------------
 
-def create_notes(db: Session, teacher_id: int, data: NotesCreate) -> LearningMaterial:
+async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
         created_by_teacher_id=teacher_id,
@@ -21,7 +22,7 @@ def create_notes(db: Session, teacher_id: int, data: NotesCreate) -> LearningMat
         type="notes",
     )
     db.add(material)
-    db.flush()  # get material.id
+    await db.flush()  # get material.id
 
     notes = Notes(
         material_id=material.id,
@@ -29,13 +30,13 @@ def create_notes(db: Session, teacher_id: int, data: NotesCreate) -> LearningMat
     )
     db.add(notes)
 
-    db.commit()
-    db.refresh(material)
+    await db.commit()
+    await db.refresh(material)
     return material
 
 
-def create_assignment(
-    db: Session, teacher_id: int, data: AssignmentCreate
+async def create_assignment(
+    db: AsyncSession, teacher_id: int, data: AssignmentCreate
 ) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
@@ -44,7 +45,7 @@ def create_assignment(
         type="assignment",
     )
     db.add(material)
-    db.flush()
+    await db.flush()
 
     assignment = Assignment(
         material_id=material.id,
@@ -55,36 +56,34 @@ def create_assignment(
     )
     db.add(assignment)
 
-    db.commit()
-    db.refresh(material)
+    await db.commit()
+    await db.refresh(material)
     return material
 
 
 # -------------------- READ --------------------
 
-def get_material(db: Session, material_id: int):
-    return (
-        db.query(LearningMaterial)
-        .filter(
+async def get_material(db: AsyncSession, material_id: int):
+    result = await db.execute(
+        select(LearningMaterial).filter(
             LearningMaterial.id == material_id,
             LearningMaterial.is_deleted == False,
         )
-        .first()
     )
+    return result.scalars().first()
 
 
-def get_material_any(db: Session, material_id: int):
-    return (
-        db.query(LearningMaterial)
-        .filter(LearningMaterial.id == material_id)
-        .first()
+async def get_material_any(db: AsyncSession, material_id: int):
+    result = await db.execute(
+        select(LearningMaterial).filter(LearningMaterial.id == material_id)
     )
+    return result.scalars().first()
 
 
 # -------------------- UPDATE --------------------
 
-def update_material(
-    db: Session,
+async def update_material(
+    db: AsyncSession,
     material: LearningMaterial,
     data: LearningMaterialUpdate,
 ):
@@ -92,25 +91,25 @@ def update_material(
         setattr(material, field, value)
 
     material.updated_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(material)
+    await db.commit()
+    await db.refresh(material)
     return material
 
 
 # -------------------- DELETE / RESTORE --------------------
 
-def soft_delete_material(db: Session, material: LearningMaterial):
+async def soft_delete_material(db: AsyncSession, material: LearningMaterial):
     material.is_deleted = True
     material.updated_at = datetime.now(UTC)
-    db.commit()
+    await db.commit()
 
 
-def restore_material(db: Session, material: LearningMaterial):
+async def restore_material(db: AsyncSession, material: LearningMaterial):
     material.is_deleted = False
     material.updated_at = datetime.now(UTC)
-    db.commit()
+    await db.commit()
 
 
-def hard_delete_material(db: Session, material: LearningMaterial):
-    db.delete(material)
-    db.commit()
+async def hard_delete_material(db: AsyncSession, material: LearningMaterial):
+    await db.delete(material)
+    await db.commit()

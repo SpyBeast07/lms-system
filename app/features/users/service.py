@@ -1,66 +1,63 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.features.users.models import User
 from app.features.users.schemas import UserCreate
 from datetime import datetime, UTC
-from passlib.context import CryptContext
+from app.features.auth.hashing import hash_password
 
-pwd_context = CryptContext(
-    schemes=["argon2"],
-    deprecated="auto",
-)
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def create_user(db: Session, user_in: UserCreate) -> User:
+async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     user = User(
         name=user_in.name,
         email=user_in.email,
-        password_hash=hash_password(user_in.password),
+        password_hash=await hash_password(user_in.password),
         role=user_in.role,
         created_at=datetime.now(UTC),
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
-def list_users(db: Session):
-    return (
-        db.query(User)
-        .filter(User.is_deleted == False)
-        .all()
+async def list_users(db: AsyncSession):
+    result = await db.execute(
+        select(User).filter(User.is_deleted == False)
     )
+    return result.scalars().all()
 
-def get_user(db: Session, user_id: int):
-    return (
-        db.query(User)
-        .filter(
+async def get_user(db: AsyncSession, user_id: int):
+    result = await db.execute(
+        select(User).filter(
             User.id == user_id,
             User.is_deleted == False
         )
-        .first()
     )
+    return result.scalars().first()
 
-def update_user(db: Session, user: User, data):
+async def get_user_any(db: AsyncSession, user_id: int):
+    result = await db.execute(
+        select(User).filter(User.id == user_id)
+    )
+    return result.scalars().first()
+
+async def update_user(db: AsyncSession, user: User, data):
     for field, value in data.dict(exclude_unset=True).items():
         setattr(user, field, value)
 
     user.updated_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
-def soft_delete_user(db: Session, user: User):
+async def soft_delete_user(db: AsyncSession, user: User):
     user.is_deleted = True
     user.updated_at = datetime.now(UTC)
-    db.commit()
+    await db.commit()
 
-def restore_user(db: Session, user: User):
+async def restore_user(db: AsyncSession, user: User):
     user.is_deleted = False
     user.updated_at = datetime.now(UTC)
-    db.commit()
+    await db.commit()
 
-def hard_delete_user(db: Session, user: User):
-    db.delete(user)
-    db.commit()
+async def hard_delete_user(db: AsyncSession, user: User):
+    await db.delete(user)
+    await db.commit()

@@ -18,8 +18,8 @@ This backend powers an educational platform supporting Students, Teachers, Princ
 ## � Tech Stack
 
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (High performance, async python)
-- **Database**: [PostgreSQL](https://www.postgresql.org/)
-- **ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (Async via `asyncpg`)
+- **ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (AsyncIO support)
 - **Migrations**: [Alembic](https://alembic.sqlalchemy.org/)
 - **Authentication**: JWT (JSON Web Tokens) with Argon2 hashing
 - **Containerization**: Docker & Docker Compose

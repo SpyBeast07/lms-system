@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 
 from app.features.enrollments.models_teacher import TeacherCourse
@@ -6,18 +7,20 @@ from app.features.users.models import User
 from app.features.courses.models import Course
 
 
-def assign_teacher_to_course(
-    db: Session,
+async def assign_teacher_to_course(
+    db: AsyncSession,
     teacher_id: int,
     course_id: int,
 ):
     # 1️⃣ Check teacher exists and is a teacher
-    teacher = db.query(User).filter(User.id == teacher_id).first()
+    result = await db.execute(select(User).filter(User.id == teacher_id))
+    teacher = result.scalars().first()
     if not teacher or teacher.role not in ("teacher", "principal"):
         raise ValueError("User is not a teacher")
 
     # 2️⃣ Check course exists
-    course = db.query(Course).filter(Course.id == course_id).first()
+    result = await db.execute(select(Course).filter(Course.id == course_id))
+    course = result.scalars().first()
     if not course:
         raise ValueError("Course not found")
 
@@ -30,9 +33,9 @@ def assign_teacher_to_course(
     db.add(mapping)
 
     try:
-        db.commit()
+        await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise ValueError("Teacher already assigned to this course")
 
     return mapping

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.courses.schemas_materials import (
@@ -14,13 +14,13 @@ router = APIRouter(prefix="/materials", tags=["Learning Material"])
 
 
 @router.post("/notes/{teacher_id}")
-def create_notes_api(
+async def create_notes_api(
     teacher_id: int,
     data: NotesCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher")),
 ):
-    material = material_crud.create_notes(db, teacher_id, data)
+    material = await material_crud.create_notes(db, teacher_id, data)
     return {
         "id": material.id,
         "title": material.title,
@@ -29,13 +29,13 @@ def create_notes_api(
 
 
 @router.post("/assignments/{teacher_id}")
-def create_assignment_api(
+async def create_assignment_api(
     teacher_id: int,
     data: AssignmentCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher")),
 ):
-    material = material_crud.create_assignment(db, teacher_id, data)
+    material = await material_crud.create_assignment(db, teacher_id, data)
     return {
         "id": material.id,
         "title": material.title,
@@ -44,42 +44,42 @@ def create_assignment_api(
 
 
 @router.put("/{material_id}")
-def update_material_api(
+async def update_material_api(
     material_id: int,
     data: LearningMaterialUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher")),
 ):
-    material = material_crud.get_material(db, material_id)
+    material = await material_crud.get_material(db, material_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
-    return material_crud.update_material(db, material, data)
+    return await material_crud.update_material(db, material, data)
 
 
 @router.delete("/{material_id}")
-def delete_material_api(
+async def delete_material_api(
     material_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher")),
 ):
-    material = material_crud.get_material(db, material_id)
+    material = await material_crud.get_material(db, material_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
-    material_crud.soft_delete_material(db, material)
+    await material_crud.soft_delete_material(db, material)
     return {"status": "deleted"}
 
 
 @router.post("/{material_id}/restore")
-def restore_material_api(
+async def restore_material_api(
     material_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher")),
 ):
-    material = material_crud.get_material_any(db, material_id)
+    material = await material_crud.get_material_any(db, material_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
-    material_crud.restore_material(db, material)
+    await material_crud.restore_material(db, material)
     return {"status": "restored"}

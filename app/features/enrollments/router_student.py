@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.enrollments.schemas_student import StudentCourseCreate
@@ -10,12 +10,12 @@ router = APIRouter(prefix="/student-course", tags=["Student-Course"])
 
 
 @router.post("/")
-def enroll_student(
+async def enroll_student(
     data: StudentCourseCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("super_admin", "principal")),
 ):
-    enroll_student_in_course(
+    await enroll_student_in_course(
         db,
         student_id=data.student_id,
         course_id=data.course_id,

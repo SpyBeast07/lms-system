@@ -1,8 +1,16 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy import text
 from app.core.database import engine
 
-app = FastAPI(title="LMS Backend") # Object of fastAPI class
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup logic (if any)
+    yield
+    # Shutdown logic
+    await engine.dispose()
+
+app = FastAPI(title="LMS Backend", lifespan=lifespan) # Object of fastAPI class
 
 from app.features.users.router import router as users_router
 from app.features.courses.router import router as courses_router
@@ -23,10 +31,10 @@ def hello_world():
     return {"message": "Hello World"}
 
 @app.get("/health")
-def health_check():
+async def health_check():
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        async with engine.connect() as connection:
+            await connection.execute(text("SELECT 1"))
         return {
             "status": "ok",
             "database": "connected"

@@ -1,0 +1,176 @@
+Table users [headercolor: #175e7a] {
+	Id integer [ pk, increment, not null, unique ]
+	Name text [ not null ]
+	email text [ not null, unique ]
+	password_hash text [ not null ]
+	role enum(super_admin,principal,teacher,student) [ not null ]
+	created_at timestamp [ not null ]
+}
+
+Table teacher [headercolor: #175e7a] {
+	user_id integer [ pk, not null, unique ]
+	department text
+	designation text
+}
+
+Table student [headercolor: #175e7a] {
+	user_id integer [ pk, not null, unique ]
+	roll_number integer [ not null ]
+	class varchar [ not null ]
+}
+
+Table course [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	name text [ not null ]
+	description text [ not null ]
+	created_at timestamp [ not null ]
+}
+
+Table student_course [headercolor: #175e7a] {
+	student_id integer [ not null ]
+	course_id integer [ not null ]
+}
+
+Table teacher_course [headercolor: #175e7a] {
+	teacher_id integer [ not null ]
+	course_id integer [ not null ]
+}
+
+Table learning_material [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	course_id integer [ not null ]
+	created_by_teacher_id integer [ not null ]
+	title text [ not null ]
+	type enum(notes,assignment) [ not null ]
+	created_at timestamp [ not null ]
+}
+
+Table notes [headercolor: #175e7a] {
+	material_id integer [ pk, not null, unique ]
+	content_url text [ not null ]
+}
+
+Table assignments [headercolor: #175e7a] {
+	material_id integer [ pk, not null, unique ]
+	assignment_type enum(mcq,long) [ not null ]
+	total_marks decimal [ not null ]
+	due_date date [ not null ]
+	max_attempts integer [ not null, default: 1 ]
+}
+
+Table questions [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	assignment_id integer [ not null ]
+	question_text text [ not null ]
+	question_type enum(mcq,long) [ not null ]
+	marks decimal [ not null ]
+}
+
+Table mcq_options [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	question_id integer [ not null ]
+	option_text text [ not null ]
+	is_correct boolean [ not null ]
+	answers text [ not null ]
+}
+
+Table student_assignments [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	student_id integer [ not null ]
+	assignment_id integer [ not null ]
+	attempt_number integer [ not null ]
+	submitted_at timestamp
+	total_score decimal
+	status enum(submitted,evaluated) [ not null ]
+}
+
+Table student_answers [headercolor: #175e7a] {
+	id integer [ pk, increment, not null, unique ]
+	student_assignment_id integer [ not null ]
+	question_id integer [ not null ]
+	answer_text text
+	selected_option_id integer
+	marks_obtained decimal
+}
+
+Table teacher_principal_consent [headercolor: #175e7a] {
+	teacher_id integer [ not null ]
+	principal_id integer [ not null ]
+	is_granted boolean [ not null ]
+}
+
+Ref fk_notes_material_id_learning_material {
+	notes.material_id - learning_material.id [ delete: no action, update: no action ]
+}
+
+Ref fk_teacher_user_id_users {
+	teacher.user_id - users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_user_id_users {
+	student.user_id - users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_assignments_material_id_learning_material {
+	assignments.material_id - learning_material.id [ delete: no action, update: no action ]
+}
+
+Ref fk_questions_assignment_id_assignments {
+	questions.assignment_id > assignments.material_id [ delete: no action, update: no action ]
+}
+
+Ref fk_mcq_options_question_id_questions {
+	mcq_options.question_id > questions.id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_assignments_student_id_users {
+	student_assignments.student_id > users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_assignments_assignment_id_assignments {
+	student_assignments.assignment_id > assignments.material_id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_answers_student_assignment_id_student_assignments {
+	student_answers.student_assignment_id > student_assignments.id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_answers_question_id_questions {
+	student_answers.question_id > questions.id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_answers_selected_option_id_mcq_options {
+	student_answers.selected_option_id > mcq_options.id [ delete: no action, update: no action ]
+}
+
+Ref fk_teacher_principal_consent_teacher_id_users {
+	teacher_principal_consent.teacher_id - users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_teacher_principal_consent_principal_id_users {
+	teacher_principal_consent.principal_id > users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_course_student_id_users {
+	student_course.student_id - users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_student_course_course_id_course {
+	student_course.course_id > course.id [ delete: no action, update: no action ]
+}
+
+Ref fk_teacher_course_course_id_course {
+	teacher_course.course_id > course.id [ delete: no action, update: no action ]
+}
+
+Ref fk_teacher_course_teacher_id_users {
+	teacher_course.teacher_id - users.Id [ delete: no action, update: no action ]
+}
+
+Ref fk_learning_material_course_id_course {
+	learning_material.course_id > course.id [ delete: no action, update: no action ]
+}
+
+Ref fk_learning_material_created_by_teacher_id_users {
+	learning_material.created_by_teacher_id > users.Id [ delete: no action, update: no action ]
+}

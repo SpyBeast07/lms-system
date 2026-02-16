@@ -18,6 +18,7 @@ from app.features.enrollments.router_teacher import router as teacher_course_rou
 from app.features.enrollments.router_student import router as student_course_router
 from app.features.courses.router_materials import router as learning_material_router
 from app.features.auth.router import router as auth_router
+from app.features.files import router as files_router
 
 app.include_router(users_router)
 app.include_router(courses_router)
@@ -25,6 +26,7 @@ app.include_router(teacher_course_router)
 app.include_router(student_course_router)
 app.include_router(learning_material_router)
 app.include_router(auth_router)
+app.include_router(files_router, prefix="/api/v1")
 
 @app.get("/hello_world") # decorator - A function that wraps another function and adds behavior to it.
 def hello_world():

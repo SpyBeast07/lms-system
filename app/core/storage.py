@@ -5,7 +5,7 @@ This module provides S3-compatible object storage functionality using MinIO.
 It handles file uploads, downloads, and URL generation for the LMS system.
 """
 
-import os
+from app.core.config import settings
 import uuid
 from datetime import timedelta
 from typing import BinaryIO, Optional
@@ -36,16 +36,16 @@ class MinIOClient:
         access_key: str = None,
         secret_key: str = None,
         bucket_name: str = None,
-        secure: bool = False,
-        url_expiry: int = 3600
+        secure: bool = None,
+        url_expiry: int = None
     ):
-        """Initialize MinIO client with configuration from environment variables."""
-        self.endpoint = endpoint or os.getenv("MINIO_ENDPOINT", "localhost:9000")
-        self.access_key = access_key or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        self.secret_key = secret_key or os.getenv("MINIO_SECRET_KEY", "minioadmin")
-        self.bucket_name = bucket_name or os.getenv("MINIO_BUCKET_NAME", "lms-files")
-        self.secure = secure if secure is not None else os.getenv("MINIO_SECURE", "false").lower() == "true"
-        self.url_expiry = url_expiry or int(os.getenv("MINIO_URL_EXPIRY", "3600"))
+        """Initialize MinIO client with configuration from settings."""
+        self.endpoint = endpoint or settings.MINIO_ENDPOINT
+        self.access_key = access_key or settings.MINIO_ACCESS_KEY
+        self.secret_key = secret_key or settings.MINIO_SECRET_KEY
+        self.bucket_name = bucket_name or settings.MINIO_BUCKET_NAME
+        self.secure = secure if secure is not None else settings.MINIO_SECURE
+        self.url_expiry = url_expiry or settings.MINIO_URL_EXPIRY
         
         # Initialize MinIO client
         self.client = Minio(

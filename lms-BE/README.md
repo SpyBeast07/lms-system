@@ -12,6 +12,8 @@ This backend powers an educational platform supporting Students, Teachers, Princ
 - **Domain-Driven Architecture**: Codebase organized by business domains (Auth, Users, Courses, Enrollments) for better modularity.
 - **Service Layer Pattern**: Business logic isolated from API routes for reusability and testing.
 - **Soft Delete System**: Data preservation with soft delete and restore capabilities.
+- **File Management**: Upload and manage files with secure storage integration.
+- **System Health Checks**: Built-in endpoints to monitor application and database status.
 
 ---
 
@@ -38,7 +40,8 @@ app/
 │   ├── auth/           # Authentication (Login, Refresh, Logout)
 │   ├── users/          # User management & Roles
 │   ├── courses/        # Course creation, Materials, Assignments
-│   └── enrollments/    # Student/Teacher Course mappings
+│   ├── enrollments/    # Student/Teacher Course mappings
+│   └── files/          # File upload and management
 └── main.py             # Application entry point
 ```
 

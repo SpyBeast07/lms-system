@@ -1,5 +1,5 @@
 
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import computed_field
 
@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "CHANGE_ME_SECRET"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # CORS
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173"]
 
     model_config = SettingsConfigDict(
         env_file=".env",

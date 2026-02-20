@@ -8,11 +8,11 @@ import { Modal } from '../../../shared/components/ui/Modal';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { Button } from '../../../shared/components/Button';
+import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
+import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
 import { useToastStore } from '../../../app/store/toastStore';
-import { getErrorMessage } from '../../../shared/utils/error';
 
 export const ManageMaterialsPage: React.FC = () => {
-    const { addToast } = useToastStore();
     const { data: courses, isLoading: isCoursesLoading } = useTeacherCourses();
     const [selectedCourse, setSelectedCourse] = useState<string>('');
 
@@ -37,64 +37,49 @@ export const ManageMaterialsPage: React.FC = () => {
 
     const handleEditSubmit = (data: { title: string }) => {
         if (!editTarget) return;
-        updateMutation.mutate({ id: editTarget.id.toString(), data: { title: data.title } }, {
-            onSuccess: () => {
-                addToast('Material title updated successfully', 'success');
-                setEditTarget(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to update material'), 'error');
-            }
-        });
+        updateMutation.mutate({ id: editTarget.id.toString(), data: { title: data.title } }, mutationToastHandlers(
+            'Material title updated successfully',
+            undefined,
+            () => setEditTarget(null)
+        ));
     };
 
     const handleDeleteConfirm = () => {
         if (!deleteTarget) return;
-        deleteMutation.mutate(deleteTarget, {
-            onSuccess: () => {
-                addToast('Material archived successfully', 'success');
-                setDeleteTarget(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to archive material'), 'error');
-                setDeleteTarget(null);
-            }
-        });
+        deleteMutation.mutate(deleteTarget, mutationToastHandlers(
+            'Material archived successfully',
+            undefined,
+            () => setDeleteTarget(null),
+            () => setDeleteTarget(null)
+        ));
     };
 
     const handleRestoreConfirm = () => {
         if (!restoreTarget) return;
-        restoreMutation.mutate(restoreTarget, {
-            onSuccess: () => {
-                addToast('Material restored successfully', 'success');
-                setRestoreTarget(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to restore material'), 'error');
-                setRestoreTarget(null);
-            }
-        });
+        restoreMutation.mutate(restoreTarget, mutationToastHandlers(
+            'Material restored successfully',
+            undefined,
+            () => setRestoreTarget(null),
+            () => setRestoreTarget(null)
+        ));
     };
 
     const handleDownload = (fileUrl: string) => {
-        // fileUrl is like http://localhost:9000/lms-files/uuid.pdf
         const parts = fileUrl.split('/');
-        // S3 Path Style ensures bucket is part 3. Everything onwards is the pure object key:
         const objectName = parts.slice(4).join('/');
 
         if (!objectName) {
-            addToast('Invalid file reference', 'error');
+            useToastStore.getState().addToast('Invalid file reference', 'error');
             return;
         }
 
-        presignedMutation.mutate({ object_name: objectName }, {
-            onSuccess: (data) => {
+        presignedMutation.mutate({ object_name: objectName }, mutationToastHandlers(
+            '',
+            'Failed to generate secure download link',
+            (data: any) => {
                 window.open(data.url, '_blank');
-            },
-            onError: () => {
-                addToast('Failed to generate secure download link', 'error');
             }
-        });
+        ));
     };
 
     const columns = [
@@ -185,7 +170,7 @@ export const ManageMaterialsPage: React.FC = () => {
                     className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2.5 bg-slate-50 border outline-none transition-all"
                 >
                     <option value="">-- View Select Course --</option>
-                    {courses?.map((c) => (
+                    {((courses as any)?.items || []).map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                 </select>
@@ -195,11 +180,12 @@ export const ManageMaterialsPage: React.FC = () => {
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     {isError ? (
                         <div className="p-8 text-red-500 bg-red-50 text-center font-medium">Failed to synchronize materials array from the server.</div>
+                    ) : isLoading ? (
+                        <SkeletonTable rows={5} cols={4} />
                     ) : (
                         <Table<any>
                             data={materials || []}
                             columns={columns}
-                            isLoading={isLoading}
                             emptyMessage="No learning materials have been structured in this course."
                         />
                     )}

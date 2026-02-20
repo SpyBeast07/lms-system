@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStudentCourses } from '../hooks/useStudentCourses';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
-import { useTeacherAssignmentsQuery } from '../../enrollments/hooks/useEnrollments';
 import { Table } from '../../../shared/components/ui/Table';
+import { Pagination } from '../../../shared/components/ui/Pagination';
 import { Link } from '@tanstack/react-router';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
@@ -29,22 +29,11 @@ const CourseCountsCell = ({ courseId }: { courseId: string }) => {
     );
 };
 
-const InstructorCell = ({ courseId }: { courseId: string }) => {
-    const { data: assignments, isLoading } = useTeacherAssignmentsQuery();
-    if (isLoading) return <span className="text-slate-400 text-xs animate-pulse">Loading...</span>;
-
-    // Find the teacher assigned to this course
-    const teacher = assignments?.find((a: any) => a.course_id === courseId);
-
-    return (
-        <span className="text-slate-600 font-medium text-sm">
-            {teacher ? teacher.teacher_name : <span className="text-slate-400 italic">Unassigned</span>}
-        </span>
-    );
-};
 
 export const StudentCoursesPage: React.FC = () => {
-    const { data: courses, isLoading, isError, error } = useStudentCourses();
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const { data: courses, isLoading, isError, error } = useStudentCourses(page, limit);
 
     const columns = [
         {
@@ -56,10 +45,6 @@ export const StudentCoursesPage: React.FC = () => {
                     <span className="text-xs text-slate-500 max-w-xs truncate block mt-0.5">{row.description || 'No description'}</span>
                 </div>
             )
-        },
-        {
-            header: 'Instructor',
-            cell: ({ row }: { row: Course }) => <InstructorCell courseId={row.id.toString()} />
         },
         {
             header: 'Available Curriculum',
@@ -89,10 +74,12 @@ export const StudentCoursesPage: React.FC = () => {
     if (isLoading) return <div className="p-8 text-slate-500 animate-pulse">Loading your courses...</div>;
     if (isError) return <div className="p-8 text-red-500">Failed to load courses: {(error as any)?.message}</div>;
 
+    const allCourses = (courses as any)?.items || [];
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-12">
             <DashboardSummary
-                courseCount={courses?.length || 0}
+                courseCount={(courses as any)?.total || 0}
                 materialCount={38} // Simulated metric based on sum 
                 assignmentCount={4} // Simulated metric
                 isLoading={isLoading}
@@ -105,12 +92,20 @@ export const StudentCoursesPage: React.FC = () => {
                 </div>
             </div>
 
-            <Table<Course>
-                data={courses || []}
-                columns={columns}
-                isLoading={isLoading}
-                emptyMessage="You are not enrolled in any courses yet."
-            />
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <Table<Course>
+                    data={allCourses}
+                    columns={columns}
+                    emptyMessage="You are not enrolled in any courses yet."
+                />
+                <Pagination
+                    currentPage={page}
+                    totalItems={(courses as any)?.total || 0}
+                    pageSize={limit}
+                    onPageChange={setPage}
+                    isLoading={isLoading}
+                />
+            </div>
 
             <div className="pt-4">
                 <ActivityTimeline activities={mockActivities} />

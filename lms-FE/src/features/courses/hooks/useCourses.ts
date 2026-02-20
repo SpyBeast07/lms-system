@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { coursesService } from '../services';
 import type { CourseCreateData } from '../schemas';
 
 const COURSES_KEY = [{ entity: 'courses' }] as const;
 
-export const useCoursesQuery = () => {
+export const useCoursesQuery = (page = 1, limit = 10, deleted?: boolean) => {
     return useQuery({
-        queryKey: COURSES_KEY,
-        queryFn: coursesService.getCourses,
+        queryKey: [...COURSES_KEY, { page, limit, deleted }],
+        queryFn: () => coursesService.getCourses(page, limit, deleted),
     });
 };
 
@@ -23,7 +23,7 @@ export const useCreateCourseMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: CourseCreateData) => coursesService.createCourse(data),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: COURSES_KEY });
         }
     });
@@ -33,7 +33,7 @@ export const useDeleteCourseMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => coursesService.deleteCourse(id),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: COURSES_KEY });
         }
     });
@@ -43,7 +43,7 @@ export const useRestoreCourseMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => coursesService.restoreCourse(id),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: COURSES_KEY });
         }
     });

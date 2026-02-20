@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useReducer } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,20 +14,49 @@ import { Button } from '../../../shared/components/Button';
 import { Table } from '../../../shared/components/ui/Table';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
-import { useToastStore } from '../../../app/store/toastStore';
-import { getErrorMessage } from '../../../shared/utils/error';
+import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
+import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
+import { Pagination } from '../../../shared/components/ui/Pagination';
 import type { Course } from '../schemas';
 
+type UiState = {
+    isCreateModalOpen: boolean;
+    courseToDelete: string | null;
+    courseToRestore: string | null;
+};
+
+type UiAction =
+    | { type: 'OPEN_CREATE' }
+    | { type: 'CLOSE_CREATE' }
+    | { type: 'SET_DELETE'; id: string | null }
+    | { type: 'SET_RESTORE'; id: string | null };
+
+const uiReducer = (state: UiState, action: UiAction): UiState => {
+    switch (action.type) {
+        case 'OPEN_CREATE': return { ...state, isCreateModalOpen: true };
+        case 'CLOSE_CREATE': return { ...state, isCreateModalOpen: false };
+        case 'SET_DELETE': return { ...state, courseToDelete: action.id };
+        case 'SET_RESTORE': return { ...state, courseToRestore: action.id };
+        default: return state;
+    }
+};
+
 export const CoursesPage: React.FC = () => {
-    const { data: courses, isLoading, isError, error } = useCoursesQuery();
+    const [activePage, setActivePage] = useState(1);
+    const [deletedPage, setDeletedPage] = useState(1);
+    const limit = 10;
+    const activeQuery = useCoursesQuery(activePage, limit, false);
+    const deletedQuery = useCoursesQuery(deletedPage, limit, true);
     const createMutation = useCreateCourseMutation();
     const deleteMutation = useDeleteCourseMutation();
     const restoreMutation = useRestoreCourseMutation();
-    const { addToast } = useToastStore();
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
-    const [courseToRestore, setCourseToRestore] = useState<string | null>(null);
+    const [ui, dispatch] = useReducer(uiReducer, {
+        isCreateModalOpen: false,
+        courseToDelete: null,
+        courseToRestore: null,
+    });
+    const { isCreateModalOpen, courseToDelete, courseToRestore } = ui;
 
     const {
         register,
@@ -39,50 +68,40 @@ export const CoursesPage: React.FC = () => {
     });
 
     const onSubmit = (data: CourseCreateData) => {
-        createMutation.mutate(data, {
-            onSuccess: () => {
-                addToast('Course created successfully!', 'success');
-                setIsCreateModalOpen(false);
+        createMutation.mutate(data, mutationToastHandlers(
+            'Course created successfully!',
+            undefined,
+            () => {
+                dispatch({ type: 'CLOSE_CREATE' });
                 reset();
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to create course'), 'error');
             }
-        });
+        ));
     };
 
     const handleDeleteConfirm = () => {
         if (!courseToDelete) return;
 
-        deleteMutation.mutate(courseToDelete, {
-            onSuccess: () => {
-                addToast('Course deleted successfully.', 'success');
-                setCourseToDelete(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to delete course'), 'error');
-                setCourseToDelete(null);
-            }
-        });
+        deleteMutation.mutate(courseToDelete, mutationToastHandlers(
+            'Course deleted successfully.',
+            undefined,
+            () => dispatch({ type: 'SET_DELETE', id: null }),
+            () => dispatch({ type: 'SET_DELETE', id: null })
+        ));
     };
 
     const handleRestoreConfirm = () => {
         if (!courseToRestore) return;
 
-        restoreMutation.mutate(courseToRestore, {
-            onSuccess: () => {
-                addToast('Course restored successfully.', 'success');
-                setCourseToRestore(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to restore course'), 'error');
-                setCourseToRestore(null);
-            }
-        });
+        restoreMutation.mutate(courseToRestore, mutationToastHandlers(
+            'Course restored successfully.',
+            undefined,
+            () => dispatch({ type: 'SET_RESTORE', id: null }),
+            () => dispatch({ type: 'SET_RESTORE', id: null })
+        ));
     };
 
-    const activeCourses = courses?.filter(c => !c.is_deleted) || [];
-    const deletedCourses = courses?.filter(c => c.is_deleted) || [];
+    const activeCourses: Course[] = (activeQuery.data as any)?.items || [];
+    const deletedCourses: Course[] = (deletedQuery.data as any)?.items || [];
 
     const activeColumns = [
         {
@@ -106,7 +125,7 @@ export const CoursesPage: React.FC = () => {
                         View
                     </Link>
                     <button
-                        onClick={() => setCourseToDelete(row.id)}
+                        onClick={() => dispatch({ type: 'SET_DELETE', id: row.id })}
                         className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"
                     >
                         Delete
@@ -130,7 +149,7 @@ export const CoursesPage: React.FC = () => {
             cell: ({ row }: { row: Course }) => (
                 <div className="flex justify-start">
                     <button
-                        onClick={() => setCourseToRestore(row.id)}
+                        onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
                         Restore
@@ -140,44 +159,79 @@ export const CoursesPage: React.FC = () => {
         }
     ];
 
-    if (isLoading) return <div className="p-8 text-slate-500">Loading courses...</div>;
-    if (isError) return <div className="p-8 text-red-500">Failed to load courses: {error?.message}</div>;
+    if (activeQuery.isLoading || deletedQuery.isLoading) {
+        return (
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <div className="h-8 w-48 bg-slate-200 animate-pulse rounded"></div>
+                    <div className="h-10 w-32 bg-slate-200 animate-pulse rounded-lg"></div>
+                </div>
+                <div className="space-y-4">
+                    <div className="h-6 w-32 bg-slate-200 animate-pulse rounded"></div>
+                    <SkeletonTable rows={5} cols={3} />
+                </div>
+            </div>
+        );
+    }
+    if (activeQuery.isError || deletedQuery.isError) {
+        return (
+            <div className="p-8 text-red-500">
+                Failed to load courses: {activeQuery.error?.message || deletedQuery.error?.message}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-slate-800">Course Management</h1>
-                <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
+                <Button onClick={() => dispatch({ type: 'OPEN_CREATE' })} variant="primary">
                     Create Course
                 </Button>
             </div>
 
             <div className="space-y-4">
                 <h2 className="text-lg font-bold text-slate-700">Active Courses</h2>
-                <Table<Course>
-                    data={activeCourses}
-                    columns={activeColumns}
-                    isLoading={isLoading}
-                    emptyMessage="No active courses found."
-                />
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <Table<Course>
+                        data={activeCourses}
+                        columns={activeColumns}
+                        emptyMessage="No active courses found."
+                    />
+                    <Pagination
+                        currentPage={activePage}
+                        totalItems={(activeQuery.data as any)?.total || 0}
+                        pageSize={limit}
+                        onPageChange={setActivePage}
+                        isLoading={activeQuery.isLoading}
+                    />
+                </div>
             </div>
 
-            {deletedCourses.length > 0 && (
+            {((deletedQuery.data as any)?.total > 0 || deletedCourses.length > 0) && (
                 <div className="space-y-4">
                     <h2 className="text-lg font-bold text-slate-700">Deleted Courses</h2>
-                    <Table<Course>
-                        data={deletedCourses}
-                        columns={deletedColumns}
-                        isLoading={false}
-                        emptyMessage="No deleted courses found."
-                    />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <Table<Course>
+                            data={deletedCourses}
+                            columns={deletedColumns}
+                            emptyMessage="No deleted courses found."
+                        />
+                        <Pagination
+                            currentPage={deletedPage}
+                            totalItems={(deletedQuery.data as any)?.total || 0}
+                            pageSize={limit}
+                            onPageChange={setDeletedPage}
+                            isLoading={deletedQuery.isLoading}
+                        />
+                    </div>
                 </div>
             )}
 
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => {
-                    setIsCreateModalOpen(false);
+                    dispatch({ type: 'CLOSE_CREATE' });
                     reset();
                 }}
                 title="Create New Course"
@@ -201,7 +255,7 @@ export const CoursesPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => {
-                                setIsCreateModalOpen(false);
+                                dispatch({ type: 'CLOSE_CREATE' });
                                 reset();
                             }}
                             className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
@@ -223,7 +277,7 @@ export const CoursesPage: React.FC = () => {
                 variant="danger"
                 isLoading={deleteMutation.isPending}
                 onConfirm={handleDeleteConfirm}
-                onCancel={() => setCourseToDelete(null)}
+                onCancel={() => dispatch({ type: 'SET_DELETE', id: null })}
             />
 
             <ConfirmDialog
@@ -234,7 +288,7 @@ export const CoursesPage: React.FC = () => {
                 variant="primary"
                 isLoading={restoreMutation.isPending}
                 onConfirm={handleRestoreConfirm}
-                onCancel={() => setCourseToRestore(null)}
+                onCancel={() => dispatch({ type: 'SET_RESTORE', id: null })}
             />
         </div>
     );

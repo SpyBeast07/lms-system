@@ -37,9 +37,10 @@ export const AssignTeacherForm: React.FC = () => {
         });
     };
 
-    const teachers = users?.filter(u => u.role === 'teacher') || [];
-    const courseOptions = (courses || []).map(c => ({ value: c.id, label: c.name }));
-    const teacherOptions = teachers.map(t => ({ value: t.id, label: `${t.name} (${t.email})` }));
+    const courseOptions = ((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name }));
+    const teacherOptions = ((users as any)?.items || []).filter((u: any) => u.role === 'teacher').map((t: any) => ({ value: t.id, label: `${t.name} (${t.email})` }));
+
+    // ... rest of the component
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

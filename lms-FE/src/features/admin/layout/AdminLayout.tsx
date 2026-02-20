@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Sidebar } from './Sidebar';
 
-export const AdminLayout: React.FC = () => {
+export const AdminLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden">
             {/* Left Sidebar */}
@@ -16,7 +16,7 @@ export const AdminLayout: React.FC = () => {
 
                 <main className="flex-1 overflow-y-auto p-8 relative">
                     <div className="max-w-7xl mx-auto">
-                        <Outlet />
+                        {children || <Outlet />}
                     </div>
                 </main>
             </div>

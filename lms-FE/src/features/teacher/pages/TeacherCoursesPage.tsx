@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTeacherCourses } from '../hooks/useTeacherCourses';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
 import { Table } from '../../../shared/components/ui/Table';
+import { Pagination } from '../../../shared/components/ui/Pagination';
 import { Link } from '@tanstack/react-router';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
@@ -30,7 +31,9 @@ const CourseCountsCell = ({ courseId }: { courseId: string }) => {
 };
 
 export const TeacherCoursesPage: React.FC = () => {
-    const { data: courses, isLoading, isError, error } = useTeacherCourses();
+    const [page, setPage] = useState(1);
+    const limit = 10;
+    const { data, isLoading, isError, error } = useTeacherCourses(page, limit);
 
     const columns = [
         {
@@ -84,10 +87,12 @@ export const TeacherCoursesPage: React.FC = () => {
     if (isLoading) return <div className="p-8 text-slate-500 animate-pulse">Loading assigned courses...</div>;
     if (isError) return <div className="p-8 text-red-500">Failed to load courses: {(error as any)?.message}</div>;
 
+    const courses = (data as any)?.items || [];
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-12">
             <DashboardSummary
-                courseCount={courses?.length || 0}
+                courseCount={(data as any)?.total || 0}
                 materialCount={14} // Simulated metric 
                 assignmentCount={5} // Simulated metric
                 isLoading={isLoading}
@@ -106,12 +111,20 @@ export const TeacherCoursesPage: React.FC = () => {
                 </Link>
             </div>
 
-            <Table<Course>
-                data={courses || []}
-                columns={columns}
-                isLoading={isLoading}
-                emptyMessage="You have not been assigned any courses yet."
-            />
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <Table<Course>
+                    data={courses}
+                    columns={columns}
+                    emptyMessage="You have not been assigned any courses yet."
+                />
+                <Pagination
+                    currentPage={page}
+                    totalItems={(data as any)?.total || 0}
+                    pageSize={limit}
+                    onPageChange={setPage}
+                    isLoading={isLoading}
+                />
+            </div>
 
             <div className="pt-4">
                 <ActivityTimeline activities={mockActivities} />

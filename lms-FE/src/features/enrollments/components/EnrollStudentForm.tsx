@@ -37,9 +37,8 @@ export const EnrollStudentForm: React.FC = () => {
         });
     };
 
-    const students = users?.filter(u => u.role === 'student') || [];
-    const courseOptions = (courses || []).map(c => ({ value: c.id, label: c.name }));
-    const studentOptions = students.map(s => ({ value: s.id, label: `${s.name} (${s.email})` }));
+    const courseOptions = ((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name }));
+    const studentOptions = ((users as any)?.items || []).filter((u: any) => u.role === 'student').map((s: any) => ({ value: s.id, label: `${s.name} (${s.email})` }));
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

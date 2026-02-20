@@ -31,7 +31,7 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <DashboardSummary
-                courseCount={courses?.length || 0}
+                courseCount={(courses as any)?.total || 0}
                 materialCount={42} // Simulated metric based on database scale
                 assignmentCount={18} // Simulated metric
                 isLoading={isLoading}

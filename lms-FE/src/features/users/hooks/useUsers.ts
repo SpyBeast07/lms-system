@@ -1,13 +1,13 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usersService } from '../services';
 import type { UserCreateData } from '../schemas';
 
 const USERS_KEY = [{ entity: 'users' }] as const;
 
-export const useUsersQuery = () => {
+export const useUsersQuery = (page = 1, limit = 10, deleted?: boolean) => {
     return useQuery({
-        queryKey: USERS_KEY,
-        queryFn: usersService.getUsers,
+        queryKey: [...USERS_KEY, { page, limit, deleted }],
+        queryFn: () => usersService.getUsers(page, limit, deleted),
     });
 };
 
@@ -15,7 +15,7 @@ export const useCreateUserMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: UserCreateData) => usersService.createUser(data),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: USERS_KEY });
         }
     });
@@ -25,7 +25,7 @@ export const useDeleteUserMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => usersService.deleteUser(id),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: USERS_KEY });
         }
     });
@@ -35,7 +35,7 @@ export const useRestoreUserMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (id: string) => usersService.restoreUser(id),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: USERS_KEY });
         }
     });

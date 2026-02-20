@@ -1,13 +1,14 @@
 import { usersApi } from './api';
 import type { User, UserCreateData, UserUpdateData } from './schemas';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 /**
  * Users Service Layer. 
  * Provides abstraction over the raw API layer. Add business logic here if needed.
  */
 export const usersService = {
-    getUsers: async (): Promise<User[]> => {
-        return await usersApi.getAll();
+    getUsers: async (page = 1, limit = 10, deleted?: boolean): Promise<PaginatedResponse<User>> => {
+        return await usersApi.getAll(page, limit, deleted);
     },
 
     getUserById: async (id: string): Promise<User> => {

@@ -29,6 +29,8 @@ import { StudentCoursePage } from '../../features/student/pages/StudentCoursePag
 import { AssignmentDetailPage } from '../../features/student/pages/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../../features/student/pages/AssignmentSubmissionPage';
 
+import { ErrorComponent } from '../../shared/components/ui/ErrorComponent';
+
 // 1. Root Route
 const rootRoute = createRootRoute({
     component: function RootRouteComponent() {
@@ -39,6 +41,11 @@ const rootRoute = createRootRoute({
             </div>
         );
     },
+    errorComponent: ({ error, reset }) => (
+        <div className="p-8">
+            <ErrorComponent error={error} reset={reset} />
+        </div>
+    ),
 });
 
 // 2. Login Route
@@ -118,6 +125,13 @@ const adminRoute = createRoute({
             </ProtectedRoute>
         );
     },
+    errorComponent: ({ error, reset }) => (
+        <AdminLayout>
+            <div className="p-8">
+                <ErrorComponent error={error} reset={reset} />
+            </div>
+        </AdminLayout>
+    ),
 });
 
 const adminIndexRoute = createRoute({
@@ -181,6 +195,13 @@ const teacherRoute = createRoute({
             </ProtectedRoute>
         );
     },
+    errorComponent: ({ error, reset }) => (
+        <TeacherLayout>
+            <div className="p-8">
+                <ErrorComponent error={error} reset={reset} />
+            </div>
+        </TeacherLayout>
+    ),
 });
 
 const teacherIndexRoute = createRoute({
@@ -226,6 +247,13 @@ const studentRoute = createRoute({
             </ProtectedRoute>
         );
     },
+    errorComponent: ({ error, reset }) => (
+        <StudentLayout>
+            <div className="p-8">
+                <ErrorComponent error={error} reset={reset} />
+            </div>
+        </StudentLayout>
+    ),
 });
 
 const studentIndexRoute = createRoute({

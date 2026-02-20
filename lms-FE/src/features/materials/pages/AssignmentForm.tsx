@@ -60,7 +60,7 @@ export const AssignmentForm: React.FC = () => {
                         register={register('course_id')}
                         options={[
                             { value: '', label: 'Select a course...' },
-                            ...(courses?.map(c => ({ value: c.id, label: c.name })) || [])
+                            ...(((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name })) || [])
                         ]}
                         error={errors.course_id?.message}
                     />

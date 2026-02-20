@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useReducer } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { userCreateSchema, type UserCreateData } from '../schemas';
@@ -14,20 +14,51 @@ import { Button } from '../../../shared/components/Button';
 import { Table } from '../../../shared/components/ui/Table';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
-import { useToastStore } from '../../../app/store/toastStore';
-import { getErrorMessage } from '../../../shared/utils/error';
+import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
+import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
+import { Pagination } from '../../../shared/components/ui/Pagination';
 import type { User } from '../schemas';
 
+type UiState = {
+    isCreateModalOpen: boolean;
+    userToDelete: string | null;
+    userToRestore: string | null;
+};
+
+type UiAction =
+    | { type: 'OPEN_CREATE' }
+    | { type: 'CLOSE_CREATE' }
+    | { type: 'SET_DELETE'; id: string | null }
+    | { type: 'SET_RESTORE'; id: string | null };
+
+const uiReducer = (state: UiState, action: UiAction): UiState => {
+    switch (action.type) {
+        case 'OPEN_CREATE': return { ...state, isCreateModalOpen: true };
+        case 'CLOSE_CREATE': return { ...state, isCreateModalOpen: false };
+        case 'SET_DELETE': return { ...state, userToDelete: action.id };
+        case 'SET_RESTORE': return { ...state, userToRestore: action.id };
+        default: return state;
+    }
+};
+
 export const UsersPage: React.FC = () => {
-    const { data: users, isLoading, isError, error } = useUsersQuery();
+    const [activePage, setActivePage] = useState(1);
+    const [deletedPage, setDeletedPage] = useState(1);
+    const limit = 10;
+
+    const activeQuery = useUsersQuery(activePage, limit, false);
+    const deletedQuery = useUsersQuery(deletedPage, limit, true);
+
     const createMutation = useCreateUserMutation();
     const deleteMutation = useDeleteUserMutation();
     const restoreMutation = useRestoreUserMutation();
-    const { addToast } = useToastStore();
 
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<string | null>(null);
-    const [userToRestore, setUserToRestore] = useState<string | null>(null);
+    const [ui, dispatch] = useReducer(uiReducer, {
+        isCreateModalOpen: false,
+        userToDelete: null,
+        userToRestore: null,
+    });
+    const { isCreateModalOpen, userToDelete, userToRestore } = ui;
 
     const {
         register,
@@ -39,50 +70,40 @@ export const UsersPage: React.FC = () => {
     });
 
     const onSubmit = (data: UserCreateData) => {
-        createMutation.mutate(data, {
-            onSuccess: () => {
-                addToast('User created successfully!', 'success');
-                setIsCreateModalOpen(false);
+        createMutation.mutate(data, mutationToastHandlers(
+            'User created successfully!',
+            undefined,
+            () => {
+                dispatch({ type: 'CLOSE_CREATE' });
                 reset();
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to create user'), 'error');
             }
-        });
+        ));
     };
 
     const handleDeleteConfirm = () => {
         if (!userToDelete) return;
 
-        deleteMutation.mutate(userToDelete, {
-            onSuccess: () => {
-                addToast('User deleted successfully.', 'success');
-                setUserToDelete(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to delete user'), 'error');
-                setUserToDelete(null);
-            }
-        });
+        deleteMutation.mutate(userToDelete, mutationToastHandlers(
+            'User deleted successfully.',
+            undefined,
+            () => dispatch({ type: 'SET_DELETE', id: null }),
+            () => dispatch({ type: 'SET_DELETE', id: null })
+        ));
     };
 
     const handleRestoreConfirm = () => {
         if (!userToRestore) return;
 
-        restoreMutation.mutate(userToRestore, {
-            onSuccess: () => {
-                addToast('User restored successfully.', 'success');
-                setUserToRestore(null);
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to restore user'), 'error');
-                setUserToRestore(null);
-            }
-        });
+        restoreMutation.mutate(userToRestore, mutationToastHandlers(
+            'User restored successfully.',
+            undefined,
+            () => dispatch({ type: 'SET_RESTORE', id: null }),
+            () => dispatch({ type: 'SET_RESTORE', id: null })
+        ));
     };
 
-    const activeUsers = users?.filter(u => !u.is_deleted) || [];
-    const deletedUsers = users?.filter(u => u.is_deleted) || [];
+    const activeUsers: User[] = (activeQuery.data as any)?.items || [];
+    const deletedUsers: User[] = (deletedQuery.data as any)?.items || [];
 
     const activeColumns = [
         { header: 'Name', accessorKey: 'name' as keyof User },
@@ -100,7 +121,7 @@ export const UsersPage: React.FC = () => {
             cell: ({ row }: { row: User }) => (
                 <div className="flex justify-start">
                     <button
-                        onClick={() => setUserToDelete(row.id)}
+                        onClick={() => dispatch({ type: 'SET_DELETE', id: row.id })}
                         className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"
                     >
                         Delete
@@ -132,7 +153,7 @@ export const UsersPage: React.FC = () => {
             cell: ({ row }: { row: User }) => (
                 <div className="flex justify-start">
                     <button
-                        onClick={() => setUserToRestore(row.id)}
+                        onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
                         Restore
@@ -142,44 +163,80 @@ export const UsersPage: React.FC = () => {
         }
     ];
 
-    if (isLoading) return <div className="p-8 text-slate-500">Loading users...</div>;
-    if (isError) return <div className="p-8 text-red-500">Failed to load users: {error?.message}</div>;
+    if (activeQuery.isLoading || deletedQuery.isLoading) {
+        return (
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <div className="h-8 w-48 bg-slate-200 animate-pulse rounded"></div>
+                    <div className="h-10 w-32 bg-slate-200 animate-pulse rounded-lg"></div>
+                </div>
+                <div className="space-y-4">
+                    <div className="h-6 w-32 bg-slate-200 animate-pulse rounded"></div>
+                    <SkeletonTable rows={5} cols={4} />
+                </div>
+            </div>
+        );
+    }
+    if (activeQuery.isError || deletedQuery.isError) {
+        return (
+            <div className="p-8 text-red-500">
+                Failed to load users: {activeQuery.error?.message || deletedQuery.error?.message}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-                <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
+                <Button onClick={() => dispatch({ type: 'OPEN_CREATE' })} variant="primary">
                     Create User
                 </Button>
             </div>
 
             <div className="space-y-4">
                 <h2 className="text-lg font-bold text-slate-700">Active Users</h2>
-                <Table<User>
-                    data={activeUsers}
-                    columns={activeColumns}
-                    isLoading={isLoading}
-                    emptyMessage="No active users found in the system."
-                />
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <Table<User>
+                        data={activeUsers}
+                        columns={activeColumns}
+                        emptyMessage="No active users found."
+                    />
+                    <Pagination
+                        currentPage={activePage}
+                        totalItems={(activeQuery.data as any)?.total || 0}
+                        pageSize={limit}
+                        onPageChange={setActivePage}
+                        isLoading={activeQuery.isLoading}
+                    />
+                </div>
             </div>
 
-            {deletedUsers.length > 0 && (
+            {((deletedQuery.data as any)?.total > 0 || deletedUsers.length > 0) && (
                 <div className="space-y-4">
                     <h2 className="text-lg font-bold text-slate-700">Deleted Users</h2>
-                    <Table<User>
-                        data={deletedUsers}
-                        columns={deletedColumns}
-                        isLoading={false}
-                        emptyMessage="No deleted users found."
-                    />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <Table<User>
+                            data={deletedUsers}
+                            columns={deletedColumns}
+                            isLoading={false}
+                            emptyMessage="No deleted users found."
+                        />
+                        <Pagination
+                            currentPage={deletedPage}
+                            totalItems={(deletedQuery.data as any)?.total || 0}
+                            pageSize={limit}
+                            onPageChange={setDeletedPage}
+                            isLoading={deletedQuery.isLoading}
+                        />
+                    </div>
                 </div>
             )}
 
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={() => {
-                    setIsCreateModalOpen(false);
+                    dispatch({ type: 'CLOSE_CREATE' });
                     reset();
                 }}
                 title="Create New User"
@@ -220,7 +277,7 @@ export const UsersPage: React.FC = () => {
                         <button
                             type="button"
                             onClick={() => {
-                                setIsCreateModalOpen(false);
+                                dispatch({ type: 'CLOSE_CREATE' });
                                 reset();
                             }}
                             className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
@@ -242,7 +299,7 @@ export const UsersPage: React.FC = () => {
                 variant="danger"
                 isLoading={deleteMutation.isPending}
                 onConfirm={handleDeleteConfirm}
-                onCancel={() => setUserToDelete(null)}
+                onCancel={() => dispatch({ type: 'SET_DELETE', id: null })}
             />
 
             <ConfirmDialog
@@ -253,7 +310,7 @@ export const UsersPage: React.FC = () => {
                 variant="primary"
                 isLoading={restoreMutation.isPending}
                 onConfirm={handleRestoreConfirm}
-                onCancel={() => setUserToRestore(null)}
+                onCancel={() => dispatch({ type: 'SET_RESTORE', id: null })}
             />
         </div>
     );

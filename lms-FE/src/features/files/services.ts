@@ -2,9 +2,9 @@ import { filesApi } from './api';
 import type { PresignedUrlRequest } from './schemas';
 
 export const filesService = {
-    listFiles: async () => {
+    listFiles: async (page = 1, limit = 10) => {
         try {
-            return await filesApi.listFiles();
+            return await filesApi.listFiles(page, limit);
         } catch (error) {
             console.error('Failed to list files:', error);
             throw error;

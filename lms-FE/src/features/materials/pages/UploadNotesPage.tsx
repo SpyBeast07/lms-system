@@ -7,13 +7,13 @@ import { useTeacherCourses } from '../../teacher/hooks/useTeacherCourses';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
-import { useToastStore } from '../../../app/store/toastStore';
-import { getErrorMessage } from '../../../shared/utils/error';
+import { SkeletonForm } from '../../../shared/components/skeleton/Skeletons';
+import { mutationToastHandlers, useToaster } from '../../../shared/utils/queryToastHelpers';
 
 export const UploadNotesPage: React.FC = () => {
     const { data: courses, isLoading: isCoursesLoading } = useTeacherCourses();
     const uploadMutation = useUploadNotes();
-    const { addToast } = useToastStore();
+    const toast = useToaster();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     const {
@@ -33,7 +33,7 @@ export const UploadNotesPage: React.FC = () => {
 
     const onSubmit = (data: MaterialUploadFormData) => {
         if (!selectedFile) {
-            addToast('Please select a file to upload', 'error');
+            toast.error('Please select a file to upload');
             return;
         }
 
@@ -41,20 +41,29 @@ export const UploadNotesPage: React.FC = () => {
             file: selectedFile,
             title: data.title,
             course_id: data.course_id
-        }, {
-            onSuccess: () => {
-                addToast('Material uploaded successfully!', 'success');
+        }, mutationToastHandlers(
+            'Material uploaded successfully!',
+            undefined,
+            () => {
                 reset();
                 setSelectedFile(null);
-                // Reset file input visually
                 const fileInput = document.getElementById('file-upload') as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to upload material'), 'error');
             }
-        });
+        ));
     };
+
+    if (isCoursesLoading) {
+        return (
+            <div className="max-w-2xl mx-auto space-y-6">
+                <div>
+                    <div className="h-8 w-48 bg-slate-200 animate-pulse rounded"></div>
+                    <div className="h-4 w-64 bg-slate-200 animate-pulse rounded mt-2"></div>
+                </div>
+                <SkeletonForm fields={3} />
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-2xl mx-auto space-y-6">
@@ -79,7 +88,7 @@ export const UploadNotesPage: React.FC = () => {
                         register={register('course_id')}
                         options={[
                             { value: '', label: 'Select a course...' },
-                            ...(courses?.map(c => ({ value: c.id, label: c.name })) || [])
+                            ...((courses as any)?.items?.map((c: any) => ({ value: c.id, label: c.name })) || [])
                         ]}
                         error={errors.course_id?.message}
                     />

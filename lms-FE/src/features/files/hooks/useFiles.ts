@@ -4,10 +4,10 @@ import type { PresignedUrlRequest } from '../schemas';
 
 const FILES_KEY = [{ entity: 'files' }] as const;
 
-export const useFilesQuery = () => {
+export const useFilesQuery = (page = 1, limit = 10) => {
     return useQuery({
-        queryKey: FILES_KEY,
-        queryFn: filesService.listFiles,
+        queryKey: [...FILES_KEY, { page, limit }],
+        queryFn: () => filesService.listFiles(page, limit),
     });
 };
 
@@ -21,7 +21,7 @@ export const useDeleteFileMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (objectName: string) => filesService.deleteFile(objectName),
-        onSuccess: () => {
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: FILES_KEY });
         }
     });

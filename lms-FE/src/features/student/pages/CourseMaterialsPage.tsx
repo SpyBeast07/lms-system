@@ -32,7 +32,7 @@ export const CourseMaterialsPage: React.FC = () => {
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 bg-white border"
                 >
                     <option value="">Choose a course...</option>
-                    {courses?.map((c) => (
+                    {((courses as any)?.items || (Array.isArray(courses) ? courses : [])).map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                 </select>

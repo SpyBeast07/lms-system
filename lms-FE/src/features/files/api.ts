@@ -1,10 +1,13 @@
 import { api } from '../../shared/api/axios';
 import type { FileInfo, PresignedUrlRequest, PresignedUrlResponse } from './schemas';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 export const filesApi = {
-    listFiles: async (): Promise<FileInfo[]> => {
-        const response = await api.get('/api/v1/files/list');
-        return response.data.files || [];
+    listFiles: async (page = 1, limit = 10): Promise<PaginatedResponse<FileInfo>> => {
+        const response = await api.get('/api/v1/files/list', {
+            params: { page, limit }
+        });
+        return response.data;
     },
     getFileInfo: async (objectName: string): Promise<FileInfo> => {
         const response = await api.get(`/api/v1/files/info/${objectName}`);

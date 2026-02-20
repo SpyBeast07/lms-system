@@ -1,12 +1,13 @@
 import { coursesApi } from './api';
 import type { Course, CourseCreateData, CourseUpdateData } from './schemas';
+import type { PaginatedResponse } from '../../shared/types/pagination';
 
 /**
  * Courses Service Layer.
  */
 export const coursesService = {
-    getCourses: async (): Promise<Course[]> => {
-        return await coursesApi.getAll();
+    getCourses: async (page = 1, limit = 10, deleted?: boolean): Promise<PaginatedResponse<Course>> => {
+        return await coursesApi.getAll(page, limit, deleted);
     },
 
     getCourseById: async (id: string): Promise<Course> => {

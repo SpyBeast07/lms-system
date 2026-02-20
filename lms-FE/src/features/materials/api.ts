@@ -54,5 +54,11 @@ export const materialsApi = {
     deleteMaterial: async (id: string) => {
         const response = await api.delete(`/materials/${id}`);
         return response.data;
+    },
+
+    // 6. Restore Material
+    restoreMaterial: async (id: string) => {
+        const response = await api.post(`/materials/${id}/restore`);
+        return response.data;
     }
 };

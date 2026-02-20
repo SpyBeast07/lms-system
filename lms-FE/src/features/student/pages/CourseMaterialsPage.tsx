@@ -62,24 +62,13 @@ export const CourseMaterialsPage: React.FC = () => {
                                         <div className="p-6 text-slate-500 text-sm italic">No files have been published yet.</div>
                                     ) : (
                                         notes.map((note: any) => {
-                                            // Extract the minio object name from the full URL if necessary natively. 
-                                            // Assuming file_url directly maps to object_name natively in the database.
-                                            let objectName = note.file_url;
-                                            try {
-                                                // If URL, split it to get the path
-                                                const url = new URL(note.file_url);
-                                                objectName = url.pathname.replace(/^.*\/files\//, '');
-                                            } catch (e) {
-                                                objectName = note.file_url;
-                                            }
-
                                             return (
                                                 <div key={note.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                                     <div>
                                                         <p className="font-medium text-slate-800 text-sm">{note.title}</p>
                                                         <p className="text-xs text-slate-500 mt-1">Uploaded: {new Date(note.created_at).toLocaleDateString()}</p>
                                                     </div>
-                                                    <DownloadButton objectName={objectName} />
+                                                    <DownloadButton objectName={note.file_url} />
                                                 </div>
                                             );
                                         })

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { courseCreateSchema, type CourseCreateData } from '../schemas';
@@ -96,7 +97,14 @@ export const CoursesPage: React.FC = () => {
         {
             header: 'Actions',
             cell: ({ row }: { row: Course }) => (
-                <div className="flex justify-start">
+                <div className="flex justify-start gap-4">
+                    <Link
+                        to="/admin/courses/$courseId"
+                        params={{ courseId: row.id }}
+                        className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
+                    >
+                        View
+                    </Link>
                     <button
                         onClick={() => setCourseToDelete(row.id)}
                         className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"

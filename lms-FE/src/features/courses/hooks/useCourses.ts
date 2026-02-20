@@ -11,6 +11,14 @@ export const useCoursesQuery = () => {
     });
 };
 
+export const useCourseQuery = (id: string) => {
+    return useQuery({
+        queryKey: [...COURSES_KEY, id],
+        queryFn: () => coursesService.getCourseById(id),
+        enabled: !!id,
+    });
+};
+
 export const useCreateCourseMutation = () => {
     const queryClient = useQueryClient();
     return useMutation({

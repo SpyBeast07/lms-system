@@ -9,6 +9,7 @@ import { AdminDashboard } from '../../features/admin/pages/AdminDashboard';
 import { ProtectedRoute } from './ProtectedRoute';
 import { UsersPage } from '../../features/users/pages/UsersPage';
 import { CoursesPage } from '../../features/courses/pages/CoursesPage';
+import { CourseDetailPage } from '../../features/courses/pages/CourseDetailPage';
 import { EnrollmentsManagementPage } from '../../features/enrollments/pages/EnrollmentsManagementPage';
 import { FilesPage } from '../../features/files/pages/FilesPage';
 import { HealthPage } from '../../features/health/pages/HealthPage';
@@ -24,6 +25,8 @@ import { ManageMaterialsPage } from '../../features/materials/pages/ManageMateri
 import { StudentLayout } from '../../features/student/layout/StudentLayout';
 import { StudentCoursesPage } from '../../features/student/pages/StudentCoursesPage';
 import { CourseMaterialsPage } from '../../features/student/pages/CourseMaterialsPage';
+import { StudentCoursePage } from '../../features/student/pages/StudentCoursePage';
+import { AssignmentDetailPage } from '../../features/student/pages/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../../features/student/pages/AssignmentSubmissionPage';
 
 // 1. Root Route
@@ -143,6 +146,12 @@ const adminCoursesRoute = createRoute({
     component: CoursesPage,
 });
 
+const adminCourseDetailRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/courses/$courseId',
+    component: CourseDetailPage,
+});
+
 const adminEnrollmentsRoute = createRoute({
     getParentRoute: () => adminRoute,
     path: '/enrollments',
@@ -233,6 +242,18 @@ const studentCoursesRoute = createRoute({
     component: StudentCoursesPage,
 });
 
+const studentCourseDetailRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/courses/$courseId',
+    component: StudentCoursePage,
+});
+
+const studentAssignmentDetailRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/courses/$courseId/assignments/$assignmentId',
+    component: AssignmentDetailPage,
+});
+
 const studentMaterialsRoute = createRoute({
     getParentRoute: () => studentRoute,
     path: '/materials',
@@ -254,6 +275,7 @@ const routeTree = rootRoute.addChildren([
         adminDashboardRoute,
         adminUsersRoute,
         adminCoursesRoute,
+        adminCourseDetailRoute,
         adminEnrollmentsRoute,
         adminFilesRoute,
         adminHealthRoute
@@ -268,6 +290,8 @@ const routeTree = rootRoute.addChildren([
     studentRoute.addChildren([
         studentIndexRoute,
         studentCoursesRoute,
+        studentCourseDetailRoute,
+        studentAssignmentDetailRoute,
         studentMaterialsRoute,
         studentSubmissionRoute
     ])

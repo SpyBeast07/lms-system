@@ -85,7 +85,7 @@ export const AssignmentForm: React.FC = () => {
 
                     <FormInput
                         label="Due Date"
-                        type="datetime-local"
+                        type="date"
                         register={register('due_date')}
                         error={errors.due_date?.message}
                     />

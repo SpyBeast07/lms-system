@@ -14,8 +14,25 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ objectName, labe
 
     const handleDownload = async () => {
         try {
+            let cleanObjectName = '';
+
+            if (objectName.startsWith('http')) {
+                // If full URL, extract object key (everything after bucket)
+                const parts = objectName.split('/');
+                cleanObjectName = parts.slice(4).join('/');
+            } else {
+                // Already an object name or relative path
+                // But handle case where it might lead with a slash
+                cleanObjectName = objectName.startsWith('/') ? objectName.substring(1) : objectName;
+            }
+
+            if (!cleanObjectName) {
+                addToast('Invalid file reference', 'error');
+                return;
+            }
+
             setIsDownloading(true);
-            const response = await presignMutation.mutateAsync({ object_name: objectName });
+            const response = await presignMutation.mutateAsync({ object_name: cleanObjectName });
 
             // Open the secure MinIO S3 presigned URL implicitly natively
             window.open(response.url, '_blank');

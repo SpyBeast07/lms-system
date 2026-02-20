@@ -13,5 +13,8 @@ export const materialsService = {
     },
     deleteMaterial: async (id: string) => {
         return await materialsApi.deleteMaterial(id);
+    },
+    restoreMaterial: async (id: string) => {
+        return await materialsApi.restoreMaterial(id);
     }
 };

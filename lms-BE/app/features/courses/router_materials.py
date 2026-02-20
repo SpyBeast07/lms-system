@@ -12,6 +12,15 @@ from app.features.auth.dependencies import require_role
 
 router = APIRouter(prefix="/materials", tags=["Learning Material"])
 
+@router.get("/course/{course_id}")
+async def get_course_materials_api(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_role("teacher", "student", "admin"))
+):
+    materials = await material_crud.get_course_materials(db, course_id)
+    return materials
+
 
 @router.post("/notes/{teacher_id}")
 async def create_notes_api(

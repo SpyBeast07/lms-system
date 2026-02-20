@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from datetime import datetime, UTC
 
 from app.features.courses.models_materials import LearningMaterial
@@ -62,6 +63,41 @@ async def create_assignment(
 
 
 # -------------------- READ --------------------
+
+async def get_course_materials(db: AsyncSession, course_id: int):
+    result = await db.execute(
+        select(LearningMaterial)
+        .options(selectinload(LearningMaterial.notes), selectinload(LearningMaterial.assignment))
+        .filter(
+            LearningMaterial.course_id == course_id,
+            LearningMaterial.is_deleted == False
+        )
+        .order_by(LearningMaterial.created_at.desc())
+    )
+    materials = result.scalars().all()
+    
+    response = []
+    for m in materials:
+        item = {
+            "id": m.id,
+            "title": m.title,
+            "type": m.type,
+            "course_id": m.course_id,
+            "created_by_teacher_id": m.created_by_teacher_id,
+            "created_at": m.created_at,
+            "is_deleted": m.is_deleted
+        }
+        if m.type == "notes" and m.notes:
+            item["file_url"] = m.notes.content_url
+        elif m.type == "assignment" and m.assignment:
+            item["total_marks"] = m.assignment.total_marks
+            item["due_date"] = m.assignment.due_date
+            item["max_attempts"] = m.assignment.max_attempts
+            item["assignment_type"] = m.assignment.assignment_type
+            
+        response.append(item)
+        
+    return response
 
 async def get_material(db: AsyncSession, material_id: int):
     result = await db.execute(

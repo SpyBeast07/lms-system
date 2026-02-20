@@ -30,3 +30,13 @@ export const useDeleteCourseMutation = () => {
         }
     });
 };
+
+export const useRestoreCourseMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => coursesService.restoreCourse(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: COURSES_KEY });
+        }
+    });
+};

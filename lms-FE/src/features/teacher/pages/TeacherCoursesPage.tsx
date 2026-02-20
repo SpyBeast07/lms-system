@@ -8,9 +8,9 @@ export const TeacherCoursesPage: React.FC = () => {
 
     const columns = [
         {
-            header: 'Course Title',
-            accessorKey: 'title' as keyof Course,
-            cell: ({ row }: { row: Course }) => <span className="font-medium text-slate-800">{row.title}</span>
+            header: 'Course Name',
+            accessorKey: 'name' as keyof Course,
+            cell: ({ row }: { row: Course }) => <span className="font-medium text-slate-800">{row.name}</span>
         },
         {
             header: 'Description',

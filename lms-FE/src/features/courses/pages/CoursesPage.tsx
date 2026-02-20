@@ -5,27 +5,28 @@ import { courseCreateSchema, type CourseCreateData } from '../schemas';
 import {
     useCoursesQuery,
     useCreateCourseMutation,
-    useDeleteCourseMutation
+    useDeleteCourseMutation,
+    useRestoreCourseMutation
 } from '../hooks/useCourses';
-import { useUsersQuery } from '../../users/hooks/useUsers';
 import { FormInput } from '../../../shared/components/form/FormInput';
-import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
 import { Table } from '../../../shared/components/ui/Table';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { useToastStore } from '../../../app/store/toastStore';
+import { getErrorMessage } from '../../../shared/utils/error';
 import type { Course } from '../schemas';
 
 export const CoursesPage: React.FC = () => {
     const { data: courses, isLoading, isError, error } = useCoursesQuery();
-    const { data: users, isLoading: isUsersLoading } = useUsersQuery();
     const createMutation = useCreateCourseMutation();
     const deleteMutation = useDeleteCourseMutation();
+    const restoreMutation = useRestoreCourseMutation();
     const { addToast } = useToastStore();
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+    const [courseToRestore, setCourseToRestore] = useState<string | null>(null);
 
     const {
         register,
@@ -44,7 +45,7 @@ export const CoursesPage: React.FC = () => {
                 reset();
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || 'Failed to create course', 'error');
+                addToast(getErrorMessage(err, 'Failed to create course'), 'error');
             }
         });
     };
@@ -58,33 +59,44 @@ export const CoursesPage: React.FC = () => {
                 setCourseToDelete(null);
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || 'Failed to delete course', 'error');
+                addToast(getErrorMessage(err, 'Failed to delete course'), 'error');
                 setCourseToDelete(null);
             }
         });
     };
 
-    const columns = [
+    const handleRestoreConfirm = () => {
+        if (!courseToRestore) return;
+
+        restoreMutation.mutate(courseToRestore, {
+            onSuccess: () => {
+                addToast('Course restored successfully.', 'success');
+                setCourseToRestore(null);
+            },
+            onError: (err: any) => {
+                addToast(getErrorMessage(err, 'Failed to restore course'), 'error');
+                setCourseToRestore(null);
+            }
+        });
+    };
+
+    const activeCourses = courses?.filter(c => !c.is_deleted) || [];
+    const deletedCourses = courses?.filter(c => c.is_deleted) || [];
+
+    const activeColumns = [
         {
-            header: 'Course Title', accessorKey: 'title' as keyof Course,
-            cell: ({ row }: { row: Course }) => <span className="font-medium text-slate-800">{row.title}</span>
+            header: 'Course Name', accessorKey: 'name' as keyof Course,
+            cell: ({ row }: { row: Course }) => <span className="font-medium text-slate-800">{row.name}</span>
         },
         {
             header: 'Description', accessorKey: 'description' as keyof Course,
             cell: ({ row }: { row: Course }) => <div className="max-w-sm truncate">{row.description || '-'}</div>
         },
-        {
-            header: 'Status',
-            cell: ({ row }: { row: Course }) => (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {row.is_published ? 'Published' : 'Draft'}
-                </span>
-            )
-        },
+
         {
             header: 'Actions',
             cell: ({ row }: { row: Course }) => (
-                <div className="flex justify-end">
+                <div className="flex justify-start">
                     <button
                         onClick={() => setCourseToDelete(row.id)}
                         className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"
@@ -96,11 +108,35 @@ export const CoursesPage: React.FC = () => {
         }
     ];
 
-    if (isLoading || isUsersLoading) return <div className="p-8 text-slate-500">Loading courses...</div>;
+    const deletedColumns = [
+        {
+            header: 'Course Name', accessorKey: 'name' as keyof Course,
+            cell: ({ row }: { row: Course }) => <span className="font-medium text-slate-500">{row.name}</span>
+        },
+        {
+            header: 'Description', accessorKey: 'description' as keyof Course,
+            cell: ({ row }: { row: Course }) => <div className="max-w-sm truncate text-slate-500">{row.description || '-'}</div>
+        },
+        {
+            header: 'Actions',
+            cell: ({ row }: { row: Course }) => (
+                <div className="flex justify-start">
+                    <button
+                        onClick={() => setCourseToRestore(row.id)}
+                        className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
+                    >
+                        Restore
+                    </button>
+                </div>
+            )
+        }
+    ];
+
+    if (isLoading) return <div className="p-8 text-slate-500">Loading courses...</div>;
     if (isError) return <div className="p-8 text-red-500">Failed to load courses: {error?.message}</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-slate-800">Course Management</h1>
                 <Button onClick={() => setIsCreateModalOpen(true)} variant="primary">
@@ -108,12 +144,27 @@ export const CoursesPage: React.FC = () => {
                 </Button>
             </div>
 
-            <Table<Course>
-                data={courses || []}
-                columns={columns}
-                isLoading={isLoading}
-                emptyMessage="No courses found in the system."
-            />
+            <div className="space-y-4">
+                <h2 className="text-lg font-bold text-slate-700">Active Courses</h2>
+                <Table<Course>
+                    data={activeCourses}
+                    columns={activeColumns}
+                    isLoading={isLoading}
+                    emptyMessage="No active courses found."
+                />
+            </div>
+
+            {deletedCourses.length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-lg font-bold text-slate-700">Deleted Courses</h2>
+                    <Table<Course>
+                        data={deletedCourses}
+                        columns={deletedColumns}
+                        isLoading={false}
+                        emptyMessage="No deleted courses found."
+                    />
+                </div>
+            )}
 
             <Modal
                 isOpen={isCreateModalOpen}
@@ -125,11 +176,11 @@ export const CoursesPage: React.FC = () => {
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <FormInput
-                        label="Course Title"
+                        label="Course Name"
                         type="text"
                         placeholder="Introduction to Programming"
-                        register={register('title')}
-                        error={errors.title?.message}
+                        register={register('name')}
+                        error={errors.name?.message}
                     />
                     <FormInput
                         label="Description"
@@ -137,15 +188,6 @@ export const CoursesPage: React.FC = () => {
                         placeholder="An engaging intro course."
                         register={register('description')}
                         error={errors.description?.message}
-                    />
-                    <FormSelect
-                        label="Select Instructor"
-                        register={register('instructor_id')}
-                        options={[
-                            { value: '', label: 'Choose an instructor...' },
-                            ...(users?.filter(u => u.role === 'teacher').map(t => ({ value: t.id, label: `${t.name} (${t.email})` })) || [])
-                        ]}
-                        error={errors.instructor_id?.message}
                     />
                     <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                         <button
@@ -174,6 +216,17 @@ export const CoursesPage: React.FC = () => {
                 isLoading={deleteMutation.isPending}
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => setCourseToDelete(null)}
+            />
+
+            <ConfirmDialog
+                isOpen={courseToRestore !== null}
+                title="Confirm Restoration"
+                message="Are you sure you want to restore this course? It will become visible and active again."
+                confirmText="Restore Course"
+                variant="primary"
+                isLoading={restoreMutation.isPending}
+                onConfirm={handleRestoreConfirm}
+                onCancel={() => setCourseToRestore(null)}
             />
         </div>
     );

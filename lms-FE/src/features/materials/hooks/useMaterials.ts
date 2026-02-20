@@ -31,17 +31,6 @@ export const useCreateAssignmentMutation = () => {
     });
 };
 
-export const useUpdateMaterialMutation = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async ({ id, data }: { id: string, data: any }) => {
-            return await materialsService.updateMaterial(id, data);
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: MATERIALS_KEY });
-        }
-    });
-};
 
 export const useDeleteMaterialMutation = () => {
     const queryClient = useQueryClient();

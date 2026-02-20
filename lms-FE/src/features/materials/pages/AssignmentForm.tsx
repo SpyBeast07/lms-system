@@ -8,6 +8,7 @@ import { FormInput } from '../../../shared/components/form/FormInput';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
+import { getErrorMessage } from '../../../shared/utils/error';
 
 export const AssignmentForm: React.FC = () => {
     const { data: courses, isLoading: isCoursesLoading } = useTeacherCourses();
@@ -31,7 +32,7 @@ export const AssignmentForm: React.FC = () => {
                 reset();
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || err.message || 'Failed to publish assignment', 'error');
+                addToast(getErrorMessage(err, 'Failed to publish assignment'), 'error');
             }
         });
     };
@@ -59,7 +60,7 @@ export const AssignmentForm: React.FC = () => {
                         register={register('course_id')}
                         options={[
                             { value: '', label: 'Select a course...' },
-                            ...(courses?.map(c => ({ value: c.id, label: c.title })) || [])
+                            ...(courses?.map(c => ({ value: c.id, label: c.name })) || [])
                         ]}
                         error={errors.course_id?.message}
                     />

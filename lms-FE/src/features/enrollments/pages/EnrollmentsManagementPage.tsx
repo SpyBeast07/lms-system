@@ -2,12 +2,14 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { assignTeacherSchema, enrollStudentSchema, type AssignTeacherData, type EnrollStudentData } from '../schemas';
-import { useAssignTeacherMutation, useEnrollStudentMutation } from '../hooks/useEnrollments';
+import { useAssignTeacherMutation, useEnrollStudentMutation, useTeacherAssignmentsQuery, useStudentEnrollmentsQuery } from '../hooks/useEnrollments';
 import { useUsersQuery } from '../../users/hooks/useUsers';
 import { useCoursesQuery } from '../../courses/hooks/useCourses';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
+import { Table } from '../../../shared/components/ui/Table';
 import { useToastStore } from '../../../app/store/toastStore';
+import { getErrorMessage } from '../../../shared/utils/error';
 
 export const EnrollmentsManagementPage: React.FC = () => {
     const { data: users, isLoading: isLoadingUsers } = useUsersQuery();
@@ -16,6 +18,9 @@ export const EnrollmentsManagementPage: React.FC = () => {
     const { addToast } = useToastStore();
     const assignTeacherMutation = useAssignTeacherMutation();
     const enrollStudentMutation = useEnrollStudentMutation();
+
+    const { data: teacherAssignments, isLoading: isLoadingTeacherAssignments } = useTeacherAssignmentsQuery();
+    const { data: studentEnrollments, isLoading: isLoadingStudentEnrollments } = useStudentEnrollmentsQuery();
 
     const {
         register: registerTeacher,
@@ -42,7 +47,7 @@ export const EnrollmentsManagementPage: React.FC = () => {
                 resetTeacher();
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || 'Failed to assign teacher', 'error');
+                addToast(getErrorMessage(err, 'Failed to assign teacher'), 'error');
             }
         });
     };
@@ -54,7 +59,7 @@ export const EnrollmentsManagementPage: React.FC = () => {
                 resetStudent();
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || 'Failed to enroll student', 'error');
+                addToast(getErrorMessage(err, 'Failed to enroll student'), 'error');
             }
         });
     };
@@ -66,7 +71,7 @@ export const EnrollmentsManagementPage: React.FC = () => {
     const teachers = users?.filter(u => u.role === 'teacher') || [];
     const students = users?.filter(u => u.role === 'student') || [];
 
-    const courseOptions = (courses || []).map(c => ({ value: c.id, label: c.title }));
+    const courseOptions = (courses || []).map(c => ({ value: c.id, label: c.name }));
     const teacherOptions = teachers.map(t => ({ value: t.id, label: `${t.name} (${t.email})` }));
     const studentOptions = students.map(s => ({ value: s.id, label: `${s.name} (${s.email})` }));
 
@@ -148,6 +153,36 @@ export const EnrollmentsManagementPage: React.FC = () => {
                     </form>
                 </div>
 
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-8 border-t border-slate-200">
+                {/* Teacher Assignments Table */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Current Teacher Assignments</h2>
+                    <Table
+                        data={teacherAssignments || []}
+                        isLoading={isLoadingTeacherAssignments}
+                        columns={[
+                            { header: 'Teacher', accessorKey: 'teacher_name', cell: ({ row }) => <span className="font-medium text-slate-800">{row.teacher_name}</span> },
+                            { header: 'Course', accessorKey: 'course_name', cell: ({ row }) => <span className="text-indigo-600 font-medium">{row.course_name}</span> }
+                        ]}
+                        emptyMessage="No teacher assignments found."
+                    />
+                </div>
+
+                {/* Student Enrollments Table */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Current Student Enrollments</h2>
+                    <Table
+                        data={studentEnrollments || []}
+                        isLoading={isLoadingStudentEnrollments}
+                        columns={[
+                            { header: 'Student', accessorKey: 'student_name', cell: ({ row }) => <span className="font-medium text-slate-800">{row.student_name}</span> },
+                            { header: 'Course', accessorKey: 'course_name', cell: ({ row }) => <span className="text-emerald-600 font-medium">{row.course_name}</span> }
+                        ]}
+                        emptyMessage="No student enrollments found."
+                    />
+                </div>
             </div>
         </div>
     );

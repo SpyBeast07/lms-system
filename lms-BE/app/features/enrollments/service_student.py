@@ -39,3 +39,22 @@ async def enroll_student_in_course(
         raise ValueError("Student already enrolled in this course")
 
     return enrollment
+
+async def get_all_student_enrollments(db: AsyncSession):
+    result = await db.execute(
+        select(StudentCourse, User.name.label("student_name"), Course.name.label("course_name"))
+        .join(User, User.id == StudentCourse.student_id)
+        .join(Course, Course.id == StudentCourse.course_id)
+        .filter(User.is_deleted != True, Course.is_deleted != True)
+    )
+    
+    enrollments = []
+    for row in result.all():
+        sc = row[0]
+        enrollments.append({
+            "student_id": sc.student_id,
+            "course_id": sc.course_id,
+            "student_name": row[1],
+            "course_name": row[2]
+        })
+    return enrollments

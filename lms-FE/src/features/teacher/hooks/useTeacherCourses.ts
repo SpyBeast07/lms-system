@@ -13,9 +13,8 @@ export const useTeacherCourses = () => {
     return useQuery({
         queryKey: [...TEACHER_COURSES_KEY, teacherId],
         queryFn: async () => {
-            const allCourses = await coursesService.getCourses();
-            if (!teacherId) return [];
-            return allCourses.filter(course => course.instructor_id === teacherId);
+            // The backend /courses/ endpoint automatically filters by the current user's JWT role natively
+            return await coursesService.getCourses();
         },
         enabled: !!teacherId,
     });

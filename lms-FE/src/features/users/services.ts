@@ -26,9 +26,7 @@ export const usersService = {
         await usersApi.delete(id);
     },
 
-    restoreUser: async (id: string): Promise<User> => {
-        // Assuming restore simply flips the active flag. 
-        // Adjust endpoint logic dynamically if backend has a dedicated /restore ping.
-        return await usersApi.update(id, { is_active: true });
+    restoreUser: async (id: string): Promise<void> => {
+        await usersApi.restore(id);
     }
 };

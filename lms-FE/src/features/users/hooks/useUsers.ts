@@ -30,3 +30,13 @@ export const useDeleteUserMutation = () => {
         }
     });
 };
+
+export const useRestoreUserMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => usersService.restoreUser(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: USERS_KEY });
+        }
+    });
+};

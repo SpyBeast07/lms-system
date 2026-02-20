@@ -1,6 +1,30 @@
 import React from 'react';
 import { useHealthQuery } from '../hooks/useHealth';
 
+const StatusCard = ({ title, status, desc }: { title: string; status: string; desc: string }) => {
+    const isOk = status.toLowerCase() === 'ok' || status.toLowerCase() === 'connected';
+    return (
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+            <div className={`absolute top-0 left-0 w-1.5 h-full ${isOk ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <div className="flex justify-between items-start">
+                <div>
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
+                    <div className="mt-2 flex items-center gap-2">
+                        <span className="relative flex h-3 w-3">
+                            {isOk && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
+                            <span className={`relative inline-flex rounded-full h-3 w-3 ${isOk ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                        </span>
+                        <span className={`text-xl font-bold ${isOk ? 'text-emerald-700' : 'text-red-700'} capitalize`}>
+                            {status || 'Unknown'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <p className="text-xs text-slate-400 mt-4">{desc}</p>
+        </div>
+    );
+};
+
 export const HealthPage: React.FC = () => {
     const { data: health, isLoading, isError, error } = useHealthQuery();
 
@@ -8,12 +32,13 @@ export const HealthPage: React.FC = () => {
         return (
             <div className="space-y-6 animate-pulse">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-800 bg-slate-200 w-48 h-8 rounded"></h1>
+                    <h1 className="sr-only">Loading System Monitoring</h1>
+                    <div className="text-2xl font-bold text-slate-800 bg-slate-200 w-48 h-8 rounded" aria-hidden="true"></div>
                     <p className="text-sm text-slate-500 mt-2 bg-slate-200 w-96 h-4 rounded"></p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-32"></div>
+                    {[1, 2, 3, 4].map((skeletonId) => (
+                        <div key={`skeleton-${skeletonId}`} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-32"></div>
                     ))}
                 </div>
             </div>
@@ -35,29 +60,7 @@ export const HealthPage: React.FC = () => {
         );
     }
 
-    const StatusCard = ({ title, status, desc }: { title: string; status: string; desc: string }) => {
-        const isOk = status.toLowerCase() === 'ok' || status.toLowerCase() === 'connected';
-        return (
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
-                <div className={`absolute top-0 left-0 w-1.5 h-full ${isOk ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <div className="flex justify-between items-start">
-                    <div>
-                        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">{title}</h3>
-                        <div className="mt-2 flex items-center gap-2">
-                            <span className="relative flex h-3 w-3">
-                                {isOk && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>}
-                                <span className={`relative inline-flex rounded-full h-3 w-3 ${isOk ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                            </span>
-                            <span className={`text-xl font-bold ${isOk ? 'text-emerald-700' : 'text-red-700'} capitalize`}>
-                                {status || 'Unknown'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <p className="text-xs text-slate-400 mt-4">{desc}</p>
-            </div>
-        );
-    };
+
 
     const serverTime = health?.timestamp
         ? new Date(health.timestamp).toLocaleTimeString()

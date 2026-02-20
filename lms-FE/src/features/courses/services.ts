@@ -25,8 +25,7 @@ export const coursesService = {
         await coursesApi.delete(id);
     },
 
-    restoreCourse: async (id: string): Promise<Course> => {
-        // Again assuming flag restoration
-        return await coursesApi.update(id, { is_published: true });
+    restoreCourse: async (id: string): Promise<void> => {
+        await coursesApi.restore(id);
     }
 };

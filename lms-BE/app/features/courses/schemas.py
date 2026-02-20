@@ -4,22 +4,15 @@ from typing import Optional
 
 class CourseCreate(BaseModel):
     name: str
-    description: str
+    description: str = ""
+
 
 class CourseRead(BaseModel):
     id: int
     name: str
     description: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class CourseRead(BaseModel):
-    id: int
-    name: str
-    description: str
-    created_at: datetime
+    is_deleted: bool
 
     class Config:
         from_attributes = True

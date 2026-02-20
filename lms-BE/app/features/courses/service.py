@@ -28,10 +28,10 @@ async def get_courses(db: AsyncSession):
 
 
 async def get_courses_for_user(db: AsyncSession, user: User):
-    # Admin & Principal → all courses
+    # Admin & Principal → all courses (including softly deleted)
     if user.role in ("super_admin", "principal"):
         result = await db.execute(
-            select(Course).filter(Course.is_deleted == False)
+            select(Course)
         )
         return result.scalars().all()
 

@@ -18,7 +18,7 @@ export const StudentSidebar: React.FC = () => {
     ];
 
     return (
-        <aside className="w-64 bg-emerald-900 text-white min-h-screen flex flex-col fixed left-0 top-0">
+        <aside className="w-64 bg-emerald-900 text-white h-screen flex flex-col fixed left-0 top-0 z-20 overflow-y-auto flex-shrink-0">
             <div className="p-6">
                 <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                     🧑‍🎓 Student Portal

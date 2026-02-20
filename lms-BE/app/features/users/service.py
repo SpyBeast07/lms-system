@@ -19,8 +19,9 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     return user
 
 async def list_users(db: AsyncSession):
+    # Admins should see all users including softly deleted ones
     result = await db.execute(
-        select(User).filter(User.is_deleted == False)
+        select(User)
     )
     return result.scalars().all()
 

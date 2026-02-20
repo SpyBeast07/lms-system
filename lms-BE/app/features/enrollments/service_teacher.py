@@ -39,3 +39,22 @@ async def assign_teacher_to_course(
         raise ValueError("Teacher already assigned to this course")
 
     return mapping
+
+async def get_all_teacher_assignments(db: AsyncSession):
+    result = await db.execute(
+        select(TeacherCourse, User.name.label("teacher_name"), Course.name.label("course_name"))
+        .join(User, User.id == TeacherCourse.teacher_id)
+        .join(Course, Course.id == TeacherCourse.course_id)
+        .filter(User.is_deleted != True, Course.is_deleted != True)
+    )
+    
+    assignments = []
+    for row in result.all():
+        tc = row[0]
+        assignments.append({
+            "teacher_id": tc.teacher_id,
+            "course_id": tc.course_id,
+            "teacher_name": row[1],
+            "course_name": row[2]
+        })
+    return assignments

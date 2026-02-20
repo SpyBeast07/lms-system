@@ -8,6 +8,7 @@ import { FormInput } from '../../../shared/components/form/FormInput';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
+import { getErrorMessage } from '../../../shared/utils/error';
 
 export const UploadNotesPage: React.FC = () => {
     const { data: courses, isLoading: isCoursesLoading } = useTeacherCourses();
@@ -50,7 +51,7 @@ export const UploadNotesPage: React.FC = () => {
                 if (fileInput) fileInput.value = '';
             },
             onError: (err: any) => {
-                addToast(err?.response?.data?.detail || err.message || 'Failed to upload material', 'error');
+                addToast(getErrorMessage(err, 'Failed to upload material'), 'error');
             }
         });
     };
@@ -78,13 +79,13 @@ export const UploadNotesPage: React.FC = () => {
                         register={register('course_id')}
                         options={[
                             { value: '', label: 'Select a course...' },
-                            ...(courses?.map(c => ({ value: c.id, label: c.title })) || [])
+                            ...(courses?.map(c => ({ value: c.id, label: c.name })) || [])
                         ]}
                         error={errors.course_id?.message}
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label htmlFor="file-upload" className="block text-sm font-medium text-slate-700 mb-1">
                             Document File
                         </label>
                         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">

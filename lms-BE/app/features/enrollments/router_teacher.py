@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.enrollments.schemas_teacher import TeacherCourseCreate
-from app.features.enrollments.service_teacher import assign_teacher_to_course
+from app.features.enrollments.service_teacher import assign_teacher_to_course, get_all_teacher_assignments
 from app.features.auth.dependencies import require_role
 
 router = APIRouter(prefix="/teacher-course", tags=["Teacher-Course"])
@@ -21,3 +21,10 @@ async def assign_teacher(
         course_id=data.course_id,
     )
     return {"message": "Teacher assigned to course successfully"}
+
+@router.get("/")
+async def list_teacher_assignments(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_role("super_admin", "principal")),
+):
+    return await get_all_teacher_assignments(db)

@@ -17,5 +17,21 @@ export const enrollmentsService = {
             console.error('Failed to enroll student:', error);
             throw error;
         }
+    },
+    getTeacherAssignments: async () => {
+        try {
+            return await enrollmentsApi.getTeacherAssignments();
+        } catch (error) {
+            console.error('Failed to get teacher assignments:', error);
+            throw error;
+        }
+    },
+    getStudentEnrollments: async () => {
+        try {
+            return await enrollmentsApi.getStudentEnrollments();
+        } catch (error) {
+            console.error('Failed to get student enrollments:', error);
+            throw error;
+        }
     }
 };

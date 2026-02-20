@@ -21,6 +21,7 @@ class UserRead(BaseModel):
     email: EmailStr
     role: UserRole
     created_at: datetime
+    is_deleted: bool
 
     class Config:
         from_attributes = True

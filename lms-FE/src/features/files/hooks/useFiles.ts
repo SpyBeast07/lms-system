@@ -11,14 +11,6 @@ export const useFilesQuery = () => {
     });
 };
 
-export const useFileInfoQuery = (objectName: string) => {
-    return useQuery({
-        queryKey: [...FILES_KEY, objectName],
-        queryFn: () => filesService.getFileInfo(objectName),
-        enabled: !!objectName,
-    });
-};
-
 export const usePresignedUrlMutation = () => {
     return useMutation({
         mutationFn: (data: PresignedUrlRequest) => filesService.getPresignedUrl(data),

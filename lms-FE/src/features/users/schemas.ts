@@ -7,6 +7,7 @@ export const userSchema = z.object({
     role: z.enum(['super_admin', 'teacher', 'student'] as const),
     created_at: z.string().optional(),
     is_active: z.boolean().optional().default(true),
+    is_deleted: z.boolean().optional().default(false),
 });
 
 export const userCreateSchema = z.object({

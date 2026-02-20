@@ -15,7 +15,7 @@ export const Sidebar: React.FC = () => {
     ];
 
     return (
-        <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col min-h-screen">
+        <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen overflow-y-auto flex-shrink-0">
             <div className="p-6 border-b border-slate-700">
                 <h2 className="text-xl font-bold text-white tracking-tight">LMS Admin</h2>
             </div>

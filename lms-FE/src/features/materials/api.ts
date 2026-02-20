@@ -1,5 +1,4 @@
 import { api } from '../../shared/api/axios';
-import type { MaterialNote, MaterialAssignment } from './schemas';
 
 export const materialsApi = {
     // 1. Upload File (MinIO)
@@ -16,14 +15,26 @@ export const materialsApi = {
     },
 
     // 2. Create Note Record
-    createNote: async (teacherId: string, data: Omit<MaterialNote, 'id' | 'teacher_id' | 'created_at'>): Promise<MaterialNote> => {
-        const response = await api.post(`/materials/notes/${teacherId}`, data);
+    createNote: async (teacherId: string, data: any): Promise<any> => {
+        // Backend expects content_url, course_id as int
+        const payload = {
+            title: data.title,
+            course_id: Number(data.course_id),
+            content_url: data.file_url
+        };
+        const response = await api.post(`/materials/notes/${teacherId}`, payload);
         return response.data;
     },
 
     // 3. Create Assignment Record
-    createAssignment: async (teacherId: string, data: Omit<MaterialAssignment, 'id' | 'teacher_id' | 'created_at'>): Promise<MaterialAssignment> => {
-        const response = await api.post(`/materials/assignments/${teacherId}`, data);
+    createAssignment: async (teacherId: string, data: any): Promise<any> => {
+        // Backend schema requires assignment_type, and course_id as int
+        const payload = {
+            ...data,
+            course_id: Number(data.course_id),
+            assignment_type: 'long' // Default injection since UI lacks this field
+        };
+        const response = await api.post(`/materials/assignments/${teacherId}`, payload);
         return response.data;
     },
 

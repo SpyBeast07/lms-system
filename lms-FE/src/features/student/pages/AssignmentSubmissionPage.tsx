@@ -11,7 +11,7 @@ import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
 
 export const AssignmentSubmissionPage: React.FC = () => {
     const { addToast } = useToastStore();
-    const { data: courses, isLoading: isCoursesLoading } = useStudentCourses();
+    const { data: courses } = useStudentCourses();
 
     const [selectedCourse, setSelectedCourse] = useState<string>('');
     const { data: materials, isLoading: isMaterialsLoading } = useCourseMaterialsQuery(selectedCourse);
@@ -68,15 +68,16 @@ export const AssignmentSubmissionPage: React.FC = () => {
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Select Course Filter</label>
+                        <label htmlFor="course-select" className="block text-sm font-medium text-slate-700 mb-1">Select Course Filter</label>
                         <select
+                            id="course-select"
                             value={selectedCourse}
                             onChange={(e) => setSelectedCourse(e.target.value)}
                             className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 bg-white border"
                         >
                             <option value="">Choose a course first...</option>
                             {courses?.map((c) => (
-                                <option key={c.id} value={c.id}>{c.title}</option>
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
                     </div>
@@ -101,7 +102,7 @@ export const AssignmentSubmissionPage: React.FC = () => {
                     />
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label htmlFor="file-upload" className="block text-sm font-medium text-slate-700 mb-1">
                             Submission File
                         </label>
                         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">

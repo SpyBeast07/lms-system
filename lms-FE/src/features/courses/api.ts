@@ -13,7 +13,7 @@ export const coursesApi = {
     },
 
     create: async (payload: CourseCreateData): Promise<Course> => {
-        const { data } = await api.post('/courses', payload);
+        const { data } = await api.post('/courses/', payload);
         return data;
     },
 
@@ -24,5 +24,9 @@ export const coursesApi = {
 
     delete: async (id: string): Promise<void> => {
         await api.delete(`/courses/${id}`);
+    },
+
+    restore: async (id: string): Promise<void> => {
+        await api.post(`/courses/${id}/restore`);
     }
 };

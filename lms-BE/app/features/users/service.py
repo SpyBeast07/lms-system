@@ -1,8 +1,10 @@
+from typing import Optional
+from datetime import datetime, UTC
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.features.users.models import User
 from app.features.users.schemas import UserCreate
-from datetime import datetime, UTC
 from app.features.auth.hashing import hash_password
 
 async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
@@ -18,12 +20,37 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     await db.refresh(user)
     return user
 
-async def list_users(db: AsyncSession):
-    # Admins should see all users including softly deleted ones
+
+
+async def list_users(db: AsyncSession, page: int = 1, limit: int = 10, is_deleted: Optional[bool] = None):
+    # Skip calculation
+    skip = (page - 1) * limit
+    
+    # Base queries
+    query = select(User)
+    count_query = select(func.count(User.id))
+    
+    # Apply filter if provided
+    if is_deleted is not None:
+        query = query.filter(User.is_deleted == is_deleted)
+        count_query = count_query.filter(User.is_deleted == is_deleted)
+    
+    # Get items
     result = await db.execute(
-        select(User)
+        query.offset(skip).limit(limit)
     )
-    return result.scalars().all()
+    items = result.scalars().all()
+    
+    # Get total count
+    count_result = await db.execute(count_query)
+    total = count_result.scalar_one()
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "limit": limit
+    }
 
 async def get_user(db: AsyncSession, user_id: int):
     result = await db.execute(

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -19,13 +20,18 @@ async def create_course_api(
     return await course_crud.create_course(db, course_in)
 
 
+from app.core.pagination import PaginatedResponse
+
 # LIST → any logged-in user
-@router.get("/", response_model=list[CourseRead])
+@router.get("/", response_model=PaginatedResponse[CourseRead])
 async def list_courses_api(
+    page: int = 1,
+    limit: int = 10,
+    deleted: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return await course_crud.get_courses_for_user(db, current_user)
+    return await course_crud.get_courses_for_user(db, current_user, page, limit, is_deleted=deleted)
 
 
 # GET → any logged-in user

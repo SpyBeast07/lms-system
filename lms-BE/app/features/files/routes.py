@@ -179,60 +179,32 @@ async def get_file_info(object_name: str):
 
 @router.get("/list", response_model=FileListResponse)
 async def list_files(
+    page: int = 1,
+    limit: int = 10,
     prefix: Optional[str] = Query(
         "",
         description="Optional prefix to filter files (e.g., 'notes/', 'assignments/')"
     )
 ):
     """
-    List all files in the MinIO bucket.
-    
-    **Purpose:**
-    Retrieve a list of all uploaded files with their metadata.
-    
-    **Use Cases:**
-    - View all files in the bucket
-    - Filter files by folder (prefix)
-    - Get file metadata for all files
-    - Build file management UI
-    
-    **Examples:**
-    - List all files: `GET /api/v1/files/list`
-    - List notes only: `GET /api/v1/files/list?prefix=notes/`
-    - List assignments: `GET /api/v1/files/list?prefix=assignments/`
-    - List submissions: `GET /api/v1/files/list?prefix=submissions/`
-    
-    **Response:**
-    ```json
-    {
-        "files": [
-            {
-                "object_name": "notes/550e8400-e29b-41d4-a716-446655440000_lecture.pdf",
-                "size": 1048576,
-                "last_modified": "2026-02-16T12:00:00Z",
-                "etag": "d41d8cd98f00b204e9800998ecf8427e",
-                "is_dir": false
-            }
-        ],
-        "total_count": 1,
-        "prefix": "notes/"
-    }
-    ```
+    List all files in the MinIO bucket with pagination.
     """
     try:
         minio_client = get_minio_client()
         
-        # List files
-        files = minio_client.list_files(prefix=prefix)
+        # List files with pagination
+        data = minio_client.list_files(prefix=prefix, page=page, limit=limit)
         
-        # Convert to response models
-        file_items = [FileListItem(**file) for file in files]
+        # Convert items to response models
+        items = [FileListItem(**file) for file in data['items']]
         
-        logger.info(f"Listed {len(file_items)} files with prefix '{prefix}'")
+        logger.info(f"Listed {len(items)}/{data['total']} files with prefix '{prefix}' (page {page})")
         
         return FileListResponse(
-            files=file_items,
-            total_count=len(file_items),
+            items=items,
+            total=data['total'],
+            page=data['page'],
+            limit=data['limit'],
             prefix=prefix
         )
         

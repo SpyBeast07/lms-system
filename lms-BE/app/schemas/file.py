@@ -105,16 +105,18 @@ class FileListItem(BaseModel):
 
 
 class FileListResponse(BaseModel):
-    """Response model for listing files."""
+    """Response model for listing files with pagination."""
     
-    files: list[FileListItem] = Field(..., description="List of files in the bucket")
-    total_count: int = Field(..., description="Total number of files")
+    items: list[FileListItem] = Field(..., description="List of files in the bucket")
+    total: int = Field(..., description="Total number of items")
+    page: int = Field(..., description="Current page number")
+    limit: int = Field(..., description="Items per page")
     prefix: str = Field("", description="Prefix filter used")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "files": [
+                "items": [
                     {
                         "object_name": "notes/file1.pdf",
                         "size": 1048576,
@@ -123,7 +125,9 @@ class FileListResponse(BaseModel):
                         "is_dir": False
                     }
                 ],
-                "total_count": 1,
+                "total": 1,
+                "page": 1,
+                "limit": 10,
                 "prefix": "notes/"
             }
         }

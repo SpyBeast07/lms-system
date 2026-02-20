@@ -295,46 +295,39 @@ class MinIOClient:
     def list_files(
         self,
         prefix: str = "",
+        page: int = 1,
+        limit: int = 10,
         bucket_name: Optional[str] = None
-    ) -> list[dict]:
+    ) -> dict:
         """
-        List all files in the MinIO bucket.
+        List all files in the MinIO bucket with pagination.
         
         Args:
-            prefix: Optional prefix to filter files (e.g., 'notes/', 'assignments/')
-            bucket_name: Optional bucket name (defaults to self.bucket_name)
+            prefix: Optional prefix to filter files
+            page: Page number
+            limit: Items per page
+            bucket_name: Optional bucket name
         
         Returns:
-            List of dictionaries containing file information:
-                - object_name: Full object path
-                - size: File size in bytes
-                - last_modified: Last modification timestamp
-                - etag: Entity tag (hash)
-        
-        Example:
-            >>> files = minio_client.list_files(prefix="notes/")
-            >>> for file in files:
-            ...     print(file['object_name'], file['size'])
+            Dictionary with items, total, page, limit
         """
         bucket = bucket_name or self.bucket_name
         
         try:
-            # Ensure bucket exists
             if not self.client.bucket_exists(bucket):
-                logger.warning(f"Bucket {bucket} does not exist")
-                return []
+                return {"items": [], "total": 0, "page": page, "limit": limit}
             
-            # List objects
+            # List all objects with prefix
             objects = self.client.list_objects(
                 bucket_name=bucket,
                 prefix=prefix,
                 recursive=True
             )
             
-            # Convert to list of dicts
-            files = []
+            # Convert to list to enable slicing and counting
+            all_files = []
             for obj in objects:
-                files.append({
+                all_files.append({
                     "object_name": obj.object_name,
                     "size": obj.size,
                     "last_modified": obj.last_modified,
@@ -342,8 +335,18 @@ class MinIOClient:
                     "is_dir": obj.is_dir
                 })
             
-            logger.info(f"Listed {len(files)} files from bucket {bucket} with prefix '{prefix}'")
-            return files
+            total = len(all_files)
+            skip = (page - 1) * limit
+            paginated_items = all_files[skip : skip + limit]
+            
+            logger.info(f"Listed {len(paginated_items)}/{total} files from bucket {bucket} with prefix '{prefix}'")
+            
+            return {
+                "items": paginated_items,
+                "total": total,
+                "page": page,
+                "limit": limit
+            }
             
         except S3Error as e:
             logger.error(f"Error listing files: {e}")

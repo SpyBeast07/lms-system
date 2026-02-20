@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.features.users.schemas import UserCreate, UserRead, UserUpdate
 from app.features.users import service as user_crud
 from app.features.auth.dependencies import require_role
+from app.core.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -19,12 +21,15 @@ async def create_user_api(
 
 
 # ---------- LIST ----------
-@router.get("/")
+@router.get("/", response_model=PaginatedResponse[UserRead])
 async def list_users_api(
+    page: int = 1,
+    limit: int = 10,
+    deleted: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("super_admin")),
 ):
-    return await user_crud.list_users(db)
+    return await user_crud.list_users(db, page, limit, is_deleted=deleted)
 
 
 # ---------- GET BY ID ----------

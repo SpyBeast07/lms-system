@@ -15,8 +15,3 @@ export const useLoginMutation = () => {
     });
 };
 
-export const useRefreshMutation = () => {
-    return useMutation({
-        mutationFn: () => authService.refreshService(),
-    });
-};

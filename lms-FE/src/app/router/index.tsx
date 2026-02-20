@@ -1,12 +1,17 @@
 import { createRouter, createRoute, createRootRoute, Navigate, redirect } from '@tanstack/react-router';
+import { ToastRenderer } from '../../shared/components/ui/ToastRenderer';
 import { Outlet } from '@tanstack/react-router';
 import { LoginForm } from '../../features/auth/components/LoginForm';
 import { useAuthStore } from '../store/authStore';
 import { decodeToken } from '../../shared/utils/jwt';
-import { AdminLayout } from './layouts/AdminLayout';
+import { AdminLayout } from '../../features/admin/layout/AdminLayout';
+import { AdminDashboard } from '../../features/admin/pages/AdminDashboard';
 import { ProtectedRoute } from './ProtectedRoute';
 import { UsersPage } from '../../features/users/pages/UsersPage';
 import { CoursesPage } from '../../features/courses/pages/CoursesPage';
+import { EnrollmentsManagementPage } from '../../features/enrollments/pages/EnrollmentsManagementPage';
+import { FilesPage } from '../../features/files/pages/FilesPage';
+import { HealthPage } from '../../features/health/pages/HealthPage';
 
 // 1. Root Route
 const rootRoute = createRootRoute({
@@ -14,6 +19,7 @@ const rootRoute = createRootRoute({
         return (
             <div className="min-h-screen bg-slate-50 w-full font-sans text-slate-900">
                 <Outlet />
+                <ToastRenderer />
             </div>
         );
     },
@@ -43,8 +49,15 @@ const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     beforeLoad: () => {
-        if (!useAuthStore.getState().isAuthenticated) {
+        const { isAuthenticated, accessToken } = useAuthStore.getState();
+
+        if (!isAuthenticated || !accessToken) {
             throw redirect({ to: '/login' });
+        }
+
+        const payload = decodeToken(accessToken);
+        if (payload?.role === 'super_admin') {
+            throw redirect({ to: '/admin/dashboard' });
         }
     },
     component: function DashboardRouteComponent() {
@@ -91,8 +104,14 @@ const adminIndexRoute = createRoute({
     getParentRoute: () => adminRoute,
     path: '/',
     component: function AdminIndexRouteComponent() {
-        return <Navigate to="/admin/users" replace />;
+        return <Navigate to="/admin/dashboard" replace />;
     }
+});
+
+const adminDashboardRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/dashboard',
+    component: AdminDashboard,
 });
 
 const adminUsersRoute = createRoute({
@@ -107,14 +126,36 @@ const adminCoursesRoute = createRoute({
     component: CoursesPage,
 });
 
+const adminEnrollmentsRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/enrollments',
+    component: EnrollmentsManagementPage,
+});
+
+const adminFilesRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/files',
+    component: FilesPage,
+});
+
+const adminHealthRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/health',
+    component: HealthPage,
+});
+
 // 5. Build Tree
 const routeTree = rootRoute.addChildren([
     loginRoute,
     indexRoute,
     adminRoute.addChildren([
         adminIndexRoute,
+        adminDashboardRoute,
         adminUsersRoute,
-        adminCoursesRoute
+        adminCoursesRoute,
+        adminEnrollmentsRoute,
+        adminFilesRoute,
+        adminHealthRoute
     ])
 ]);
 

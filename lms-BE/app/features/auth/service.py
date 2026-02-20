@@ -45,6 +45,7 @@ class AuthService:
             data={
                 "sub": str(user.id),
                 "role": user.role,
+                "name": user.name,
             }
         )
 
@@ -108,6 +109,7 @@ class AuthService:
             data={
                 "sub": str(user.id),
                 "role": user.role,
+                "name": user.name,
             }
         )
 

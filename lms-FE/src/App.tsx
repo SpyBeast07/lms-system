@@ -1,77 +1,46 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import ProtectedRoute from './components/ProtectedRoute'
+import { useAuth } from './context/AuthContext'
+import Login from './pages/Login'
 import './App.css'
 
-interface HealthResponse {
-  status: string;
-  database: string;
-}
+// A placeholder components for Admin Dashboard
+const AdminDashboard = () => <h2>Welcome to the Super Admin Dashboard!</h2>;
 
 function App() {
-  const [count, setCount] = useState(0)
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const checkHealth = async () => {
-    setLoading(true);
-    setError(null);
-    setHealthData(null);
-    try {
-      const response = await fetch('http://127.0.0.1:8000/health');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      setHealthData(data);
-    } catch (e: any) {
-      setError(e.message || 'An error occurred fetching health status');
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { isAuthenticated, name, role, logout } = useAuth();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+    <Routes>
+      <Route path="/login" element={
+        isAuthenticated ? <Navigate to="/" replace /> : <Login />
+      } />
 
-        <div style={{ marginTop: '20px', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <h2>Backend Health Check</h2>
-          <button onClick={checkHealth} disabled={loading}>
-            {loading ? 'Checking...' : 'Check API Health'}
-          </button>
-          
-          {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-          
-          {healthData && (
-            <div style={{ marginTop: '10px', textAlign: 'left' }}>
-              <pre>{JSON.stringify(healthData, null, 2)}</pre>
+      {/* Basic authenticated route */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', flexDirection: 'column' }}>
+            <h1>LMS Dashboard</h1>
+            <div>
+              <p>Welcome back, <b>{name}</b>! Your role is <b>{role}</b>.</p>
+              <button
+                onClick={logout}
+                style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', marginTop: '10px' }}
+              >
+                Logout
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        </ProtectedRoute>
+      } />
 
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+      {/* Role-based Protected Route example */}
+      <Route path="/admin" element={
+        <ProtectedRoute roles={['super_admin']}>
+          <AdminDashboard />
+        </ProtectedRoute>
+      } />
+    </Routes>
   )
 }
 

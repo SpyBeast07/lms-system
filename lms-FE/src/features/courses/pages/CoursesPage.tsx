@@ -7,7 +7,9 @@ import {
     useCreateCourseMutation,
     useDeleteCourseMutation
 } from '../hooks/useCourses';
+import { useUsersQuery } from '../../users/hooks/useUsers';
 import { FormInput } from '../../../shared/components/form/FormInput';
+import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
 import { Table } from '../../../shared/components/ui/Table';
 import { Modal } from '../../../shared/components/ui/Modal';
@@ -17,6 +19,7 @@ import type { Course } from '../schemas';
 
 export const CoursesPage: React.FC = () => {
     const { data: courses, isLoading, isError, error } = useCoursesQuery();
+    const { data: users, isLoading: isUsersLoading } = useUsersQuery();
     const createMutation = useCreateCourseMutation();
     const deleteMutation = useDeleteCourseMutation();
     const { addToast } = useToastStore();
@@ -93,7 +96,7 @@ export const CoursesPage: React.FC = () => {
         }
     ];
 
-    if (isLoading) return <div className="p-8 text-slate-500">Loading courses...</div>;
+    if (isLoading || isUsersLoading) return <div className="p-8 text-slate-500">Loading courses...</div>;
     if (isError) return <div className="p-8 text-red-500">Failed to load courses: {error?.message}</div>;
 
     return (
@@ -135,11 +138,13 @@ export const CoursesPage: React.FC = () => {
                         register={register('description')}
                         error={errors.description?.message}
                     />
-                    <FormInput
-                        label="Instructor ID"
-                        type="text"
-                        placeholder="UUID string"
+                    <FormSelect
+                        label="Select Instructor"
                         register={register('instructor_id')}
+                        options={[
+                            { value: '', label: 'Choose an instructor...' },
+                            ...(users?.filter(u => u.role === 'teacher').map(t => ({ value: t.id, label: `${t.name} (${t.email})` })) || [])
+                        ]}
                         error={errors.instructor_id?.message}
                     />
                     <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">

@@ -13,6 +13,19 @@ import { EnrollmentsManagementPage } from '../../features/enrollments/pages/Enro
 import { FilesPage } from '../../features/files/pages/FilesPage';
 import { HealthPage } from '../../features/health/pages/HealthPage';
 
+// Teacher Imports
+import { TeacherLayout } from '../../features/teacher/layout/TeacherLayout';
+import { TeacherCoursesPage } from '../../features/teacher/pages/TeacherCoursesPage';
+import { UploadNotesPage } from '../../features/materials/pages/UploadNotesPage';
+import { AssignmentForm } from '../../features/materials/pages/AssignmentForm';
+import { ManageMaterialsPage } from '../../features/materials/pages/ManageMaterialsPage';
+
+// Student Imports
+import { StudentLayout } from '../../features/student/layout/StudentLayout';
+import { StudentCoursesPage } from '../../features/student/pages/StudentCoursesPage';
+import { CourseMaterialsPage } from '../../features/student/pages/CourseMaterialsPage';
+import { AssignmentSubmissionPage } from '../../features/student/pages/AssignmentSubmissionPage';
+
 // 1. Root Route
 const rootRoute = createRootRoute({
     component: function RootRouteComponent() {
@@ -58,6 +71,10 @@ const indexRoute = createRoute({
         const payload = decodeToken(accessToken);
         if (payload?.role === 'super_admin') {
             throw redirect({ to: '/admin/dashboard' });
+        } else if (payload?.role === 'teacher') {
+            throw redirect({ to: '/teacher/courses' });
+        } else if (payload?.role === 'student') {
+            throw redirect({ to: '/student/courses' });
         }
     },
     component: function DashboardRouteComponent() {
@@ -144,7 +161,91 @@ const adminHealthRoute = createRoute({
     component: HealthPage,
 });
 
-// 5. Build Tree
+// 5. Teacher Routing Tree
+const teacherRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/teacher',
+    component: function TeacherRouteComponent() {
+        return (
+            <ProtectedRoute allowedRoles={['teacher']}>
+                <TeacherLayout />
+            </ProtectedRoute>
+        );
+    },
+});
+
+const teacherIndexRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/',
+    component: function TeacherIndexRouteComponent() {
+        return <Navigate to="/teacher/courses" replace />;
+    }
+});
+
+const teacherCoursesRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/courses',
+    component: TeacherCoursesPage,
+});
+
+const teacherUploadRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/upload-notes',
+    component: UploadNotesPage,
+});
+
+const teacherAssignmentRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/create-assignment',
+    component: AssignmentForm,
+});
+
+const teacherManageMaterialsRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/materials',
+    component: ManageMaterialsPage,
+});
+
+// 6. Student Routing Tree
+const studentRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/student',
+    component: function StudentRouteComponent() {
+        return (
+            <ProtectedRoute allowedRoles={['student']}>
+                <StudentLayout />
+            </ProtectedRoute>
+        );
+    },
+});
+
+const studentIndexRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/',
+    component: function StudentIndexRouteComponent() {
+        return <Navigate to="/student/courses" replace />;
+    }
+});
+
+const studentCoursesRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/courses',
+    component: StudentCoursesPage,
+});
+
+const studentMaterialsRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/materials',
+    component: CourseMaterialsPage,
+});
+
+const studentSubmissionRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/submissions',
+    component: AssignmentSubmissionPage,
+});
+
+// 7. Build Tree
 const routeTree = rootRoute.addChildren([
     loginRoute,
     indexRoute,
@@ -156,10 +257,23 @@ const routeTree = rootRoute.addChildren([
         adminEnrollmentsRoute,
         adminFilesRoute,
         adminHealthRoute
+    ]),
+    teacherRoute.addChildren([
+        teacherIndexRoute,
+        teacherCoursesRoute,
+        teacherUploadRoute,
+        teacherAssignmentRoute,
+        teacherManageMaterialsRoute
+    ]),
+    studentRoute.addChildren([
+        studentIndexRoute,
+        studentCoursesRoute,
+        studentMaterialsRoute,
+        studentSubmissionRoute
     ])
 ]);
 
-// 5. Create Router Instance
+// 8. Create Router Instance
 export const router = createRouter({ routeTree });
 
 // 6. Register for strict type safety across the app

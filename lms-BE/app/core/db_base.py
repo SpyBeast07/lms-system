@@ -17,3 +17,6 @@ from app.features.courses import (
 )
 from app.features.auth import models as auth_models
 from app.features.enrollments import models_student as enrollment_student, models_teacher as enrollment_teacher, models_consent
+from app.features.submissions import models as models_submissions
+from app.features.notifications import models as models_notifications
+from app.features.activity_logs import models as models_activity_logs

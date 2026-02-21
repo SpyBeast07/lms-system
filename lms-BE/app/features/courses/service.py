@@ -10,6 +10,9 @@ from app.features.enrollments.models_teacher import TeacherCourse
 from app.features.enrollments.models_student import StudentCourse
 from app.features.users.models import User
 
+from app.features.activity_logs.service import log_action
+from app.features.activity_logs.schemas import ActivityLogCreate
+
 async def create_course(db: AsyncSession, course_in: CourseCreate) -> Course:
     course = Course(
         name=course_in.name,
@@ -18,6 +21,16 @@ async def create_course(db: AsyncSession, course_in: CourseCreate) -> Course:
     db.add(course)
     await db.commit()
     await db.refresh(course)
+    
+    # We ideally need the user performing the action to accurately log it
+    # Currently `create_course` does not receive `user_id`, so we will log loosely
+    await log_action(db, ActivityLogCreate(
+        action="create_course",
+        entity_type="course",
+        entity_id=course.id,
+        details=f"Course '{course.name}' created"
+    ))
+
     return course
 
 

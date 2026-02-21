@@ -11,6 +11,11 @@ from app.features.courses.schemas_materials import (
     AssignmentCreate,
     LearningMaterialUpdate,
 )
+from app.features.activity_logs.service import log_action
+from app.features.activity_logs.schemas import ActivityLogCreate
+from app.features.notifications.service import create_notification
+from app.features.notifications.schemas import NotificationCreate
+from app.features.enrollments.models_student import StudentCourse
 
 
 # -------------------- CREATE --------------------
@@ -33,6 +38,24 @@ async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> 
 
     await db.commit()
     await db.refresh(material)
+
+    await log_action(db, ActivityLogCreate(
+        user_id=teacher_id,
+        action="create_notes",
+        entity_type="material",
+        entity_id=material.id,
+        details=f"Created notes: {data.title}"
+    ))
+
+    stmt = select(StudentCourse.student_id).where(StudentCourse.course_id == material.course_id)
+    result = await db.execute(stmt)
+    for student_id in result.scalars().all():
+        await create_notification(db, NotificationCreate(
+            user_id=student_id,
+            type="material_uploaded",
+            message=f"New notes available: {data.title}"
+        ))
+
     return material
 
 
@@ -59,6 +82,24 @@ async def create_assignment(
 
     await db.commit()
     await db.refresh(material)
+
+    await log_action(db, ActivityLogCreate(
+        user_id=teacher_id,
+        action="create_assignment",
+        entity_type="material",
+        entity_id=material.id,
+        details=f"Created assignment: {data.title}"
+    ))
+    
+    stmt = select(StudentCourse.student_id).where(StudentCourse.course_id == material.course_id)
+    result = await db.execute(stmt)
+    for student_id in result.scalars().all():
+        await create_notification(db, NotificationCreate(
+            user_id=student_id,
+            type="assignment_created",
+            message=f"New assignment posted: {data.title}"
+        ))
+
     return material
 
 

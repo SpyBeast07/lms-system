@@ -15,6 +15,7 @@ export const TeacherSidebar: React.FC = () => {
         { path: '/teacher/courses', label: 'My Courses', icon: '📚' },
         { path: '/teacher/upload-notes', label: 'Publish Notes', icon: '📤' },
         { path: '/teacher/create-assignment', label: 'Assignments', icon: '✍️' },
+        { path: '/teacher/evaluations', label: 'Evaluations', icon: '📝' },
         { path: '/teacher/materials', label: 'Manage Sandbox', icon: '🗂️' },
     ];
 

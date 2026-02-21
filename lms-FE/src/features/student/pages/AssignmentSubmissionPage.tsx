@@ -8,6 +8,9 @@ import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
 import { useStudentCourses } from '../hooks/useStudentCourses';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
+import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
+import { materialsApi } from '../../materials/api';
+
 
 export const AssignmentSubmissionPage: React.FC = () => {
     const { addToast } = useToastStore();
@@ -18,6 +21,8 @@ export const AssignmentSubmissionPage: React.FC = () => {
 
     const assignments = materials?.filter((m: any) => !m.file_url) || [];
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const createSubmission = useCreateSubmissionMutation();
 
     const {
         register,
@@ -40,21 +45,30 @@ export const AssignmentSubmissionPage: React.FC = () => {
             return;
         }
 
-        // Placeholder for future backend integration natively
-        console.log('Simulating submission payload natively:', {
-            assignment_id: data.assignment_id,
-            comments: data.comments,
-            file: selectedFile.name,
-            size: selectedFile.size
-        });
+        try {
+            setIsUploading(true);
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+            // 1. Upload to MinIO
+            const uploadRes = await materialsApi.uploadFile(selectedFile);
 
-        addToast('Assignment submitted successfully! (Mock)', 'success');
-        reset();
-        setSelectedFile(null);
-        setSelectedCourse('');
+            // 2. Submit to backend
+            await createSubmission.mutateAsync({
+                assignment_id: Number(data.assignment_id),
+                file_url: uploadRes.file_url,
+                comments: data.comments,
+            });
+
+            addToast('Assignment submitted successfully!', 'success');
+            reset({ assignment_id: '', comments: '' });
+            setSelectedFile(null);
+            setSelectedCourse('');
+
+        } catch (error: any) {
+            console.error('Submission error:', error);
+            addToast(error.response?.data?.detail || 'Failed to submit assignment', 'error');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -128,11 +142,12 @@ export const AssignmentSubmissionPage: React.FC = () => {
                     <div className="pt-4 flex justify-end">
                         <Button
                             type="submit"
-                            isLoading={isSubmitting}
-                            disabled={isSubmitting || !selectedCourse}
+                            isLoading={isSubmitting || isUploading || createSubmission.isPending}
+                            disabled={isSubmitting || isUploading || createSubmission.isPending || !selectedCourse}
                         >
-                            {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+                            {(isSubmitting || isUploading || createSubmission.isPending) ? 'Submitting...' : 'Submit Assignment'}
                         </Button>
+
                     </div>
                 </form>
             </div>

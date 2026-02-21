@@ -11,6 +11,7 @@ export const Sidebar: React.FC = () => {
         { path: '/admin/courses', label: 'Courses Management', icon: '📚' },
         { path: '/admin/enrollments', label: 'Enrollments', icon: '🎓' },
         { path: '/admin/files', label: 'File Storage', icon: '🗄️' },
+        { path: '/admin/activity-logs', label: 'Activity Logs', icon: '📋' },
         { path: '/admin/health', label: 'System Health', icon: '🩺' },
     ];
 

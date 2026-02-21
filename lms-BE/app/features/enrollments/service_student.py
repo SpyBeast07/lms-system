@@ -5,6 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from app.features.enrollments.models_student import StudentCourse
 from app.features.users.models import User
 from app.features.courses.models import Course
+from app.features.notifications.service import create_notification
+from app.features.notifications.schemas import NotificationCreate
+from app.features.activity_logs.service import log_action
+from app.features.activity_logs.schemas import ActivityLogCreate
 
 
 async def enroll_student_in_course(
@@ -37,6 +41,20 @@ async def enroll_student_in_course(
     except IntegrityError:
         await db.rollback()
         raise ValueError("Student already enrolled in this course")
+
+    await log_action(db, ActivityLogCreate(
+        user_id=student_id,
+        action="course_enrolled",
+        entity_type="enrollment",
+        entity_id=course_id,
+        details=f"Student {student_id} enrolled in course '{course.name}'"
+    ))
+    
+    await create_notification(db, NotificationCreate(
+        user_id=student_id,
+        type="course_enrollment",
+        message=f"You have been enrolled in a new course: {course.name}"
+    ))
 
     return enrollment
 

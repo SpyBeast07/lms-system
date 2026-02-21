@@ -11,6 +11,9 @@ from app.features.auth.security import hash_token, verify_token, verify_password
 from app.features.auth.jwt import create_access_token
 from app.features.auth.schemas import TokenResponse, RefreshRequest, LogoutRequest, ChangePasswordRequest
 
+from app.features.activity_logs.service import log_action
+from app.features.activity_logs.schemas import ActivityLogCreate
+
 REFRESH_TOKEN_DAYS = 2
 
 class AuthService:
@@ -53,6 +56,14 @@ class AuthService:
         raw_refresh_token = secrets.token_urlsafe(64)
         
         await AuthService._create_refresh_token(db, user, raw_refresh_token)
+
+        await log_action(db, ActivityLogCreate(
+            user_id=user.id,
+            action="login",
+            entity_type="user",
+            entity_id=user.id,
+            details=f"User {user.email} logged in"
+        ))
 
         return {
             "access_token": access_token,

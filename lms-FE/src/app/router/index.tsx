@@ -13,6 +13,7 @@ import { CourseDetailPage } from '../../features/courses/pages/CourseDetailPage'
 import { EnrollmentsManagementPage } from '../../features/enrollments/pages/EnrollmentsManagementPage';
 import { FilesPage } from '../../features/files/pages/FilesPage';
 import { HealthPage } from '../../features/health/pages/HealthPage';
+import { ActivityLogsPage } from '../../features/activityLogs/pages/ActivityLogsPage';
 
 // Teacher Imports
 import { TeacherLayout } from '../../features/teacher/layout/TeacherLayout';
@@ -20,6 +21,7 @@ import { TeacherCoursesPage } from '../../features/teacher/pages/TeacherCoursesP
 import { UploadNotesPage } from '../../features/materials/pages/UploadNotesPage';
 import { AssignmentForm } from '../../features/materials/pages/AssignmentForm';
 import { ManageMaterialsPage } from '../../features/materials/pages/ManageMaterialsPage';
+import { TeacherEvaluationPage } from '../../features/teacher/pages/TeacherEvaluationPage';
 
 // Student Imports
 import { StudentLayout } from '../../features/student/layout/StudentLayout';
@@ -28,6 +30,7 @@ import { CourseMaterialsPage } from '../../features/student/pages/CourseMaterial
 import { StudentCoursePage } from '../../features/student/pages/StudentCoursePage';
 import { AssignmentDetailPage } from '../../features/student/pages/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../../features/student/pages/AssignmentSubmissionPage';
+import { StudentSubmissionsPage } from '../../features/submissions/pages/StudentSubmissionsPage';
 
 import { ErrorComponent } from '../../shared/components/ui/ErrorComponent';
 
@@ -184,6 +187,12 @@ const adminHealthRoute = createRoute({
     component: HealthPage,
 });
 
+const adminActivityLogsRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/activity-logs',
+    component: ActivityLogsPage,
+});
+
 // 5. Teacher Routing Tree
 const teacherRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -234,6 +243,12 @@ const teacherManageMaterialsRoute = createRoute({
     getParentRoute: () => teacherRoute,
     path: '/materials',
     component: ManageMaterialsPage,
+});
+
+const teacherEvaluationRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/evaluations',
+    component: TeacherEvaluationPage,
 });
 
 // 6. Student Routing Tree
@@ -288,11 +303,18 @@ const studentMaterialsRoute = createRoute({
     component: CourseMaterialsPage,
 });
 
-const studentSubmissionRoute = createRoute({
+const studentSubmissionNewRoute = createRoute({
     getParentRoute: () => studentRoute,
-    path: '/submissions',
+    path: '/submissions/new',
     component: AssignmentSubmissionPage,
 });
+
+const studentSubmissionsListRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/submissions',
+    component: StudentSubmissionsPage,
+});
+
 
 // 7. Build Tree
 const routeTree = rootRoute.addChildren([
@@ -306,14 +328,16 @@ const routeTree = rootRoute.addChildren([
         adminCourseDetailRoute,
         adminEnrollmentsRoute,
         adminFilesRoute,
-        adminHealthRoute
+        adminHealthRoute,
+        adminActivityLogsRoute
     ]),
     teacherRoute.addChildren([
         teacherIndexRoute,
         teacherCoursesRoute,
         teacherUploadRoute,
         teacherAssignmentRoute,
-        teacherManageMaterialsRoute
+        teacherManageMaterialsRoute,
+        teacherEvaluationRoute
     ]),
     studentRoute.addChildren([
         studentIndexRoute,
@@ -321,8 +345,10 @@ const routeTree = rootRoute.addChildren([
         studentCourseDetailRoute,
         studentAssignmentDetailRoute,
         studentMaterialsRoute,
-        studentSubmissionRoute
+        studentSubmissionNewRoute,
+        studentSubmissionsListRoute
     ])
+
 ]);
 
 // 8. Create Router Instance

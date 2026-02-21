@@ -17,8 +17,8 @@ export const CourseDetailPage: React.FC = () => {
     if (isError) return <div className="p-8 text-red-500">Failed to load course: {error?.message}</div>;
     if (!course) return <div className="p-8 text-slate-500">Course not found.</div>;
 
-    const assignedTeachers = teacherAssignments?.filter((ta: any) => ta.course_id === courseId) || [];
-    const enrolledStudents = studentEnrollments?.filter((se: any) => se.course_id === courseId) || [];
+    const assignedTeachers = teacherAssignments?.filter((ta: any) => String(ta.course_id) === String(courseId)) || [];
+    const enrolledStudents = studentEnrollments?.filter((se: any) => String(se.course_id) === String(courseId)) || [];
 
     return (
         <div className="space-y-8">

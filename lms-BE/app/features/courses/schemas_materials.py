@@ -19,6 +19,7 @@ class AssignmentCreate(BaseMaterialCreate):
     total_marks: float
     due_date: date
     max_attempts: int = 1
+    description: Optional[str] = None
 
 class LearningMaterialRead(BaseModel):
     id: int

@@ -17,29 +17,32 @@ from app.features.enrollments.models_teacher import TeacherCourse
 from app.core.storage import get_minio_client
 
 async def create_submission(db: AsyncSession, student_id: int, schema: SubmissionCreate) -> Submission:
-    # 1. Check for duplicates
-    result = await db.scalars(
-        select(Submission)
-        .where(Submission.student_id == student_id)
-        .where(Submission.assignment_id == schema.assignment_id)
-    )
-    existing = result.first()
-    
-    if existing:
-        raise HTTPException(status_code=400, detail="You have already submitted this assignment.")
-        
-    # 2. Check deadline enforcement
+    # 1. Fetch assignment and check deadline
     assignment_result = await db.scalars(
         select(Assignment).where(Assignment.material_id == schema.assignment_id)
     )
     assignment = assignment_result.first()
     
-    if assignment and assignment.due_date:
-        # assignment.due_date is typically scalar datetime.date or mapped string. Let's cast to str to compare if it's string or use date comparison
-        current_date_str = datetime.utcnow().date().isoformat()
-        due_date_str = assignment.due_date.isoformat() if hasattr(assignment.due_date, 'isoformat') else str(assignment.due_date)
-        if current_date_str > due_date_str:
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Assignment not found.")
+
+    if assignment.due_date:
+        current_date = datetime.utcnow().date()
+        if current_date > assignment.due_date:
             raise HTTPException(status_code=400, detail="Submission deadline has passed.")
+
+    # 2. Check for attempt limits
+    current_attempts = await db.scalar(
+        select(func.count(Submission.id))
+        .where(Submission.student_id == student_id)
+        .where(Submission.assignment_id == schema.assignment_id)
+    )
+    
+    if current_attempts >= assignment.max_attempts:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Maximum attempts ({assignment.max_attempts}) reached for this assignment."
+        )
 
     submission = Submission(
         student_id=student_id,

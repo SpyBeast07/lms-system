@@ -42,13 +42,11 @@ export const StudentCoursePage: React.FC = () => {
     if (isLoadingCourse) return <div className="p-8 text-slate-500 font-medium animate-pulse">Loading classroom...</div>;
     if (isCourseError || !course) return <div className="p-8 text-red-500 font-medium">Failed to establish classroom context. Are you sure you're enrolled?</div>;
 
-    const notes = materials?.filter((m: any) => m.file_url) || [];
-    const assignments = materials?.filter((m: any) => !m.file_url) || [];
+    const notes = materials?.filter((m: any) => m.type === 'notes') || [];
+    const assignments = materials?.filter((m: any) => m.type === 'assignment') || [];
 
     const handleDownload = (fileUrl: string) => {
-        // fileUrl is like http://localhost:9000/lms-files/uuid.pdf or http://localhost:9000/lms-files/notes/uuid.pdf
         const parts = fileUrl.split('/');
-        // Extract everything after the bucket name (bucket is always at index 3 in an S3 Path Style URL)
         const objectName = parts.slice(4).join('/');
 
         if (!objectName) {
@@ -194,11 +192,23 @@ export const StudentCoursePage: React.FC = () => {
                                     assignments.map((assignment: any) => (
                                         <div key={assignment.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                                             <div>
-                                                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                                                    {assignment.title}
-                                                </h3>
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-lg font-bold text-slate-800">
+                                                        {assignment.title}
+                                                    </h3>
+                                                    {assignment.submission_status === 'submitted' ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                            ✓ Submitted ({assignment.attempts_made || 0}/{assignment.max_attempts || 1})
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
+                                                            ○ Pending ({assignment.attempts_made || 0}/{assignment.max_attempts || 1})
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm font-medium text-slate-500 mt-1">Due Date: <span className="text-rose-600 font-semibold">{assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'N/A'}</span></p>
-                                                <p className="text-xs text-slate-400 mt-2">Total Marks Potential: {assignment.total_marks || 100}</p>
+                                                <p className="text-xs text-slate-400 mt-2 line-clamp-2 italic">{assignment.description || "No specific instructions provided."}</p>
+                                                <p className="text-xs text-slate-300 mt-1 uppercase tracking-wider font-bold">Total Marks Potential: {assignment.total_marks || 100}</p>
                                             </div>
                                             <Link
                                                 to="/student/courses/$courseId/assignments/$assignmentId"

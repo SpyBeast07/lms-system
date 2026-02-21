@@ -97,10 +97,10 @@ export const CourseMaterialsPage: React.FC = () => {
                                     </h3>
                                 </div>
                                 <div className="divide-y divide-slate-100">
-                                    {assignments.length === 0 ? (
+                                    {assignments.filter((a: any) => a.submission_status !== 'submitted').length === 0 ? (
                                         <div className="p-6 text-slate-500 text-sm italic">No assignments are due right now.</div>
                                     ) : (
-                                        assignments.map((assignment: any) => (
+                                        assignments.filter((a: any) => a.submission_status !== 'submitted').map((assignment: any) => (
                                             <Link
                                                 key={assignment.id}
                                                 to="/student/courses/$courseId"
@@ -111,8 +111,8 @@ export const CourseMaterialsPage: React.FC = () => {
                                                 <div className="flex justify-between items-start">
                                                     <div>
                                                         <p className="font-medium text-slate-800 text-sm group-hover:text-emerald-600 transition-colors">{assignment.title}</p>
-                                                        <p className="text-xs text-emerald-600 font-medium mt-1">
-                                                            {assignment.total_marks} Marks · Max {assignment.max_attempts} attempt(s)
+                                                        <p className="text-xs text-emerald-600 font-bold mt-1">
+                                                            {assignment.submission_status === 'submitted' ? '✓ Submitted' : '○ Pending'} · {assignment.attempts_made || 0}/{assignment.max_attempts || 1} Attempts · {assignment.total_marks || 100} Marks
                                                         </p>
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2 text-right">

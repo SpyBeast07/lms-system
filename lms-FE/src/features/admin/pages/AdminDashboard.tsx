@@ -3,7 +3,9 @@ import { useAuthStore } from '../../../app/store/authStore';
 import { decodeToken } from '../../../shared/utils/jwt';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
-import { useCoursesQuery } from '../../courses/hooks/useCourses';
+import { useActivityLogsQuery } from '../../activityLogs/hooks/useActivityLogs';
+import { useAdminStatsQuery } from '../../../shared/hooks/useStats';
+import type { ActivityLog } from '../../activityLogs/schemas';
 
 export const AdminDashboard: React.FC = () => {
     const { accessToken } = useAuthStore();
@@ -12,14 +14,18 @@ export const AdminDashboard: React.FC = () => {
     const userName = payload?.name || "Unknown User";
     const userRole = payload?.role || "Unknown Role";
 
-    const { data: courses, isLoading } = useCoursesQuery();
+    const { data: stats, isLoading: isLoadingStats } = useAdminStatsQuery();
+    const { data: logsData, isLoading: isLoadingLogs } = useActivityLogsQuery({ page: 1, size: 5 });
 
-    const mockActivities = [
-        { id: '1', title: 'New Course Published', description: 'Advanced Mathematics 101 has been published to the catalog.', timestamp: new Date(Date.now() - 3600000), type: 'course' as const },
-        { id: '2', title: 'Teacher Assigned', description: 'Dr. Smith was assigned to Physics 201.', timestamp: new Date(Date.now() - 7200000), type: 'system' as const },
-        { id: '3', title: 'System Backup', description: 'Nightly database snapshot successfully saved automatically.', timestamp: new Date(Date.now() - 86400000), type: 'system' as const },
-        { id: '4', title: 'Maintenance Window', description: 'Server maintenance completed smoothly over weekend.', timestamp: new Date(Date.now() - 172800000), type: 'system' as const },
-    ];
+    const activities = logsData?.items.map((log: ActivityLog) => ({
+        id: log.id.toString(),
+        title: log.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: log.details || `Action performed by ${log.user?.name || 'System'}`,
+        timestamp: new Date(log.created_at),
+        type: (log.entity_type === 'course' ? 'course' :
+            log.entity_type === 'material' ? 'material' :
+                log.entity_type === 'submission' ? 'assignment' : 'system') as 'course' | 'material' | 'assignment' | 'system'
+    })) || [];
 
     return (
         <div className="space-y-6">
@@ -31,14 +37,14 @@ export const AdminDashboard: React.FC = () => {
             </div>
 
             <DashboardSummary
-                courseCount={(courses as any)?.total || 0}
-                materialCount={42} // Simulated metric based on database scale
-                assignmentCount={18} // Simulated metric
-                isLoading={isLoading}
+                courseCount={stats?.courses || 0}
+                materialCount={stats?.materials || 0}
+                assignmentCount={stats?.assignments || 0}
+                isLoading={isLoadingStats}
             />
 
             <div className="pt-4">
-                <ActivityTimeline activities={mockActivities} />
+                <ActivityTimeline activities={activities} isLoading={isLoadingLogs} />
             </div>
         </div>
     );

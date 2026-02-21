@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from datetime import datetime, UTC
 
@@ -16,6 +17,7 @@ from app.features.activity_logs.schemas import ActivityLogCreate
 from app.features.notifications.service import create_notification
 from app.features.notifications.schemas import NotificationCreate
 from app.features.enrollments.models_student import StudentCourse
+from app.features.submissions.models import Submission
 
 
 # -------------------- CREATE --------------------
@@ -78,6 +80,7 @@ async def create_assignment(
         total_marks=data.total_marks,
         due_date=data.due_date,
         max_attempts=data.max_attempts,
+        description=data.description,
     )
     db.add(assignment)
 
@@ -107,8 +110,8 @@ async def create_assignment(
 
 # -------------------- READ --------------------
 
-async def get_course_materials(db: AsyncSession, course_id: int):
-    result = await db.execute(
+async def get_course_materials(db: AsyncSession, course_id: int, student_id: int = None):
+    stmt = (
         select(LearningMaterial)
         .options(selectinload(LearningMaterial.notes), selectinload(LearningMaterial.assignment))
         .filter(
@@ -117,7 +120,18 @@ async def get_course_materials(db: AsyncSession, course_id: int):
         )
         .order_by(LearningMaterial.created_at.desc())
     )
+    result = await db.execute(stmt)
     materials = result.scalars().all()
+    
+    # If student_id is provided, get their submissions for these materials
+    submission_map = {}
+    if student_id:
+        sub_stmt = select(Submission.assignment_id, func.count(Submission.id)).where(
+            Submission.student_id == student_id,
+            Submission.assignment_id.in_([m.id for m in materials if m.type == "assignment"])
+        ).group_by(Submission.assignment_id)
+        sub_result = await db.execute(sub_stmt)
+        submission_map = {row[0]: row[1] for row in sub_result.all()}
     
     response = []
     for m in materials:
@@ -137,6 +151,12 @@ async def get_course_materials(db: AsyncSession, course_id: int):
             item["due_date"] = m.assignment.due_date
             item["max_attempts"] = m.assignment.max_attempts
             item["assignment_type"] = m.assignment.assignment_type
+            item["description"] = m.assignment.description
+            
+            if student_id:
+                attempts_made = submission_map.get(m.id, 0)
+                item["submission_status"] = "submitted" if attempts_made > 0 else "pending"
+                item["attempts_made"] = attempts_made
             
         response.append(item)
         

@@ -6,15 +6,17 @@ import { Pagination } from '../../../shared/components/ui/Pagination';
 import { Link } from '@tanstack/react-router';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
+import { useNotificationsQuery } from '../../notifications/hooks/useNotifications';
+import { useTeacherStatsQuery } from '../../../shared/hooks/useStats';
 import type { Course } from '../../courses/schemas';
 
 const CourseCountsCell = ({ courseId }: { courseId: string }) => {
     const { data: materials, isLoading } = useCourseMaterialsQuery(courseId);
     if (isLoading) return <span className="text-slate-400 text-xs animate-pulse">Loading...</span>;
 
-    // Notes have a file_url assigned, Assignments do not.
-    const notesCount = materials?.filter((m: any) => m.file_url).length || 0;
-    const assignCount = materials?.filter((m: any) => !m.file_url).length || 0;
+    // Notes have a type='notes'
+    const notesCount = materials?.filter((m: any) => m.type === 'notes').length || 0;
+    const assignCount = materials?.filter((m: any) => m.type === 'assignment').length || 0;
 
     return (
         <div className="flex gap-4 text-xs font-medium text-slate-600">
@@ -34,6 +36,18 @@ export const TeacherCoursesPage: React.FC = () => {
     const [page, setPage] = useState(1);
     const limit = 10;
     const { data, isLoading, isError, error } = useTeacherCourses(page, limit);
+    const { data: stats, isLoading: isLoadingStats } = useTeacherStatsQuery();
+    const { data: notifications, isLoading: isLoadingNotifications } = useNotificationsQuery();
+
+    const activities = notifications?.slice(0, 5).map((n: any) => ({
+        id: n.id.toString(),
+        title: n.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        description: n.message,
+        timestamp: new Date(n.created_at),
+        type: (n.type.includes('assignment') ? 'assignment' :
+            n.type.includes('course') ? 'course' :
+                n.type.includes('material') ? 'material' : 'system') as 'course' | 'material' | 'assignment' | 'system'
+    })) || [];
 
     const columns = [
         {
@@ -79,23 +93,18 @@ export const TeacherCoursesPage: React.FC = () => {
         }
     ];
 
-    const mockActivities = [
-        { id: '1', title: 'Assignment Graded', description: 'You graded 15 submissions for Final Project.', timestamp: new Date(Date.now() - 3600000), type: 'assignment' as const },
-        { id: '2', title: 'Notes Uploaded', description: 'Advanced Physics Chapter 4 notes published.', timestamp: new Date(Date.now() - 86400000), type: 'material' as const },
-    ];
-
     if (isLoading) return <div className="p-8 text-slate-500 animate-pulse">Loading assigned courses...</div>;
     if (isError) return <div className="p-8 text-red-500">Failed to load courses: {(error as any)?.message}</div>;
 
-    const courses = (data as any)?.items || [];
+    const coursesList = (data as any)?.items || [];
 
     return (
         <div className="space-y-8 pb-12">
             <DashboardSummary
-                courseCount={(data as any)?.total || 0}
-                materialCount={14} // Simulated metric 
-                assignmentCount={5} // Simulated metric
-                isLoading={isLoading}
+                courseCount={stats?.courses || 0}
+                materialCount={stats?.materials || 0}
+                assignmentCount={stats?.assignments || 0}
+                isLoading={isLoadingStats}
             />
 
             <div className="flex justify-between items-end border-b border-slate-200 pb-4">
@@ -113,7 +122,7 @@ export const TeacherCoursesPage: React.FC = () => {
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <Table<Course>
-                    data={courses}
+                    data={coursesList}
                     columns={columns}
                     emptyMessage="You have not been assigned any courses yet."
                 />
@@ -127,7 +136,7 @@ export const TeacherCoursesPage: React.FC = () => {
             </div>
 
             <div className="pt-4">
-                <ActivityTimeline activities={mockActivities} />
+                <ActivityTimeline activities={activities} isLoading={isLoadingNotifications} />
             </div>
         </div>
     );

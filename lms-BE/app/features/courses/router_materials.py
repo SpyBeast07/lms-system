@@ -18,7 +18,8 @@ async def get_course_materials_api(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("teacher", "student", "admin"))
 ):
-    materials = await material_crud.get_course_materials(db, course_id)
+    student_id = current_user.id if current_user.role == "student" else None
+    materials = await material_crud.get_course_materials(db, course_id, student_id=student_id)
     return materials
 
 

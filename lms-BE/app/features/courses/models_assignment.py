@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Enum, Date, Numeric, ForeignKey
+from sqlalchemy import Integer, Enum, Date, Numeric, ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db_base import Base
@@ -25,6 +25,10 @@ class Assignment(Base):
 
     max_attempts: Mapped[int] = mapped_column(
         Integer, nullable=False, default=1
+    )
+
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True
     )
     
     material = relationship("LearningMaterial", back_populates="assignment")

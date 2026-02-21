@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
 import { useStudentCourses } from '../hooks/useStudentCourses';
 import { DownloadButton } from '../components/DownloadButton';
+import { Link } from '@tanstack/react-router';
 
 export const CourseMaterialsPage: React.FC = () => {
     const { data: courses, isLoading: isCoursesLoading } = useStudentCourses();
@@ -63,13 +64,22 @@ export const CourseMaterialsPage: React.FC = () => {
                                     ) : (
                                         notes.map((note: any) => {
                                             return (
-                                                <div key={note.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                                <Link
+                                                    key={note.id}
+                                                    to="/student/courses/$courseId"
+                                                    params={{ courseId: selectedCourse }}
+                                                    search={{ tab: 'notes' }}
+                                                    className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                                                >
                                                     <div>
-                                                        <p className="font-medium text-slate-800 text-sm">{note.title}</p>
+                                                        <p className="font-medium text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">{note.title}</p>
                                                         <p className="text-xs text-slate-500 mt-1">Uploaded: {new Date(note.created_at).toLocaleDateString()}</p>
                                                     </div>
-                                                    <DownloadButton objectName={note.file_url} />
-                                                </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[10px] font-bold text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wider">View in Syllabus →</span>
+                                                        <DownloadButton objectName={note.file_url} />
+                                                    </div>
+                                                </Link>
                                             );
                                         })
                                     )}
@@ -91,19 +101,28 @@ export const CourseMaterialsPage: React.FC = () => {
                                         <div className="p-6 text-slate-500 text-sm italic">No assignments are due right now.</div>
                                     ) : (
                                         assignments.map((assignment: any) => (
-                                            <div key={assignment.id} className="p-4 flex flex-col gap-3 hover:bg-slate-50 transition-colors">
+                                            <Link
+                                                key={assignment.id}
+                                                to="/student/courses/$courseId"
+                                                params={{ courseId: selectedCourse }}
+                                                search={{ tab: 'assignments' }}
+                                                className="p-4 flex flex-col gap-3 hover:bg-slate-50 transition-colors group"
+                                            >
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <p className="font-medium text-slate-800 text-sm">{assignment.title}</p>
+                                                        <p className="font-medium text-slate-800 text-sm group-hover:text-emerald-600 transition-colors">{assignment.title}</p>
                                                         <p className="text-xs text-emerald-600 font-medium mt-1">
                                                             {assignment.total_marks} Marks · Max {assignment.max_attempts} attempt(s)
                                                         </p>
                                                     </div>
-                                                    <span className="text-xs font-mono text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded">
-                                                        Due: {new Date(assignment.due_date).toLocaleDateString()}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-2 text-right">
+                                                        <span className="text-xs font-mono text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded">
+                                                            Due: {new Date(assignment.due_date).toLocaleDateString()}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wider">Start Assignment →</span>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            </Link>
                                         ))
                                     )}
                                 </div>

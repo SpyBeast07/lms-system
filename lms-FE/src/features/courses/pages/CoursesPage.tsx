@@ -9,15 +9,15 @@ import {
     useDeleteCourseMutation,
     useRestoreCourseMutation
 } from '../hooks/useCourses';
-import { FormInput } from '../../../shared/components/form/FormInput';
 import { Button } from '../../../shared/components/Button';
-import { Table } from '../../../shared/components/ui/Table';
-import { Modal } from '../../../shared/components/ui/Modal';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
-import { Pagination } from '../../../shared/components/ui/Pagination';
 import type { Course } from '../schemas';
+import { useGenerateCourseContent } from '../../ai/hooks';
+import { useToastStore } from '../../../app/store/toastStore';
+import { CreateCourseModal } from '../components/CreateCourseModal';
+import { CourseTableSection } from '../components/CourseTableSection';
 
 type UiState = {
     isCreateModalOpen: boolean;
@@ -50,6 +50,8 @@ export const CoursesPage: React.FC = () => {
     const createMutation = useCreateCourseMutation();
     const deleteMutation = useDeleteCourseMutation();
     const restoreMutation = useRestoreCourseMutation();
+    const generateContentMutation = useGenerateCourseContent();
+    const { addToast } = useToastStore();
 
     const [ui, dispatch] = useReducer(uiReducer, {
         isCreateModalOpen: false,
@@ -62,6 +64,8 @@ export const CoursesPage: React.FC = () => {
         register,
         handleSubmit,
         reset,
+        setValue,
+        watch,
         formState: { errors },
     } = useForm<CourseCreateData>({
         resolver: zodResolver(courseCreateSchema),
@@ -98,6 +102,24 @@ export const CoursesPage: React.FC = () => {
             () => dispatch({ type: 'SET_RESTORE', id: null }),
             () => dispatch({ type: 'SET_RESTORE', id: null })
         ));
+    };
+
+    const handleGenerateFullAi = () => {
+        const currentDescription = watch('description');
+        const courseName = watch('name');
+        const contextToUse = currentDescription?.trim() || courseName?.trim();
+
+        if (!contextToUse) {
+            addToast('Please provide a course name or context for the AI', 'error');
+            return;
+        }
+
+        generateContentMutation.mutate(contextToUse, {
+            onSuccess: (generatedText) => {
+                setValue('description', generatedText);
+                addToast('AI course content generated successfully!', 'success');
+            }
+        });
     };
 
     const activeCourses: Course[] = (activeQuery.data as any)?.items || [];
@@ -190,84 +212,48 @@ export const CoursesPage: React.FC = () => {
                 </Button>
             </div>
 
-            <div className="space-y-4">
-                <h2 className="text-lg font-bold text-slate-700">Active Courses</h2>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <Table<Course>
-                        data={activeCourses}
-                        columns={activeColumns}
-                        emptyMessage="No active courses found."
-                    />
-                    <Pagination
-                        currentPage={activePage}
-                        totalItems={(activeQuery.data as any)?.total || 0}
-                        pageSize={limit}
-                        onPageChange={setActivePage}
-                        isLoading={activeQuery.isLoading}
-                    />
-                </div>
-            </div>
+            <CourseTableSection
+                title="Active Courses"
+                courses={activeCourses}
+                columns={activeColumns}
+                currentPage={activePage}
+                totalItems={(activeQuery.data as any)?.total || 0}
+                pageSize={limit}
+                onPageChange={setActivePage}
+                isLoading={activeQuery.isLoading}
+                emptyMessage="No active courses found."
+            />
 
             {((deletedQuery.data as any)?.total > 0 || deletedCourses.length > 0) && (
-                <div className="space-y-4">
-                    <h2 className="text-lg font-bold text-slate-700">Deleted Courses</h2>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <Table<Course>
-                            data={deletedCourses}
-                            columns={deletedColumns}
-                            emptyMessage="No deleted courses found."
-                        />
-                        <Pagination
-                            currentPage={deletedPage}
-                            totalItems={(deletedQuery.data as any)?.total || 0}
-                            pageSize={limit}
-                            onPageChange={setDeletedPage}
-                            isLoading={deletedQuery.isLoading}
-                        />
-                    </div>
-                </div>
+                <CourseTableSection
+                    title="Deleted Courses"
+                    courses={deletedCourses}
+                    columns={deletedColumns}
+                    currentPage={deletedPage}
+                    totalItems={(deletedQuery.data as any)?.total || 0}
+                    pageSize={limit}
+                    onPageChange={setDeletedPage}
+                    isLoading={deletedQuery.isLoading}
+                    emptyMessage="No deleted courses found."
+                />
             )}
 
-            <Modal
+            <CreateCourseModal
                 isOpen={isCreateModalOpen}
                 onClose={() => {
                     dispatch({ type: 'CLOSE_CREATE' });
                     reset();
                 }}
-                title="Create New Course"
-            >
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <FormInput
-                        label="Course Name"
-                        type="text"
-                        placeholder="Introduction to Programming"
-                        register={register('name')}
-                        error={errors.name?.message}
-                    />
-                    <FormInput
-                        label="Description"
-                        type="text"
-                        placeholder="An engaging intro course."
-                        register={register('description')}
-                        error={errors.description?.message}
-                    />
-                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                dispatch({ type: 'CLOSE_CREATE' });
-                                reset();
-                            }}
-                            className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <Button type="submit" isLoading={createMutation.isPending}>
-                            Create Course
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+                onSubmit={handleSubmit(onSubmit)}
+                onGenerateFullAi={handleGenerateFullAi}
+                isGeneratingAi={generateContentMutation.isPending}
+                register={register}
+                errors={errors}
+                watch={watch}
+                setValue={setValue}
+            />
+
+
 
             <ConfirmDialog
                 isOpen={courseToDelete !== null}

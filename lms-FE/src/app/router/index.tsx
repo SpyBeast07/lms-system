@@ -288,6 +288,11 @@ const studentCoursesRoute = createRoute({
 const studentCourseDetailRoute = createRoute({
     getParentRoute: () => studentRoute,
     path: '/courses/$courseId',
+    validateSearch: (search: Record<string, unknown>): { tab?: 'notes' | 'assignments' | 'practice' } => {
+        return {
+            tab: (search.tab as any) || 'notes',
+        }
+    },
     component: StudentCoursePage,
 });
 

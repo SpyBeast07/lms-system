@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173"]
 
+    # AI Configuration
+    AI_PROVIDER: str = "ollama"  # or openai, gemini
+    OLLAMA_BASE_URL: str = "http://localhost:11434/api/generate"
+    OLLAMA_MODEL: str = "phi3:mini"
+    OPENAI_API_KEY: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

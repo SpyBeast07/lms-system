@@ -50,6 +50,7 @@ from app.features.files import router as files_router
 from app.features.submissions.router import router as submissions_router
 from app.features.notifications.router import router as notifications_router
 from app.features.activity_logs.router import router as activity_logs_router
+from app.features.ai.router import router as ai_router
 
 app.include_router(users_router)
 app.include_router(courses_router)
@@ -61,6 +62,7 @@ app.include_router(files_router, prefix="/api/v1")
 app.include_router(submissions_router)
 app.include_router(notifications_router)
 app.include_router(activity_logs_router)
+app.include_router(ai_router)
 
 
 @app.get("/hello_world") # decorator - A function that wraps another function and adds behavior to it.

@@ -4,9 +4,11 @@ File Upload API Endpoints
 FastAPI routes for handling file uploads to MinIO object storage.
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Request
 from typing import Optional
 import logging
+
+from app.core.rate_limiter import limiter
 
 from app.core.storage import get_minio_client
 from app.schemas.file import (
@@ -24,7 +26,9 @@ router = APIRouter(prefix="/files", tags=["Files"])
 
 
 @router.post("/upload", response_model=FileUploadResponse, status_code=201)
+@limiter.limit("20/minute")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(..., description="File to upload"),
     folder: Optional[str] = Query(
         "",

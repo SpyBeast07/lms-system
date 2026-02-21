@@ -4,15 +4,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.database import engine
 from app.core.config import settings
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
+from app.core.rate_limiter import limiter
+from app.core.cleanup_tasks import start_scheduler
+from app.core.exceptions import custom_http_exception_handler, validation_exception_handler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic (if any)
+    start_scheduler()
     yield
     # Shutdown logic
     await engine.dispose()
 
 app = FastAPI(title="LMS Backend", lifespan=lifespan) # Object of fastAPI class
+
+# SlowAPI registration
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Global custom REST serialization wrappers 
+app.add_exception_handler(StarletteHTTPException, custom_http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Set all CORS enabled origins
 if settings.BACKEND_CORS_ORIGINS:

@@ -6,6 +6,7 @@ class NotificationCreate(BaseModel):
     user_id: int
     type: str
     message: str
+    entity_id: Optional[int] = None
 
 class NotificationRead(BaseModel):
     id: int

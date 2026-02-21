@@ -18,6 +18,8 @@ class Notification(Base):
     
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
+    event_key: Mapped[str | None] = mapped_column(String, index=True, nullable=True, unique=True)
+    
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
     )

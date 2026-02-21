@@ -53,7 +53,8 @@ async def enroll_student_in_course(
     await create_notification(db, NotificationCreate(
         user_id=student_id,
         type="course_enrollment",
-        message=f"You have been enrolled in a new course: {course.name}"
+        message=f"You have been enrolled in a new course: {course.name}",
+        entity_id=course_id
     ))
 
     return enrollment

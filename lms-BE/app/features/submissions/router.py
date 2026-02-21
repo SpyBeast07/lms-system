@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+
+from app.core.rate_limiter import limiter
 
 from app.core.database import get_db
 from app.features.auth.dependencies import get_current_user
@@ -10,7 +12,9 @@ from . import schemas, service
 router = APIRouter(prefix="/submissions", tags=["Submissions"])
 
 @router.post("/", response_model=schemas.SubmissionRead, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def submit_assignment(
+    request: Request,
     schema: schemas.SubmissionCreate,
     current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

@@ -151,7 +151,8 @@ async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int
     await create_notification(db, NotificationCreate(
         user_id=submission.student_id,
         type="assignment_graded",
-        message=f"Your assignment submission has been graded: {schema.grade}/100"
+        message=f"Your assignment submission has been graded: {schema.grade}/100",
+        entity_id=submission.id
     ))
     
     await log_action(db, ActivityLogCreate(

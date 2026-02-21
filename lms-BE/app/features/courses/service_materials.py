@@ -53,7 +53,8 @@ async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> 
         await create_notification(db, NotificationCreate(
             user_id=student_id,
             type="material_uploaded",
-            message=f"New notes available: {data.title}"
+            message=f"New notes available: {data.title}",
+            entity_id=material.id
         ))
 
     return material
@@ -97,7 +98,8 @@ async def create_assignment(
         await create_notification(db, NotificationCreate(
             user_id=student_id,
             type="assignment_created",
-            message=f"New assignment posted: {data.title}"
+            message=f"New assignment posted: {data.title}",
+            entity_id=material.id
         ))
 
     return material

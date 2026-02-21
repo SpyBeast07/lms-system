@@ -58,3 +58,45 @@ class RefreshToken(Base):
 
     # relationships
     user = relationship("User")
+
+
+class PasswordChangeRequest(Base):
+    __tablename__ = "password_change_requests"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    new_password_hash: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="pending",  # pending, approved, rejected
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # relationships
+    user = relationship("User")

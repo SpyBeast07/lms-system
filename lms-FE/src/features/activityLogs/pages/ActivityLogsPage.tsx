@@ -89,6 +89,10 @@ export const ActivityLogsPage: React.FC = () => {
                         <option value="">All Actions</option>
                         <optgroup label="Auth">
                             <option value="login">Login</option>
+                            <option value="password_change_requested">Password Change Requested</option>
+                            <option value="password_changed">Password Changed (User)</option>
+                            <option value="password_change_approved">Password Change Approved (Admin)</option>
+                            <option value="password_change_rejected">Password Change Rejected</option>
                         </optgroup>
                         <optgroup label="Users">
                             <option value="user_created">User Created</option>

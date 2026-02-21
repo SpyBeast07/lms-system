@@ -2,10 +2,12 @@ import secrets
 from datetime import datetime, timedelta, UTC
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update
+from typing import Optional
+from sqlalchemy import update, func
+from sqlalchemy.orm import joinedload
 from fastapi import HTTPException, status
 
-from app.features.auth.models import RefreshToken
+from app.features.auth.models import RefreshToken, PasswordChangeRequest
 from app.features.users.models import User
 from app.features.auth.security import hash_token, verify_token, verify_password, hash_password
 from app.features.auth.jwt import create_access_token
@@ -13,6 +15,9 @@ from app.features.auth.schemas import TokenResponse, RefreshRequest, LogoutReque
 
 from app.features.activity_logs.service import log_action
 from app.features.activity_logs.schemas import ActivityLogCreate
+
+from app.features.notifications.service import create_notification
+from app.features.notifications.schemas import NotificationCreate
 
 REFRESH_TOKEN_DAYS = 2
 
@@ -155,7 +160,7 @@ class AuthService:
     @staticmethod
     async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest):
         """
-        Verify old password, update to new password, and revoke all sessions.
+        Verify old password and create a password change request. Notify super admins.
         """
         # 1️⃣ Verify current password (async)
         is_valid = await verify_password(data.current_password, user.password_hash)
@@ -165,17 +170,163 @@ class AuthService:
                 detail="Current password is incorrect",
             )
 
-        # 2️⃣ Update password (async hash)
-        user.password_hash = await hash_password(data.new_password)
-        user.updated_at = datetime.now(UTC)
+        # 2️⃣ Create a Password Change Request
+        new_hash = await hash_password(data.new_password)
+        request = PasswordChangeRequest(
+            user_id=user.id,
+            new_password_hash=new_hash,
+            status="pending"
+        )
+        db.add(request)
         await db.commit()
 
-        # 3️⃣ Revoke ALL refresh tokens
+        # 3️⃣ Log Action
+        await log_action(db, ActivityLogCreate(
+            user_id=user.id,
+            action="password_change_requested",
+            entity_type="user",
+            entity_id=user.id,
+            details=f"User '{user.name}' requested a password change"
+        ))
+
+        # 4️⃣ Notify Super Admins
+        super_admins_result = await db.execute(select(User).filter(User.role == "super_admin", User.is_deleted == False))
+        super_admins = super_admins_result.scalars().all()
+        for admin in super_admins:
+            await create_notification(db, NotificationCreate(
+                user_id=admin.id,
+                type="password_change_request",
+                message=f"User '{user.name}' ({user.email}) requested a password change.",
+                entity_id=request.id
+            ))
+
+        return {"detail": "Password change request submitted for admin approval."}
+
+    @staticmethod
+    async def get_password_requests(db: AsyncSession, page: int = 1, limit: int = 10, status_filter: Optional[str] = None):
+        skip = (page - 1) * limit
+        
+        query = select(PasswordChangeRequest).options(joinedload(PasswordChangeRequest.user))
+        count_query = select(func.count(PasswordChangeRequest.id))
+
+        if status_filter:
+            query = query.filter(PasswordChangeRequest.status == status_filter)
+            count_query = count_query.filter(PasswordChangeRequest.status == status_filter)
+
+        query = query.order_by(PasswordChangeRequest.created_at.desc()).offset(skip).limit(limit)
+
+        result = await db.execute(query)
+        items = result.scalars().all()
+
+        count_result = await db.execute(count_query)
+        total = count_result.scalar_one()
+
+        return {"items": items, "total": total, "page": page, "size": limit}
+
+    @staticmethod
+    async def approve_password_request(db: AsyncSession, current_admin: User, request_id: int):
+        result = await db.execute(select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id))
+        request = result.scalars().first()
+        if not request:
+            raise HTTPException(status_code=404, detail="Password change request not found")
+        if request.status != "pending":
+            raise HTTPException(status_code=400, detail=f"Request is already {request.status}")
+
+        user_result = await db.execute(select(User).filter(User.id == request.user_id))
+        user = user_result.scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # 1️⃣ Update password and request status
+        user.password_hash = request.new_password_hash
+        user.updated_at = datetime.now(UTC)
+        request.status = "approved"
+        request.resolved_at = datetime.now(UTC)
+        await db.commit()
+
+        # 2️⃣ Revoke ALL refresh tokens for the user
         await AuthService._revoke_all_user_tokens(db, user.id)
 
-        return {"detail": "Password changed successfully. Logged out from all sessions."}
+        # 3️⃣ Logging for Admin AND User
+        log_msg = f"Password change request #{request.id} for user '{user.name}' was approved"
+        
+        # Admin log
+        await log_action(db, ActivityLogCreate(
+            user_id=current_admin.id,
+            action="password_change_approved",
+            entity_type="user",
+            entity_id=user.id,
+            details=log_msg
+        ))
+        # User log
+        await log_action(db, ActivityLogCreate(
+            user_id=user.id,
+            action="password_changed",
+            entity_type="user",
+            entity_id=user.id,
+            details="Your password was successfully changed by an admin"
+        ))
+
+        # 4️⃣ Notify user
+        await create_notification(db, NotificationCreate(
+            user_id=user.id,
+            type="password_change_approved",
+            message="Your password change request has been approved. You must log in again.",
+            entity_id=request.id
+        ))
+
+        return {"detail": "Password change request approved. User sessions have been revoked."}
+
+    @staticmethod
+    async def reject_password_request(db: AsyncSession, current_admin: User, request_id: int):
+        result = await db.execute(select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id))
+        request = result.scalars().first()
+        if not request:
+            raise HTTPException(status_code=404, detail="Password change request not found")
+        if request.status != "pending":
+            raise HTTPException(status_code=400, detail=f"Request is already {request.status}")
+
+        # 1️⃣ Update request status
+        request.status = "rejected"
+        request.resolved_at = datetime.now(UTC)
+        await db.commit()
+
+        # 2️⃣ Fetch user for logging/notification
+        user_result = await db.execute(select(User).filter(User.id == request.user_id))
+        user = user_result.scalars().first()
+
+        if user:
+            # 3️⃣ Logging
+            log_msg = f"Password change request #{request.id} for user '{user.name}' was rejected"
+            # Admin log
+            await log_action(db, ActivityLogCreate(
+                user_id=current_admin.id,
+                action="password_change_rejected",
+                entity_type="user",
+                entity_id=user.id,
+                details=log_msg
+            ))
+            # User log
+            await log_action(db, ActivityLogCreate(
+                user_id=user.id,
+                action="password_change_rejected",
+                entity_type="user",
+                entity_id=user.id,
+                details="Your password change request was rejected by an admin"
+            ))
+
+            # 4️⃣ Notify user
+            await create_notification(db, NotificationCreate(
+                user_id=user.id,
+                type="password_change_rejected",
+                message="Your password change request was rejected.",
+                entity_id=request.id
+            ))
+
+        return {"detail": "Password change request rejected."}
 
     # ---------- Internal Helpers (previously CRUD functions) ----------
+
 
     @staticmethod
     async def _create_refresh_token(db: AsyncSession, user: User, raw_token: str):

@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
+import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
+
 
 export const StudentSidebar: React.FC = () => {
     const { logout } = useAuthStore();
     const router = useRouter();
+    const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+
 
     const handleLogout = () => {
         logout();
@@ -41,7 +45,14 @@ export const StudentSidebar: React.FC = () => {
                 ))}
             </nav>
 
-            <div className="p-4 mt-auto border-t border-emerald-800">
+            <div className="p-4 mt-auto border-t border-emerald-800 space-y-2">
+                <button
+                    onClick={() => setPasswordModalOpen(true)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-200 rounded-xl hover:bg-emerald-800 hover:text-white transition-colors"
+                >
+                    <span className="text-lg">🔐</span>
+                    Change Password
+                </button>
                 <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-200 rounded-xl hover:bg-red-500/80 hover:text-white transition-colors"
@@ -52,6 +63,12 @@ export const StudentSidebar: React.FC = () => {
                     Secure Logout
                 </button>
             </div>
+
+            <ChangePasswordModal
+                isOpen={isPasswordModalOpen}
+                onClose={() => setPasswordModalOpen(false)}
+            />
         </aside>
     );
 };
+

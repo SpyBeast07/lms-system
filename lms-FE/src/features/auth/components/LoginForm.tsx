@@ -6,6 +6,8 @@ import { loginSchema, type LoginFormData } from '../schemas';
 import { useLoginMutation } from '../hooks/useAuthMutations';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { Button } from '../../../shared/components/Button';
+import { ChangePasswordModal } from './ChangePasswordModal';
+import { useState } from 'react';
 
 export const LoginForm: React.FC = () => {
     // 1. Setup React Hook Form with Zod integration
@@ -20,6 +22,8 @@ export const LoginForm: React.FC = () => {
 
     // 2. Setup TanStack Query Mutation
     const { mutate: performLogin, isPending, error: mutationError } = useLoginMutation();
+
+    const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
 
     return (
         <div className="w-full max-w-md mx-auto bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-xl border border-slate-200">
@@ -60,14 +64,30 @@ export const LoginForm: React.FC = () => {
                 </div>
             </form>
 
-            <div className="mt-6 text-center border-t border-slate-100 pt-6">
+            <div className="mt-6 text-center border-t border-slate-100 pt-6 space-y-2">
                 <p className="text-slate-500 text-sm">
                     Don't have an account?{' '}
                     <Link to="/signup" className="text-indigo-600 font-bold hover:text-indigo-500 transition-colors">
                         Request Access
                     </Link>
                 </p>
+                <p className="text-slate-500 text-sm">
+                    Need to change your password?{' '}
+                    <button
+                        type="button"
+                        onClick={() => setPasswordModalOpen(true)}
+                        className="text-indigo-600 font-bold hover:text-indigo-500 transition-colors bg-transparent border-none p-0 cursor-pointer"
+                    >
+                        Change Password
+                    </button>
+                </p>
             </div>
+
+            <ChangePasswordModal
+                isOpen={isPasswordModalOpen}
+                onClose={() => setPasswordModalOpen(false)}
+                requireEmail={true}
+            />
         </div>
     );
 };

@@ -16,6 +16,8 @@ import { HealthPage } from '../../features/health/pages/HealthPage';
 import { ActivityLogsPage } from '../../features/activityLogs/pages/ActivityLogsPage';
 import { SignupPage } from '../../features/signup/pages/SignupPage';
 import { AdminSignupRequestsPage } from '../../features/signup/pages/AdminSignupRequestsPage';
+import { AdminPasswordRequestsPage } from '../../features/auth/pages/AdminPasswordRequestsPage';
+
 
 // Teacher Imports
 import { TeacherLayout } from '../../features/teacher/layout/TeacherLayout';
@@ -212,6 +214,13 @@ const adminSignupRequestsRoute = createRoute({
     component: AdminSignupRequestsPage,
 });
 
+const adminPasswordRequestsRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/password-requests',
+    component: AdminPasswordRequestsPage,
+});
+
+
 // 5. Teacher Routing Tree
 const teacherRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -356,6 +365,7 @@ const routeTree = rootRoute.addChildren([
         adminHealthRoute,
         adminActivityLogsRoute,
         adminSignupRequestsRoute,
+        adminPasswordRequestsRoute,
     ]),
     teacherRoute.addChildren([
         teacherIndexRoute,

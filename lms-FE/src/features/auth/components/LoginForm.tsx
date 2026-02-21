@@ -1,6 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from '@tanstack/react-router';
 import { loginSchema, type LoginFormData } from '../schemas';
 import { useLoginMutation } from '../hooks/useAuthMutations';
 import { FormInput } from '../../../shared/components/form/FormInput';
@@ -31,7 +32,6 @@ export const LoginForm: React.FC = () => {
 
             {mutationError && (
                 <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-                    {/* Extract HTTP exception detail if present, else fallback */}
                     {(mutationError as any)?.response?.data?.detail || "Invalid email or password"}
                 </div>
             )}
@@ -59,6 +59,15 @@ export const LoginForm: React.FC = () => {
                     </Button>
                 </div>
             </form>
+
+            <div className="mt-6 text-center border-t border-slate-100 pt-6">
+                <p className="text-slate-500 text-sm">
+                    Don't have an account?{' '}
+                    <Link to="/signup" className="text-indigo-600 font-bold hover:text-indigo-500 transition-colors">
+                        Request Access
+                    </Link>
+                </p>
+            </div>
         </div>
     );
 };

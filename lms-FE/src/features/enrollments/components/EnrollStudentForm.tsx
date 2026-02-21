@@ -12,8 +12,8 @@ import { getErrorMessage } from '../../../shared/utils/error';
 
 export const EnrollStudentForm: React.FC = () => {
     const { addToast } = useToastStore();
-    const { data: users, isLoading: isLoadingUsers } = useUsersQuery();
-    const { data: courses, isLoading: isLoadingCourses } = useCoursesQuery();
+    const { data: users, isLoading: isLoadingUsers } = useUsersQuery(1, 1000, false);
+    const { data: courses, isLoading: isLoadingCourses } = useCoursesQuery(1, 1000, false);
     const enrollStudentMutation = useEnrollStudentMutation();
 
     const {

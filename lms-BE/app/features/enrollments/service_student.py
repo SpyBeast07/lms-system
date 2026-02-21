@@ -36,6 +36,10 @@ async def enroll_student_in_course(
 
     db.add(enrollment)
 
+    # Capture names before commit expires the ORM objects
+    student_name = student.name
+    course_name = course.name
+
     try:
         await db.commit()
     except IntegrityError:
@@ -47,13 +51,13 @@ async def enroll_student_in_course(
         action="course_enrolled",
         entity_type="enrollment",
         entity_id=course_id,
-        details=f"Student {student_id} enrolled in course '{course.name}'"
+        details=f"Student {student_name} enrolled in course '{course_name}'"
     ))
     
     await create_notification(db, NotificationCreate(
         user_id=student_id,
         type="course_enrollment",
-        message=f"You have been enrolled in a new course: {course.name}",
+        message=f"You have been enrolled in a new course: {course_name}",
         entity_id=course_id
     ))
 

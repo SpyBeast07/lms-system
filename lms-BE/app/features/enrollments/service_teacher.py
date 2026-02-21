@@ -5,6 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from app.features.enrollments.models_teacher import TeacherCourse
 from app.features.users.models import User
 from app.features.courses.models import Course
+from app.features.activity_logs.service import log_action
+from app.features.activity_logs.schemas import ActivityLogCreate
+from app.features.notifications.service import create_notification
+from app.features.notifications.schemas import NotificationCreate
 
 
 async def assign_teacher_to_course(
@@ -32,11 +36,30 @@ async def assign_teacher_to_course(
 
     db.add(mapping)
 
+    # Capture names before commit expires the ORM objects
+    teacher_name = teacher.name
+    course_name = course.name
+
     try:
         await db.commit()
     except IntegrityError:
         await db.rollback()
         raise ValueError("Teacher already assigned to this course")
+
+    await log_action(db, ActivityLogCreate(
+        user_id=teacher_id,
+        action="teacher_assigned_to_course",
+        entity_type="enrollment",
+        entity_id=course_id,
+        details=f"Teacher '{teacher_name}' assigned to course '{course_name}'"
+    ))
+
+    await create_notification(db, NotificationCreate(
+        user_id=teacher_id,
+        type="teacher_assignment",
+        message=f"You have been assigned to teach the course: {course_name}",
+        entity_id=course_id
+    ))
 
     return mapping
 

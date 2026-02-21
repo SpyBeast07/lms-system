@@ -1,6 +1,6 @@
 import { api } from '../api/axios';
 
-export interface DashboardStats {
+interface DashboardStats {
     courses: number;
     materials: number;
     assignments: number;

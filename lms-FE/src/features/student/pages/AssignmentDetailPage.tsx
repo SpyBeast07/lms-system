@@ -210,12 +210,13 @@ export const AssignmentDetailPage: React.FC = () => {
                                 />
 
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-3">Supporting Document</label>
+                                    <label htmlFor="detail-file" className="block text-sm font-bold text-slate-700 mb-3">Supporting Document</label>
                                     <div className={`relative group border-3 border-dashed rounded-[1.5rem] p-12 transition-all duration-300 ${selectedFile ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/20'
                                         }`}>
                                         <input
                                             type="file"
                                             onChange={handleFileChange}
+                                            id="detail-file"
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                         />
                                         <div className="flex flex-col items-center justify-center text-center">

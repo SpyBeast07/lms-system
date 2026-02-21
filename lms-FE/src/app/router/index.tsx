@@ -14,6 +14,8 @@ import { EnrollmentsManagementPage } from '../../features/enrollments/pages/Enro
 import { FilesPage } from '../../features/files/pages/FilesPage';
 import { HealthPage } from '../../features/health/pages/HealthPage';
 import { ActivityLogsPage } from '../../features/activityLogs/pages/ActivityLogsPage';
+import { SignupPage } from '../../features/signup/pages/SignupPage';
+import { AdminSignupRequestsPage } from '../../features/signup/pages/AdminSignupRequestsPage';
 
 // Teacher Imports
 import { TeacherLayout } from '../../features/teacher/layout/TeacherLayout';
@@ -56,7 +58,6 @@ const loginRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/login',
     beforeLoad: () => {
-        // If already authenticated, bounce to dashboard
         if (useAuthStore.getState().isAuthenticated) {
             throw redirect({ to: '/' });
         }
@@ -68,6 +69,18 @@ const loginRoute = createRoute({
             </div>
         );
     },
+});
+
+// 2b. Signup Route (public)
+const signupRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/signup',
+    beforeLoad: () => {
+        if (useAuthStore.getState().isAuthenticated) {
+            throw redirect({ to: '/' });
+        }
+    },
+    component: SignupPage,
 });
 
 // 3. Index/Dashboard Route (Protected Example)
@@ -191,6 +204,12 @@ const adminActivityLogsRoute = createRoute({
     getParentRoute: () => adminRoute,
     path: '/activity-logs',
     component: ActivityLogsPage,
+});
+
+const adminSignupRequestsRoute = createRoute({
+    getParentRoute: () => adminRoute,
+    path: '/signup-requests',
+    component: AdminSignupRequestsPage,
 });
 
 // 5. Teacher Routing Tree
@@ -324,6 +343,7 @@ const studentSubmissionsListRoute = createRoute({
 // 7. Build Tree
 const routeTree = rootRoute.addChildren([
     loginRoute,
+    signupRoute,
     indexRoute,
     adminRoute.addChildren([
         adminIndexRoute,
@@ -334,7 +354,8 @@ const routeTree = rootRoute.addChildren([
         adminEnrollmentsRoute,
         adminFilesRoute,
         adminHealthRoute,
-        adminActivityLogsRoute
+        adminActivityLogsRoute,
+        adminSignupRequestsRoute,
     ]),
     teacherRoute.addChildren([
         teacherIndexRoute,

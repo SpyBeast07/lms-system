@@ -20,3 +20,4 @@ from app.features.enrollments import models_student as enrollment_student, model
 from app.features.submissions import models as models_submissions
 from app.features.notifications import models as models_notifications
 from app.features.activity_logs import models as models_activity_logs
+from app.features.signup_requests import models as models_signup_requests

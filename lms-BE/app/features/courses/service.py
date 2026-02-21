@@ -137,15 +137,31 @@ async def update_course(db: AsyncSession, course: Course, data: CourseUpdate):
 
 
 async def soft_delete_course(db: AsyncSession, course: Course):
+    cid, cname = course.id, course.name  # capture before commit expires them
     course.is_deleted = True
     course.updated_at = datetime.now(UTC)
     await db.commit()
 
+    await log_action(db, ActivityLogCreate(
+        action="course_deleted",
+        entity_type="course",
+        entity_id=cid,
+        details=f"Course '{cname}' soft-deleted"
+    ))
+
 
 async def restore_course(db: AsyncSession, course: Course):
+    cid, cname = course.id, course.name  # capture before commit expires them
     course.is_deleted = False
     course.updated_at = datetime.now(UTC)
     await db.commit()
+
+    await log_action(db, ActivityLogCreate(
+        action="course_restored",
+        entity_type="course",
+        entity_id=cid,
+        details=f"Course '{cname}' restored"
+    ))
 
 
 async def hard_delete_course(db: AsyncSession, course: Course):

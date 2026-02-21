@@ -113,8 +113,9 @@ export const AssignmentSubmissionPage: React.FC = () => {
                         </h2>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Course</label>
+                            <label htmlFor="submission-course" className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Course</label>
                             <select
+                                id="submission-course"
                                 value={selectedCourse}
                                 onChange={(e) => {
                                     setSelectedCourse(e.target.value);
@@ -130,9 +131,10 @@ export const AssignmentSubmissionPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Assignment</label>
+                            <label htmlFor="submission-assignment" className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Assignment</label>
                             <select
                                 {...register('assignment_id')}
+                                id="submission-assignment"
                                 disabled={!selectedCourse || isMaterialsLoading}
                                 className="w-full rounded-xl border-slate-200 shadow-sm focus:ring-indigo-500 py-3 px-4 bg-slate-50 text-slate-700 font-medium disabled:opacity-50"
                             >
@@ -220,14 +222,14 @@ export const AssignmentSubmissionPage: React.FC = () => {
                                 />
 
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">Attached File Payload</label>
+                                    <label htmlFor="submission-file" className="block text-sm font-bold text-slate-700 mb-2">Attached File Payload</label>
                                     <div className={`relative group border-2 border-dashed rounded-2xl p-8 transition-all ${selectedFile ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
                                         }`}>
                                         <input
                                             type="file"
                                             onChange={handleFileChange}
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            id="assignment-file"
+                                            id="submission-file"
                                         />
                                         <div className="flex flex-col items-center justify-center py-4">
                                             {selectedFile ? (

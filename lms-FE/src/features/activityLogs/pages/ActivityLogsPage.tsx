@@ -87,11 +87,35 @@ export const ActivityLogsPage: React.FC = () => {
                         className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 bg-slate-50 border outline-none font-medium text-slate-700"
                     >
                         <option value="">All Actions</option>
-                        <option value="login">Login</option>
-                        <option value="create_assignment">Create Assignment</option>
-                        <option value="create_notes">Create Notes</option>
-                        <option value="assignment_graded">Submission Graded</option>
-                        <option value="create_course">Create Course</option>
+                        <optgroup label="Auth">
+                            <option value="login">Login</option>
+                        </optgroup>
+                        <optgroup label="Users">
+                            <option value="user_created">User Created</option>
+                            <option value="user_deleted">User Deleted</option>
+                            <option value="user_restored">User Restored</option>
+                        </optgroup>
+                        <optgroup label="Courses">
+                            <option value="create_course">Course Created</option>
+                            <option value="course_deleted">Course Deleted</option>
+                            <option value="course_restored">Course Restored</option>
+                        </optgroup>
+                        <optgroup label="Materials">
+                            <option value="create_notes">Notes Created</option>
+                            <option value="create_assignment">Assignment Created</option>
+                        </optgroup>
+                        <optgroup label="Enrollments">
+                            <option value="teacher_assigned_to_course">Teacher Assigned</option>
+                            <option value="course_enrolled">Student Enrolled</option>
+                        </optgroup>
+                        <optgroup label="Submissions">
+                            <option value="assignment_submitted">Assignment Submitted</option>
+                            <option value="assignment_graded">Submission Graded</option>
+                        </optgroup>
+                        <optgroup label="Signup Requests">
+                            <option value="signup_request_approved">Signup Approved</option>
+                            <option value="signup_request_rejected">Signup Rejected</option>
+                        </optgroup>
                     </select>
                 </div>
 

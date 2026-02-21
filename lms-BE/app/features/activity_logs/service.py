@@ -24,7 +24,8 @@ async def get_activity_logs(
     page: int = 1, 
     size: int = 20, 
     user_id: Optional[int] = None,
-    action: Optional[str] = None
+    action: Optional[str] = None,
+    exclude_actions: Optional[list] = None,
 ) -> PaginatedActivityLogs:
     
     query = select(ActivityLog).options(selectinload(ActivityLog.user))
@@ -37,6 +38,10 @@ async def get_activity_logs(
     if action is not None:
         query = query.where(ActivityLog.action == action)
         count_query = count_query.where(ActivityLog.action == action)
+
+    if exclude_actions:
+        query = query.where(ActivityLog.action.not_in(exclude_actions))
+        count_query = count_query.where(ActivityLog.action.not_in(exclude_actions))
         
     total = (await db.scalar(count_query)) or 0
     pages = (total + size - 1) // size

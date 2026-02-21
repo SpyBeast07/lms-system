@@ -19,5 +19,10 @@ export const activityLogsApi = {
 
         const response = await api.get('/activity-logs/', { params });
         return response.data;
+    },
+
+    getMyLogs: async (size = 10): Promise<PaginatedActivityLogs> => {
+        const response = await api.get('/activity-logs/my', { params: { size } });
+        return response.data;
     }
 };

@@ -6,8 +6,8 @@ import { Pagination } from '../../../shared/components/ui/Pagination';
 import { Link } from '@tanstack/react-router';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
-import { useNotificationsQuery } from '../../notifications/hooks/useNotifications';
 import { useTeacherStatsQuery } from '../../../shared/hooks/useStats';
+import { useMyActivityLogsQuery } from '../../activityLogs/hooks/useActivityLogs';
 import type { Course } from '../../courses/schemas';
 
 const CourseCountsCell = ({ courseId }: { courseId: string }) => {
@@ -37,16 +37,16 @@ export const TeacherCoursesPage: React.FC = () => {
     const limit = 10;
     const { data, isLoading, isError, error } = useTeacherCourses(page, limit);
     const { data: stats, isLoading: isLoadingStats } = useTeacherStatsQuery();
-    const { data: notifications, isLoading: isLoadingNotifications } = useNotificationsQuery();
+    const { data: myLogs, isLoading: isLoadingLogs } = useMyActivityLogsQuery(8);
 
-    const activities = notifications?.slice(0, 5).map((n: any) => ({
-        id: n.id.toString(),
-        title: n.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-        description: n.message,
-        timestamp: new Date(n.created_at),
-        type: (n.type.includes('assignment') ? 'assignment' :
-            n.type.includes('course') ? 'course' :
-                n.type.includes('material') ? 'material' : 'system') as 'course' | 'material' | 'assignment' | 'system'
+    const activities = myLogs?.items?.slice(0, 8).map((log: any) => ({
+        id: log.id.toString(),
+        title: log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        description: log.details || `${log.entity_type} #${log.entity_id}`,
+        timestamp: new Date(log.created_at),
+        type: (log.action.includes('assignment') ? 'assignment' :
+            log.action.includes('course') ? 'course' :
+                log.action.includes('notes') || log.action.includes('material') ? 'material' : 'system') as 'course' | 'material' | 'assignment' | 'system'
     })) || [];
 
     const columns = [
@@ -136,7 +136,7 @@ export const TeacherCoursesPage: React.FC = () => {
             </div>
 
             <div className="pt-4">
-                <ActivityTimeline activities={activities} isLoading={isLoadingNotifications} />
+                <ActivityTimeline activities={activities} isLoading={isLoadingLogs} />
             </div>
         </div>
     );

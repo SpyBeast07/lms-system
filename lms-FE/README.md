@@ -25,6 +25,7 @@ lms-FE/
 │   └── features/           # Domain-specific modules representing logical groupings
 │       ├── activityLogs/   
 │       ├── admin/          # Admin Dashboard & User Management
+│       ├── ai/             # Unified Course Content Generation (Axios/React Query)
 │       ├── auth/           # Login flows
 │       ├── notifications/  
 │       ├── student/        # Student Dashboard & Course View
@@ -66,6 +67,7 @@ The application will be accessible at: [http://localhost:5173](http://localhost:
 - **Server State vs Client State:** We utilize `TanStack Query` for almost everything interacting with the backend API. Global `Zustand` stores are exclusively used for purely localized client states context, such as retaining the authenticated User identity flag and controlling volatile layouts like the Notification Bell count.
 - **Type Safety Pipeline:** Utilizing `TanStack Router` mixed with `Zod`, any endpoint payloads are strictly asserted against typing rules before they are even transmitted, drastically reducing runtime crashes.
 - **Optimistic Rendering:** Mutation hooks (like Grading Submissions or marking Notifications read) are designed with Optimistic UI configurations via React Query, instantly rendering updates to the user while syncing over the network in the background.
+- **Unified AI Integration:** The AI generation flow is consolidated into a single backend call that populates both course descriptions and learning objectives, providing a seamless "one-click" content creation experience for teachers.
 
 ## 🔍 Code Quality Control
 Ensure you run internal quality checks before pushing changes:

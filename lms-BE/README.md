@@ -20,6 +20,7 @@ lms-BE/
 │   ├── core/             # Global configurations, DB Session setup, Exceptions, standard Responses, Storage connections
 │   ├── features/         # Domain specific modules.
 │   │   ├── activity_logs/
+│   │   ├── ai/           # Unified Course Content Generation (Ollama/OpenAI)
 │   │   ├── auth/         # JWT Security, Password Hashing
 │   │   ├── courses/      # Course Creation, Material Uploads
 │   │   ├── enrollments/
@@ -64,6 +65,11 @@ MINIO_URL=localhost:9000
 MINIO_ACCESS_KEY=admin
 MINIO_SECRET_KEY=password
 MINIO_SECURE=false
+
+# AI Assistance (Ollama/OpenAI)
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434/api/generate
+OLLAMA_MODEL=llama3
 ```
 
 ### 4. Database Migrations

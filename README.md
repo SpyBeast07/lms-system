@@ -7,13 +7,23 @@ A comprehensive, scalable, and modern Learning Management System (LMS) designed 
 - **Role-Based Access Control (RBAC):** Secure access for Super Admins, Admins, Teachers, and Students.
 - **Course & User Management:** Comprehensive administration for courses, enrolments, and user profiles.
 - **Learning Materials & Assignments:** Tools to upload notes, create assignments, and accept student submissions.
+- **Refined Student Navigation:** Intelligent material-to-module deep linking with automatic tab selection and URL state synchronization.
 - **Evaluation System:** Grading and feedback mechanisms for teachers to evaluate student work.
 - **Real-Time Notifications:** Event-driven notification system for critical updates (e.g., assignment graded, notes uploaded) with smart deduplication.
 - **Activity Logging:** Extensive audit logging for administrative oversight.
+- **AI-Powered Course Generation:** Leverages local LLMs (Ollama) or external providers (OpenAI/Gemini) to generate professional course descriptions and learning objectives in one click.
+- **Optimistic Rendering:** Mutation hooks (like Grading Submissions or marking Notifications read) are designed with Optimistic UI configurations via React Query, instantly rendering updates to the user while syncing over the network in the background.
+- **Intelligent Navigation:** Clicking materials redirects students to the specific course detail tab (`?tab=notes` or `?tab=assignments`), maintaining a seamless learning context through URL state.
+- **Unified AI Integration:** The AI generation flow is consolidated into a single backend call that populates both course descriptions and learning objectives, providing a seamless "one-click" content creation experience for teachers.
+- **Modular Architecture:** Both the frontend and backend group code by features (`/features/auth`, `/features/users`), avoiding cluttered global directories.
 - **Production Hardened:** 
   - **Rate Limiting:** Protects critical endpoints using Redis and SlowAPI.
+  - **Build Optimization:** Vite-configured chunk splitting and vendor isolation for efficient loading.
   - **Background Cleanup:** Automated APScheduler jobs to prune old data and orphaned MinIO files.
   - **Standardized Responses:** Unified REST API response wrappers to ensure consistent client-side consumption.
+
+## 📄 Documentation
+- **AI Integration Guide:** Deep dive into Ollama setup, prompt architecture, and provider switching in [lms-BE/docs/ai_integration.md](file:///Users/kushagra/Documents/Internship%20@Eurobliz/lms-system/lms-BE/docs/ai_integration.md).
 
 ## 🛠️ Technology Stack
 

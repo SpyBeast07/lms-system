@@ -5,7 +5,7 @@ This document outlines the architecture, setup instructions, and design patterns
 ## Overview
 
 The AI Assistance Module provides generative AI capabilities to both Teachers and Students.
-- **Teachers** can automatically generate Course Descriptions and step-by-step Assignment Instructions.
+- **Teachers** can automatically generate **Course Content** (Description + Learning Objectives) and step-by-step Assignment Instructions.
 - **Students** can generate Study Summaries, Concept Explanations, and Practice Questions.
 
 The system is designed to use **Ollama** (a local LLM runner) by default to prevent API costs and maintain data privacy during development. However, it is built with an abstraction layer that allows easy switching to external providers (like OpenAI or Gemini) securely via environment variables.
@@ -18,7 +18,7 @@ We followed a modular, Clean Architecture approach, placing the AI logic in a de
 - `schemas.py`: Contains strict Pydantic definitions for incoming AI requests and outgoing `AIResponse` payloads.
 - `prompts.py`: Defines the context-injected prompt templates. Prompt logic is separated from routing logic to make it easier to test and modify without touching API behavior.
 - `service.py`: Contains the `AIService` class. It uses Python's asynchronous `httpx` client to stream or execute HTTP POST requests against the AI provider. It dynamically switches endpoint logic based on `settings.AI_PROVIDER`.
-- `router.py`: Exposes REST endpoints (e.g., `/ai/course-description`, `/ai/summarize-notes`). Each endpoint enforces explicit JWT authentication and Role-Based Access Control (RBAC) dependencies.
+- `router.py`: Exposes REST endpoints (e.g., `/ai/course-content`, `/ai/summarize-notes`). Each endpoint enforces explicit JWT authentication and Role-Based Access Control (RBAC) dependencies.
 
 ### Frontend (`lms-FE/src/features/ai`)
 

@@ -6,11 +6,12 @@ A comprehensive, scalable, and modern Learning Management System (LMS) designed 
 
 - **Role-Based Access Control (RBAC):** Secure access for Super Admins, Admins, Teachers, and Students.
 - **Course & User Management:** Comprehensive administration for courses, enrolments, and user profiles.
-- **Learning Materials & Assignments:** Tools to upload notes, create assignments, and accept student submissions.
+- **Learning Materials & Assignments:** Tools to upload notes, create assignments, accept student submissions, and view course learning statistics.
+- **Admin Approval Signup Flow:** Secure public registration process requiring administrator verification before granting system access.
 - **Refined Student Navigation:** Intelligent material-to-module deep linking with automatic tab selection and URL state synchronization.
 - **Evaluation System:** Grading and feedback mechanisms for teachers to evaluate student work.
-- **Real-Time Notifications:** Event-driven notification system for critical updates (e.g., assignment graded, notes uploaded) with smart deduplication.
-- **Activity Logging:** Extensive audit logging for administrative oversight.
+- **Real-Time Notifications:** Event-driven notification system for critical updates (e.g., system assignments, grading) with smart deduplication.
+- **Activity Logging:** Extensive system-wide audit logging, featuring a personalized Activity Timeline on the Teacher Dashboard.
 - **AI-Powered Course Generation:** Leverages local LLMs (Ollama) or external providers (OpenAI/Gemini) to generate professional course descriptions and learning objectives in one click.
 - **Optimistic Rendering:** Mutation hooks (like Grading Submissions or marking Notifications read) are designed with Optimistic UI configurations via React Query, instantly rendering updates to the user while syncing over the network in the background.
 - **Intelligent Navigation:** Clicking materials redirects students to the specific course detail tab (`?tab=notes` or `?tab=assignments`), maintaining a seamless learning context through URL state.
@@ -55,6 +56,7 @@ lms-system/
 │   │   │   ├── auth/
 │   │   │   ├── users/
 │   │   │   ├── courses/
+│   │   │   ├── signup_requests/
 │   │   │   ├── ...
 │   │   └── main.py         # FastAPI Entry Point
 │   ├── requirements.txt    
@@ -66,6 +68,7 @@ lms-system/
 │   │   ├── components/     # Reusable UI Base Components
 │   │   ├── features/       # Feature/Domain specifically UI Modules
 │   │   │   ├── auth/
+│   │   │   ├── signup/
 │   │   │   ├── teacher/
 │   │   │   ├── admin/
 │   │   │   ├── ...

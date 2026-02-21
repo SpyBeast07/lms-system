@@ -25,6 +25,7 @@ lms-BE/
 │   │   ├── courses/      # Course Creation, Material Uploads
 │   │   ├── enrollments/
 │   │   ├── notifications/# Smart Deduplicating Notifications
+│   │   ├── signup_requests/# Admin Approval Registration Flow
 │   │   ├── submissions/  # Student Document processing & Teacher Grading
 │   │   └── users/        # Administration profiles
 │   └── main.py           # Application Entry Point & Exception interceptors

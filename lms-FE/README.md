@@ -23,11 +23,12 @@ lms-FE/
 │   ├── components/         # Reusable, dumb UI elements (Buttons, Inputs, Cards)
 │   ├── config/             # Environment variables and API base configs
 │   └── features/           # Domain-specific modules representing logical groupings
-│       ├── activityLogs/   
+│       ├── activityLogs/   # System & User-specific activity timelines
 │       ├── admin/          # Admin Dashboard & User Management
 │       ├── ai/             # Unified Course Content Generation (Axios/React Query)
 │       ├── auth/           # Login flows
-│       ├── notifications/  
+│       ├── notifications/  # Smart Deduplicating Notifications
+│       ├── signup/         # Public registration request & Admin approval flow
 │       ├── student/        # Student Dashboard & Course View
 │       ├── submissions/    # File processing & evaluation viewing
 │       └── teacher/        # Course creation & Assessment grading

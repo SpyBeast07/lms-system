@@ -1,56 +1,123 @@
-# Learning Management System (LMS)
+# Eurobliz LMS System
 
-Welcome to the LMS System repository. This project is a comprehensive, modern, and robust educational platform designed to streamline course management, student enrollment, and administration for enterprises and educational institutions.
+A comprehensive, scalable, and modern Learning Management System (LMS) designed for educational institutions to manage courses, users, materials, and evaluations effectively. The platform supports multiple roles including Super Admin, Admin, Teacher, and Student.
 
-## 📂 Project Overview
+## 🚀 Features
 
-The system is built on an enterprise-grade stack, fully separated into backend and frontend components.
+- **Role-Based Access Control (RBAC):** Secure access for Super Admins, Admins, Teachers, and Students.
+- **Course & User Management:** Comprehensive administration for courses, enrolments, and user profiles.
+- **Learning Materials & Assignments:** Tools to upload notes, create assignments, and accept student submissions.
+- **Evaluation System:** Grading and feedback mechanisms for teachers to evaluate student work.
+- **Real-Time Notifications:** Event-driven notification system for critical updates (e.g., assignment graded, notes uploaded) with smart deduplication.
+- **Activity Logging:** Extensive audit logging for administrative oversight.
+- **Production Hardened:** 
+  - **Rate Limiting:** Protects critical endpoints using Redis and SlowAPI.
+  - **Background Cleanup:** Automated APScheduler jobs to prune old data and orphaned MinIO files.
+  - **Standardized Responses:** Unified REST API response wrappers to ensure consistent client-side consumption.
 
-- **[Backend (lms-BE)](./lms-BE/README.md)**: A high-performance REST API built with **FastAPI**, **PostgreSQL**, and **SQLAlchemy 2.0 (Async)**. Employs Domain-Driven Design (DDD), Role-Based Access Control (RBAC), JWT authentication, and Soft Delete mechanisms.
-- **[Frontend (lms-FE)](./lms-FE/README.md)**: A modern, responsive web application built with **React**, **TypeScript**, **Vite**, and **Tailwind CSS**. Provides distinct, highly tailored portal experiences for Students, Teachers, and Administrators.
+## 🛠️ Technology Stack
 
-## ✨ Core System Features
+The project is structured as a monorepo containing a distinct Frontend and Backend:
 
-- **Role-Based Portals**: Dedicated experiences with specific feature sets for **Students**, **Teachers**, **Principals**, and **Super Admins**.
-- **Course & Material Management**: Complete lifecycle management of courses, notes, and assignments. 
-- **Presigned File Uploads**: Secure document management utilizing short-lived presigned URLs to an S3-compatible blob storage (MinIO/AWS S3).
-- **Soft Deletes**: Active data preservation—deleted users and courses are safely archived with restore capabilities, rather than hard deleted.
-- **Real-Time Health Monitoring**: Built-in backend diagnostics streamed directly to the Admin portal for server and database connectivity checks.
+### Frontend (`/lms-FE`)
+- **Core:** [React 18](https://react.dev/), [TypeScript](https://www.typescriptlang.org/), [Vite](https://vitejs.dev/)
+- **Routing & State:** [TanStack Router](https://tanstack.com/router), [Zustand](https://zustand-demo.pmnd.rs/), [TanStack Query](https://tanstack.com/query)
+- **Styling:** [TailwindCSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/)
+- **Forms & Validation:** [React Hook Form](https://react-hook-form.com/), [Zod](https://zod.dev/)
 
-## 🚀 Quick Start Guide
+### Backend (`/lms-BE`)
+- **Core:** [FastAPI](https://fastapi.tiangolo.com/), [Python 3.12+](https://www.python.org/)
+- **Database (ORM):** [SQLAlchemy (Async)](https://www.sqlalchemy.org/), [PostgreSQL](https://www.postgresql.org/)
+- **Migrations:** [Alembic](https://alembic.sqlalchemy.org/)
+- **Storage:** [MinIO (S3 Compatible Object Storage)](https://min.io/)
+- **Security & Caching:** [Redis](https://redis.io/), [SlowAPI](https://pypi.org/project/slowapi/)
+- **Background Jobs:** [APScheduler](https://apscheduler.readthedocs.io/)
 
-To get the full system up and running locally, you need to spin up both the Backend and Frontend servers.
+## 📂 File Structure
 
-### 1. Backend Setup
+```text
+lms-system/
+├── lms-BE/                 # Backend FastAPI Application
+│   ├── alembic/            # Database Migration Scripts
+│   ├── app/                # Main Application Code
+│   │   ├── core/           # Config, DB, Storage, Rates, Responses, Setup
+│   │   ├── features/       # Domain Modules (Auth, Users, Courses, Submissions, etc.)
+│   │   │   ├── auth/
+│   │   │   ├── users/
+│   │   │   ├── courses/
+│   │   │   ├── ...
+│   │   └── main.py         # FastAPI Entry Point
+│   ├── requirements.txt    
+│   └── .env.example
+│
+├── lms-FE/                 # Frontend React Application
+│   ├── src/                # Main Source Code
+│   │   ├── app/            # Global Setup (Router, Store)
+│   │   ├── components/     # Reusable UI Base Components
+│   │   ├── features/       # Feature/Domain specifically UI Modules
+│   │   │   ├── auth/
+│   │   │   ├── teacher/
+│   │   │   ├── admin/
+│   │   │   ├── ...
+│   │   └── main.tsx        # React Entry Point
+│   ├── package.json
+│   └── .env.example
+└── README.md
+```
 
-Navigate to the `lms-BE` directory and follow the in-depth instructions in the **[Backend README](./lms-BE/README.md)**.
+## 🏗️ Getting Started (For Newcomers)
 
-1. Create a Python 3.12+ virtual environment (using `uv` is highly recommended for speed).
-2. Install Python dependencies (`uv pip install -r requirements.txt`).
-3. Deploy the PostgreSQL instance (typically via Docker).
-4. Run Alembic migrations to build the schema (`uv run alembic upgrade head`).
-5. Start the FastAPI development server (`uv run uvicorn app.main:app --reload`). The API will be available at `http://127.0.0.1:8000`.
+This project requires simultaneous execution of both the Frontend and the Backend, alongside active instances of PostgreSQL, Redis, and MinIO.
 
-### 2. Frontend Setup
+### Prerequisites
+1. **Node.js (v20+)**: Required for the frontend.
+2. **Python (3.12+)**: Required for the backend. `uv` or `pip` as a package manager.
+3. **Docker (Optional but Recommended)**: The easiest way to run PostgreSQL, Redis, and MinIO locally.
 
-Navigate to the `lms-FE` directory and follow the instructions in the **[Frontend README](./lms-FE/README.md)**.
+### 1. Setup Backend
+Navigate to the backend directory:
+```bash
+cd lms-BE
+```
+Create a virtual environment and install dependencies:
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r pyproject.toml # or requirements if exported
+```
+*Note: This project uses `uv` for lightning-fast Python dependency management. You can also use standard `pip`.*
 
-1. Ensure Node.js (v18+) is installed.
-2. Install Javascript dependencies (`npm install`).
-3. Start the Vite development server (`npm run dev`).
-4. Access the application in your browser at `http://localhost:5173`.
+Setup your `.env` file (copy from `.env.example`), ensuring your Database, Redis, and MinIO credentials are correct.
+Apply migrations and start the server:
+```bash
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload
+```
+The API documentation is available at `http://localhost:8000/docs`.
 
-## 🛠 Key Technologies
+### 2. Setup Frontend
+Navigate to the frontend directory:
+```bash
+cd lms-FE
+```
+Install NPM dependencies:
+```bash
+npm install
+```
+Setup your `.env` file (copy from `.env.example`).
+Start the development server:
+```bash
+npm run dev
+```
+The application will be running at `http://localhost:5173`.
 
-| Category | Backend (lms-BE) | Frontend (lms-FE) |
-|----------|-----------------|------------------|
-| **Core Language** | Python 3.12+ | TypeScript 5+ |
-| **Framework** | FastAPI | React 19 + Vite |
-| **Styling** | N/A | Tailwind CSS |
-| **Database/ORM** | PostgreSQL + SQLAlchemy 2.0 | N/A |
-| **State/Data** | N/A | Zustand + TanStack Query |
-| **Auth** | JWT + Argon2 | JWT (HttpOnly + LocalStorage) |
+## 📖 Architecture & Design Concept
+The LMS System strictly adheres to a **Domain-Driven Modular Architecture**. 
+- Both the frontend and backend group code by **features** (`/features/auth`, `/features/users`), avoiding cluttered global directories.
+- The **Backend** relies heavily on async I/O. Endpoints act as thin routing wrappers around isolated Service layers using injected Database sessions (`get_db`).
+- The **Frontend** leverages `TanStack Query` as the single source of truth for remote state handling, keeping local state management minimal through `Zustand` exclusively for UI flags (e.g. notifications dropdown).
 
-## 🤝 Contribution
-
-Please refer to the specific README files inside `/lms-FE` and `/lms-BE` for localized development guidelines, architectural patterns, and contribution workflows. This project is proprietary and confidential.
+## 🤝 Contribution Guidelines
+1. Ensure `react-doctor` scores 100/100 and no TypeScript errors appear on build.
+2. Always write Alembic migrations for any SQLAlchemy Database Model changes (`uv run alembic revision --autogenerate -m "msg"`).
+3. Adhere to conventional commits (`feat:`, `fix:`, `chore:`, etc.).

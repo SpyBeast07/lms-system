@@ -1,4 +1,4 @@
-# Eurobliz LMS System
+# LMS System
 
 A comprehensive, scalable, and modern Learning Management System (LMS) designed for educational institutions to manage courses, users, materials, and evaluations effectively. The platform supports multiple roles including Super Admin, Admin, Teacher, and Student.
 

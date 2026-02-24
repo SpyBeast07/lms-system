@@ -28,10 +28,11 @@ lms-FE/
 │       ├── ai/             # Unified Course Content Generation (Axios/React Query)
 │       ├── auth/           # Login flows
 │       ├── notifications/  # Smart Deduplicating Notifications
-│       ├── signup/         # Public registration request & Admin approval flow
+│       ├── signup/         # Public registration request & Admin/Principal approval flow
 │       ├── student/        # Student Dashboard & Course View
-│       ├── submissions/    # File processing & evaluation viewing
-│       └── teacher/        # Course creation & Assessment grading
+│       ├── submissions/    # File processing & teacher evaluation audit
+│       ├── principal/      # Principal Dashboard & Teacher Activity Review
+│       └── teacher/        # Course creation, Student Enrollment & Assessment grading
 ```
 
 Each feature directory optimally contains:

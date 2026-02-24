@@ -4,10 +4,12 @@ A comprehensive, scalable, and modern Learning Management System (LMS) designed 
 
 ## 🚀 Features
 
-- **Role-Based Access Control (RBAC):** Secure access for Super Admins, Admins, Teachers, and Students.
-- **Course & User Management:** Comprehensive administration for courses, enrolments, and user profiles.
+- **Role-Based Access Control (RBAC):** Secure access for Super Admins, Admins, Principals, Teachers, and Students with strictly enforced role hierarchies.
+- **Principal Dashboard & Teacher Review:** Specialized interface for Principals to monitor teacher activities, curriculum materials, and grading performance nested by course.
+- **Course & User Management:** Comprehensive administration for courses, enrolments, and user profiles, including "Hard Delete" capabilities for Super Admins.
 - **Learning Materials & Assignments:** Tools to upload notes, create assignments, accept student submissions, and view course learning statistics.
-- **Admin Approval Signup Flow:** Secure public registration process requiring administrator verification before granting system access.
+- **Admin Approval Signup Flow:** Secure public registration process requiring administrator/principal verification before granting system access.
+- **Data Integrity & Consistency:** Automatic cache invalidation on logout to ensure session isolation across different user roles.
 - **Refined Student Navigation:** Intelligent material-to-module deep linking with automatic tab selection and URL state synchronization.
 - **Evaluation System:** Grading and feedback mechanisms for teachers to evaluate student work.
 - **Real-Time Notifications:** Event-driven notification system for critical updates (e.g., system assignments, grading) with smart deduplication.

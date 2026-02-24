@@ -22,12 +22,12 @@ lms-BE/
 │   │   ├── activity_logs/
 │   │   ├── ai/           # Unified Course Content Generation (Ollama/OpenAI)
 │   │   ├── auth/         # JWT Security, Password Hashing
-│   │   ├── courses/      # Course Creation, Material Uploads
-│   │   ├── enrollments/
+│   │   ├── courses/      # Course Creation, Material Uploads, Hard Delete (Super Admin)
+│   │   ├── enrollments/  # Teacher-Student assignments and course access
 │   │   ├── notifications/# Smart Deduplicating Notifications
-│   │   ├── signup_requests/# Admin Approval Registration Flow
-│   │   ├── submissions/  # Student Document processing & Teacher Grading
-│   │   └── users/        # Administration profiles
+│   │   ├── signup_requests/# Admin/Principal Approval Registration Flow
+│   │   ├── submissions/  # Student Document processing & Teacher Grading Audit
+│   │   └── users/        # Administration profiles with Hard Delete (Super Admin)
 │   └── main.py           # Application Entry Point & Exception interceptors
 ```
 

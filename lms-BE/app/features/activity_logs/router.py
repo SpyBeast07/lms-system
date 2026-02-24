@@ -35,14 +35,17 @@ async def get_logs(
     current_user: UserRead = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Admin endpoint to fetch paginated and filtered activity logs."""
-    if current_user.role != "super_admin":
-        raise HTTPException(status_code=403, detail="Only admins can view activity logs")
+    """Admin/Principal endpoint to fetch paginated and filtered activity logs."""
+    if current_user.role not in ("super_admin", "principal"):
+        raise HTTPException(status_code=403, detail="Only admins or principals can view activity logs")
+        
+    target_role = "teacher" if current_user.role == "principal" else None
         
     return await service.get_activity_logs(
         db=db, 
         page=page, 
         size=size, 
         user_id=user_id, 
-        action=action
+        action=action,
+        user_role=target_role
     )

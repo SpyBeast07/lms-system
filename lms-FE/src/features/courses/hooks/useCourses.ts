@@ -48,3 +48,13 @@ export const useRestoreCourseMutation = () => {
         }
     });
 };
+
+export const useHardDeleteCourseMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => coursesService.hardDeleteCourse(id),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: COURSES_KEY });
+        }
+    });
+};

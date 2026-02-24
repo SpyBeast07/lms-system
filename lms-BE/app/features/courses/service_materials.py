@@ -162,6 +162,43 @@ async def get_course_materials(db: AsyncSession, course_id: int, student_id: int
         
     return response
 
+async def get_teacher_course_materials(db: AsyncSession, teacher_id: int, course_id: int):
+    stmt = (
+        select(LearningMaterial)
+        .options(selectinload(LearningMaterial.notes), selectinload(LearningMaterial.assignment))
+        .filter(
+            LearningMaterial.course_id == course_id,
+            LearningMaterial.created_by_teacher_id == teacher_id,
+            LearningMaterial.is_deleted == False
+        )
+        .order_by(LearningMaterial.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    materials = result.scalars().all()
+    
+    response = []
+    for m in materials:
+        item = {
+            "id": m.id,
+            "title": m.title,
+            "type": m.type,
+            "course_id": m.course_id,
+            "created_by_teacher_id": m.created_by_teacher_id,
+            "created_at": m.created_at,
+        }
+        if m.type == "notes" and m.notes:
+            item["file_url"] = m.notes.content_url
+        elif m.type == "assignment" and m.assignment:
+            item["total_marks"] = m.assignment.total_marks
+            item["due_date"] = m.assignment.due_date
+            item["max_attempts"] = m.assignment.max_attempts
+            item["assignment_type"] = m.assignment.assignment_type
+            item["description"] = m.assignment.description
+            
+        response.append(item)
+        
+    return response
+
 async def get_material(db: AsyncSession, material_id: int):
     result = await db.execute(
         select(LearningMaterial).filter(

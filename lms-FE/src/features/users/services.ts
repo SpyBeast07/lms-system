@@ -29,5 +29,9 @@ export const usersService = {
 
     restoreUser: async (id: string): Promise<void> => {
         await usersApi.restore(id);
+    },
+
+    hardDeleteUser: async (id: string): Promise<void> => {
+        await usersApi.hardDelete(id);
     }
 };

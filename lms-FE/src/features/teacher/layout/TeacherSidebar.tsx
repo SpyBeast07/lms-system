@@ -15,9 +15,13 @@ export const TeacherSidebar: React.FC = () => {
 
     const navItems = [
         { path: '/teacher/courses', label: 'My Courses', icon: '📚' },
+        { path: '/teacher/users', label: 'User Management', icon: '👥' },
+        { path: '/teacher/enrollments', label: 'Enrollments', icon: '🤝' },
         { path: '/teacher/upload-notes', label: 'Publish Notes', icon: '📤' },
         { path: '/teacher/create-assignment', label: 'Assignments', icon: '✍️' },
         { path: '/teacher/evaluations', label: 'Evaluations', icon: '📝' },
+        { path: '/teacher/signup-requests', label: 'Signup Requests', icon: '📝' },
+        { path: '/teacher/password-requests', label: 'Password Requests', icon: '🔐' },
         { path: '/teacher/materials', label: 'Manage Sandbox', icon: '🗂️' },
     ];
 

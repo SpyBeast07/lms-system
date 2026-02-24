@@ -31,5 +31,9 @@ export const coursesApi = {
 
     restore: async (id: string): Promise<void> => {
         await api.post(`/courses/${id}/restore/`);
+    },
+
+    hardDelete: async (id: string): Promise<void> => {
+        await api.delete(`/courses/${id}/permanent/`);
     }
 };

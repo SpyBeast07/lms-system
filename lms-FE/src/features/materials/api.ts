@@ -60,5 +60,11 @@ export const materialsApi = {
     restoreMaterial: async (id: string) => {
         const response = await api.post(`/materials/${id}/restore`);
         return response.data;
+    },
+
+    // 7. Get Teacher Specific Course Materials
+    getTeacherCourseMaterials: async (teacherId: string, courseId: string) => {
+        const response = await api.get(`/materials/teacher/${teacherId}/course/${courseId}`);
+        return response.data;
     }
 };

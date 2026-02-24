@@ -90,3 +90,18 @@ async def restore_course_api(
 
     await course_crud.restore_course(db, course)
     return {"status": "restored"}
+
+
+# ---------- HARD DELETE ----------
+@router.delete("/{course_id}/permanent")
+async def hard_delete_course_api(
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_role("super_admin")),
+):
+    course = await course_crud.get_course_any(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    await course_crud.hard_delete_course(db, course)
+    return {"status": "permanently_deleted"}

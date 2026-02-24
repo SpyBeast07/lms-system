@@ -92,19 +92,17 @@ async def create_signup_request(
 
 
 async def get_pending_requests(
-    db: AsyncSession, page: int = 1, size: int = 20
+    db: AsyncSession, page: int = 1, size: int = 20, target_role: str | None = None
 ) -> PaginatedSignupRequests:
-    total = await db.scalar(
-        select(func.count(SignupRequest.id)).where(SignupRequest.status == "pending")
-    ) or 0
+    count_query = select(func.count(SignupRequest.id)).where(SignupRequest.status == "pending")
+    items_query = select(SignupRequest).where(SignupRequest.status == "pending")
+    
+    if target_role:
+        count_query = count_query.where(SignupRequest.requested_role == target_role)
+        items_query = items_query.where(SignupRequest.requested_role == target_role)
 
-    stmt = (
-        select(SignupRequest)
-        .where(SignupRequest.status == "pending")
-        .order_by(SignupRequest.created_at.desc())
-        .offset((page - 1) * size)
-        .limit(size)
-    )
+    total = await db.scalar(count_query) or 0
+    stmt = items_query.order_by(SignupRequest.created_at.desc()).offset((page - 1) * size).limit(size)
     result = await db.scalars(stmt)
     items = result.all()
 
@@ -118,16 +116,17 @@ async def get_pending_requests(
 
 
 async def get_all_requests(
-    db: AsyncSession, page: int = 1, size: int = 20
+    db: AsyncSession, page: int = 1, size: int = 20, target_role: str | None = None
 ) -> PaginatedSignupRequests:
-    total = await db.scalar(select(func.count(SignupRequest.id))) or 0
+    count_query = select(func.count(SignupRequest.id))
+    items_query = select(SignupRequest)
 
-    stmt = (
-        select(SignupRequest)
-        .order_by(SignupRequest.created_at.desc())
-        .offset((page - 1) * size)
-        .limit(size)
-    )
+    if target_role:
+        count_query = count_query.where(SignupRequest.requested_role == target_role)
+        items_query = items_query.where(SignupRequest.requested_role == target_role)
+
+    total = await db.scalar(count_query) or 0
+    stmt = items_query.order_by(SignupRequest.created_at.desc()).offset((page - 1) * size).limit(size)
     result = await db.scalars(stmt)
     items = result.all()
 
@@ -141,7 +140,7 @@ async def get_all_requests(
 
 
 async def approve_signup_request(
-    db: AsyncSession, request_id: int, data: SignupApprovalRequest
+    db: AsyncSession, request_id: int, data: SignupApprovalRequest, current_user: User
 ) -> SignupRequest:
     request = await db.get(SignupRequest, request_id)
     if not request:
@@ -154,6 +153,13 @@ async def approve_signup_request(
 
     # Determine final role (override or use requested)
     final_role = data.approved_role or request.requested_role
+
+    if current_user.role == "super_admin" and final_role != "principal":
+        raise HTTPException(status_code=403, detail="Super Admins can only approve principal requests")
+    if current_user.role == "principal" and final_role != "teacher":
+        raise HTTPException(status_code=403, detail="Principals can only approve teacher requests")
+    if current_user.role == "teacher" and final_role != "student":
+        raise HTTPException(status_code=403, detail="Teachers can only approve student requests")
 
     # Check for duplicate email in users (in case someone created an account after the request)
     existing_user = await db.scalar(
@@ -193,7 +199,7 @@ async def approve_signup_request(
 
 
 async def reject_signup_request(
-    db: AsyncSession, request_id: int
+    db: AsyncSession, request_id: int, current_user: User
 ) -> SignupRequest:
     request = await db.get(SignupRequest, request_id)
     if not request:
@@ -203,6 +209,13 @@ async def reject_signup_request(
             status_code=400,
             detail=f"Request is already {request.status}.",
         )
+
+    if current_user.role == "super_admin" and request.requested_role != "principal":
+        raise HTTPException(status_code=403, detail="Super Admins can only reject principal requests")
+    if current_user.role == "principal" and request.requested_role != "teacher":
+        raise HTTPException(status_code=403, detail="Principals can only reject teacher requests")
+    if current_user.role == "teacher" and request.requested_role != "student":
+        raise HTTPException(status_code=403, detail="Teachers can only reject student requests")
 
     request.status = "rejected"
     await db.commit()

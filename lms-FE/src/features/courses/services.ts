@@ -28,5 +28,9 @@ export const coursesService = {
 
     restoreCourse: async (id: string): Promise<void> => {
         await coursesApi.restore(id);
+    },
+
+    hardDeleteCourse: async (id: string): Promise<void> => {
+        await coursesApi.hardDelete(id);
     }
 };

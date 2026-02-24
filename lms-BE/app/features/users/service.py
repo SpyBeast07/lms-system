@@ -31,15 +31,19 @@ async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     return user
 
 
-async def list_users(db: AsyncSession, page: int = 1, limit: int = 10, is_deleted: Optional[bool] = None):
+async def list_users(db: AsyncSession, page: int = 1, limit: int = 10, is_deleted: Optional[bool] = None, allowed_roles: Optional[list] = None):
     skip = (page - 1) * limit
 
-    query = select(User)
+    query = select(User).order_by(User.id.desc())
     count_query = select(func.count(User.id))
 
     if is_deleted is not None:
         query = query.filter(User.is_deleted == is_deleted)
         count_query = count_query.filter(User.is_deleted == is_deleted)
+
+    if allowed_roles:
+        query = query.filter(User.role.in_(allowed_roles))
+        count_query = count_query.filter(User.role.in_(allowed_roles))
 
     result = await db.execute(query.offset(skip).limit(limit))
     items = result.scalars().all()

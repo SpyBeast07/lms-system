@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthTokens, UserRole } from '../../shared/types/auth';
 import { decodeToken } from '../../shared/utils/jwt';
+import { queryClient } from '../providers/QueryProvider';
 
 interface AuthState {
     accessToken: string | null;
@@ -60,6 +61,9 @@ export const useAuthStore = create<AuthState>()(
                     isAuthenticated: false,
                     userRole: null,
                 });
+
+                // Clear TanStack Query cache to prevent stale data between different user sessions
+                queryClient.clear();
 
                 // Ensure browser cleanup across tabs if needed
                 localStorage.removeItem('auth-store');

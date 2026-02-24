@@ -4,7 +4,7 @@ export const signupSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
-    requested_role: z.enum(['student', 'teacher'], {
+    requested_role: z.enum(['student', 'teacher', 'principal'], {
         message: 'Please select a role',
     }),
 });
@@ -31,5 +31,5 @@ export interface PaginatedSignupRequests {
 }
 
 export interface SignupApprovalRequest {
-    approved_role?: 'student' | 'teacher' | null;
+    approved_role?: 'student' | 'teacher' | 'principal' | null;
 }

@@ -61,3 +61,11 @@ export const useRestoreMaterialMutation = () => {
         }
     });
 };
+
+export const useTeacherMaterialsQuery = (teacherId: string, courseId: string) => {
+    return useQuery({
+        queryKey: [...MATERIALS_KEY, 'teacher', teacherId, courseId],
+        queryFn: () => materialsService.getTeacherCourseMaterials(teacherId, courseId),
+        enabled: !!teacherId && !!courseId,
+    });
+};

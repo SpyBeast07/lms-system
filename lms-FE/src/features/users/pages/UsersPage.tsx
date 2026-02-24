@@ -6,7 +6,8 @@ import {
     useUsersQuery,
     useCreateUserMutation,
     useDeleteUserMutation,
-    useRestoreUserMutation
+    useRestoreUserMutation,
+    useHardDeleteUserMutation
 } from '../hooks/useUsers';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
@@ -17,19 +18,22 @@ import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
 import { Pagination } from '../../../shared/components/ui/Pagination';
+import { useAuthStore } from '../../../app/store/authStore';
 import type { User } from '../schemas';
 
 type UiState = {
     isCreateModalOpen: boolean;
     userToDelete: string | null;
     userToRestore: string | null;
+    userToHardDelete: string | null;
 };
 
 type UiAction =
     | { type: 'OPEN_CREATE' }
     | { type: 'CLOSE_CREATE' }
     | { type: 'SET_DELETE'; id: string | null }
-    | { type: 'SET_RESTORE'; id: string | null };
+    | { type: 'SET_RESTORE'; id: string | null }
+    | { type: 'SET_HARD_DELETE'; id: string | null };
 
 const uiReducer = (state: UiState, action: UiAction): UiState => {
     switch (action.type) {
@@ -37,6 +41,7 @@ const uiReducer = (state: UiState, action: UiAction): UiState => {
         case 'CLOSE_CREATE': return { ...state, isCreateModalOpen: false };
         case 'SET_DELETE': return { ...state, userToDelete: action.id };
         case 'SET_RESTORE': return { ...state, userToRestore: action.id };
+        case 'SET_HARD_DELETE': return { ...state, userToHardDelete: action.id };
         default: return state;
     }
 };
@@ -49,16 +54,42 @@ export const UsersPage: React.FC = () => {
     const activeQuery = useUsersQuery(activePage, limit, false);
     const deletedQuery = useUsersQuery(deletedPage, limit, true);
 
+    const { accessToken } = useAuthStore();
+    const payload = accessToken ? JSON.parse(atob(accessToken.split('.')[1])) : null;
+    const currentUserRole = payload?.role;
+
+    const roleOptions = (() => {
+        if (currentUserRole === 'super_admin') {
+            return [
+                { value: 'super_admin', label: 'Super Admin' },
+                { value: 'principal', label: 'Principal' },
+                { value: 'teacher', label: 'Teacher' },
+                { value: 'student', label: 'Student' }
+            ];
+        }
+        if (currentUserRole === 'principal') {
+            return [
+                { value: 'teacher', label: 'Teacher' },
+                { value: 'student', label: 'Student' }
+            ];
+        }
+        return [
+            { value: 'student', label: 'Student' }
+        ];
+    })();
+
     const createMutation = useCreateUserMutation();
     const deleteMutation = useDeleteUserMutation();
     const restoreMutation = useRestoreUserMutation();
+    const hardDeleteMutation = useHardDeleteUserMutation();
 
     const [ui, dispatch] = useReducer(uiReducer, {
         isCreateModalOpen: false,
         userToDelete: null,
         userToRestore: null,
+        userToHardDelete: null,
     });
-    const { isCreateModalOpen, userToDelete, userToRestore } = ui;
+    const { isCreateModalOpen, userToDelete, userToRestore, userToHardDelete } = ui;
 
     const {
         register,
@@ -99,6 +130,17 @@ export const UsersPage: React.FC = () => {
             undefined,
             () => dispatch({ type: 'SET_RESTORE', id: null }),
             () => dispatch({ type: 'SET_RESTORE', id: null })
+        ));
+    };
+
+    const handleHardDeleteConfirm = () => {
+        if (!userToHardDelete) return;
+
+        hardDeleteMutation.mutate(userToHardDelete, mutationToastHandlers(
+            'User permanently deleted.',
+            undefined,
+            () => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null }),
+            () => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null })
         ));
     };
 
@@ -151,13 +193,21 @@ export const UsersPage: React.FC = () => {
         {
             header: 'Actions',
             cell: ({ row }: { row: User }) => (
-                <div className="flex justify-start">
+                <div className="flex justify-start gap-2">
                     <button
                         onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
                         Restore
                     </button>
+                    {currentUserRole === 'super_admin' && (
+                        <button
+                            onClick={() => (dispatch as any)({ type: 'SET_HARD_DELETE', id: row.id })}
+                            className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"
+                        >
+                            Hard Delete
+                        </button>
+                    )}
                 </div>
             )
         }
@@ -267,11 +317,7 @@ export const UsersPage: React.FC = () => {
                         label="Role"
                         register={register('role')}
                         error={errors.role?.message}
-                        options={[
-                            { value: 'super_admin', label: 'Super Admin' },
-                            { value: 'teacher', label: 'Teacher' },
-                            { value: 'student', label: 'Student' }
-                        ]}
+                        options={roleOptions}
                     />
                     <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
                         <button
@@ -311,6 +357,17 @@ export const UsersPage: React.FC = () => {
                 isLoading={restoreMutation.isPending}
                 onConfirm={handleRestoreConfirm}
                 onCancel={() => dispatch({ type: 'SET_RESTORE', id: null })}
+            />
+
+            <ConfirmDialog
+                isOpen={userToHardDelete !== null}
+                title="Confirm Permanent Deletion"
+                message="Are you sure you want to PERMANENTLY delete this user? This action CANNOT be undone and will remove all their data from the system."
+                confirmText="Permanently Delete"
+                variant="danger"
+                isLoading={hardDeleteMutation.isPending}
+                onConfirm={handleHardDeleteConfirm}
+                onCancel={() => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null })}
             />
         </div>
     );

@@ -5,6 +5,7 @@ import {
     useRejectSignupMutation,
 } from '../hooks';
 import { useToastStore } from '../../../app/store/toastStore';
+import { useAuthStore } from '../../../app/store/authStore';
 import type { SignupRequestRead } from '../schemas';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -16,13 +17,18 @@ const STATUS_BADGE: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
     student: '🎒 Student',
     teacher: '🏫 Teacher',
+    principal: '👑 Principal',
 };
 
 export const AdminSignupRequestsPage: React.FC = () => {
     const { addToast } = useToastStore();
+    const { accessToken } = useAuthStore();
     const [page, setPage] = useState(1);
     const [showAll, setShowAll] = useState(false);
     const [roleOverrides, setRoleOverrides] = useState<Record<number, string>>({});
+
+    const payload = accessToken ? JSON.parse(atob(accessToken.split('.')[1])) : null;
+    const userRole = payload?.role;
 
     const { data, isLoading, isError } = useSignupRequestsQuery(page, 20, showAll);
     const approveMutation = useApproveSignupMutation();
@@ -33,7 +39,7 @@ export const AdminSignupRequestsPage: React.FC = () => {
             const override = roleOverrides[req.id];
             await approveMutation.mutateAsync({
                 id: req.id,
-                data: override ? { approved_role: override as 'student' | 'teacher' } : {},
+                data: override ? { approved_role: override as 'student' | 'teacher' | 'principal' } : {},
             });
             addToast(`✓ ${req.name} approved as ${override || req.requested_role}`, 'success');
         } catch (err: any) {
@@ -144,8 +150,9 @@ export const AdminSignupRequestsPage: React.FC = () => {
                                                     title="Override role (optional)"
                                                 >
                                                     <option value="">As requested</option>
-                                                    <option value="student">→ Student</option>
-                                                    <option value="teacher">→ Teacher</option>
+                                                    {userRole === 'super_admin' && <option value="principal">→ Principal</option>}
+                                                    {userRole === 'principal' && <option value="teacher">→ Teacher</option>}
+                                                    {userRole === 'teacher' && <option value="student">→ Student</option>}
                                                 </select>
 
                                                 <button

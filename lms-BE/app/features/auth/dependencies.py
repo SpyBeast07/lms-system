@@ -46,5 +46,13 @@ def require_role(*allowed_roles: str):
                 detail="Insufficient permissions",
             )
         return current_user
-
     return role_guard
+
+def check_role_hierarchy(current_role: str, target_role: str) -> bool:
+    if current_role == "super_admin":
+        return True
+    if current_role == "principal" and target_role in ("teacher", "student"):
+        return True
+    if current_role == "teacher" and target_role == "student":
+        return True
+    return False

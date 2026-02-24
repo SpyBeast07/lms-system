@@ -13,7 +13,7 @@ router = APIRouter(prefix="/student-course", tags=["Student-Course"])
 async def enroll_student(
     data: StudentCourseCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("super_admin", "principal", "teacher")),
 ):
     await enroll_student_in_course(
         db,
@@ -25,6 +25,6 @@ async def enroll_student(
 @router.get("/")
 async def list_student_enrollments(
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("super_admin", "principal", "teacher")),
 ):
     return await get_all_student_enrollments(db)

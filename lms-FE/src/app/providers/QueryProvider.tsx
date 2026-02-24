@@ -4,7 +4,7 @@ import React, { type ReactNode } from 'react';
 // Create a client globally. Hardened for Production:
 // - Retries disabled to prevent duplicate state mutations / thundering herd
 // - Window Focus refetching disabled to prevent unprompted API spam
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             retry: false,

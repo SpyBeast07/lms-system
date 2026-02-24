@@ -16,5 +16,8 @@ export const materialsService = {
     },
     restoreMaterial: async (id: string) => {
         return await materialsApi.restoreMaterial(id);
+    },
+    getTeacherCourseMaterials: async (teacherId: string, courseId: string) => {
+        return await materialsApi.getTeacherCourseMaterials(teacherId, courseId);
     }
 };

@@ -90,16 +90,23 @@ async def get_password_requests(
     page: int = 1,
     limit: int = 10,
     status: Optional[str] = None,
-    current_admin=Depends(require_role("super_admin")),
+    current_admin=Depends(require_role("super_admin", "principal", "teacher")),
     db: AsyncSession = Depends(get_db),
 ):
-    return await AuthService.get_password_requests(db, page, limit, status)
+    target_role = None
+    if current_admin.role == "super_admin":
+        target_role = "principal"
+    elif current_admin.role == "principal":
+        target_role = "teacher"
+    elif current_admin.role == "teacher":
+        target_role = "student"
+    return await AuthService.get_password_requests(db, page, limit, status, target_role)
 
 
 @router.patch("/password-requests/{request_id}/approve")
 async def approve_password_request(
     request_id: int,
-    current_admin=Depends(require_role("super_admin")),
+    current_admin=Depends(require_role("super_admin", "principal", "teacher")),
     db: AsyncSession = Depends(get_db),
 ):
     return await AuthService.approve_password_request(db, current_admin, request_id)
@@ -108,7 +115,7 @@ async def approve_password_request(
 @router.patch("/password-requests/{request_id}/reject")
 async def reject_password_request(
     request_id: int,
-    current_admin=Depends(require_role("super_admin")),
+    current_admin=Depends(require_role("super_admin", "principal", "teacher")),
     db: AsyncSession = Depends(get_db),
 ):
     return await AuthService.reject_password_request(db, current_admin, request_id)

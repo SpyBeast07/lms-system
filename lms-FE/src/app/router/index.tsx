@@ -17,6 +17,9 @@ import { ActivityLogsPage } from '../../features/activityLogs/pages/ActivityLogs
 import { SignupPage } from '../../features/signup/pages/SignupPage';
 import { AdminSignupRequestsPage } from '../../features/signup/pages/AdminSignupRequestsPage';
 import { AdminPasswordRequestsPage } from '../../features/auth/pages/AdminPasswordRequestsPage';
+import { PrincipalLayout } from '../../features/principal/layout/PrincipalLayout';
+import { PrincipalDashboard } from '../../features/principal/pages/PrincipalDashboard';
+import { TeacherReviewPage } from '../../features/principal/pages/TeacherReviewPage';
 
 
 // Teacher Imports
@@ -99,6 +102,8 @@ const indexRoute = createRoute({
         const payload = decodeToken(accessToken);
         if (payload?.role === 'super_admin') {
             throw redirect({ to: '/admin/dashboard' });
+        } else if (payload?.role === 'principal') {
+            throw redirect({ to: '/principal/dashboard' });
         } else if (payload?.role === 'teacher') {
             throw redirect({ to: '/teacher/courses' });
         } else if (payload?.role === 'student') {
@@ -193,12 +198,20 @@ const adminEnrollmentsRoute = createRoute({
 const adminFilesRoute = createRoute({
     getParentRoute: () => adminRoute,
     path: '/files',
+    beforeLoad: () => {
+        const payload = decodeToken(useAuthStore.getState().accessToken);
+        if (payload?.role !== 'super_admin') throw redirect({ to: '/admin/dashboard' });
+    },
     component: FilesPage,
 });
 
 const adminHealthRoute = createRoute({
     getParentRoute: () => adminRoute,
     path: '/health',
+    beforeLoad: () => {
+        const payload = decodeToken(useAuthStore.getState().accessToken);
+        if (payload?.role !== 'super_admin') throw redirect({ to: '/admin/dashboard' });
+    },
     component: HealthPage,
 });
 
@@ -216,6 +229,88 @@ const adminSignupRequestsRoute = createRoute({
 
 const adminPasswordRequestsRoute = createRoute({
     getParentRoute: () => adminRoute,
+    path: '/password-requests',
+    component: AdminPasswordRequestsPage,
+});
+
+// 4.5 Principal Routing Tree
+const principalRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/principal',
+    component: function PrincipalRouteComponent() {
+        return (
+            <ProtectedRoute allowedRoles={['principal']}>
+                <PrincipalLayout />
+            </ProtectedRoute>
+        );
+    },
+    errorComponent: ({ error, reset }) => (
+        <PrincipalLayout>
+            <div className="p-8">
+                <ErrorComponent error={error} reset={reset} />
+            </div>
+        </PrincipalLayout>
+    ),
+});
+
+const principalIndexRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/',
+    component: function PrincipalIndexRouteComponent() {
+        return <Navigate to="/principal/dashboard" replace />;
+    }
+});
+
+const principalDashboardRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/dashboard',
+    component: PrincipalDashboard,
+});
+
+const principalUsersRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/users',
+    component: UsersPage,
+});
+
+const principalCoursesRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/courses',
+    component: CoursesPage,
+});
+
+const principalCourseDetailRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/courses/$courseId',
+    component: CourseDetailPage,
+});
+
+const principalEnrollmentsRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/enrollments',
+    component: EnrollmentsManagementPage,
+});
+
+const principalActivityLogsRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/activity-logs',
+    component: ActivityLogsPage,
+});
+
+const principalTeacherReviewRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/teacher-review',
+    component: TeacherReviewPage,
+});
+
+const principalSignupRequestsRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/signup-requests',
+    component: AdminSignupRequestsPage,
+});
+
+const principalPasswordRequestsRoute = createRoute({
+    getParentRoute: () => principalRoute,
     path: '/password-requests',
     component: AdminPasswordRequestsPage,
 });
@@ -277,6 +372,30 @@ const teacherEvaluationRoute = createRoute({
     getParentRoute: () => teacherRoute,
     path: '/evaluations',
     component: TeacherEvaluationPage,
+});
+
+const teacherSignupRequestsRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/signup-requests',
+    component: AdminSignupRequestsPage,
+});
+
+const teacherPasswordRequestsRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/password-requests',
+    component: AdminPasswordRequestsPage,
+});
+
+const teacherUsersRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/users',
+    component: UsersPage,
+});
+
+const teacherEnrollmentsRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/enrollments',
+    component: EnrollmentsManagementPage,
 });
 
 // 6. Student Routing Tree
@@ -367,13 +486,29 @@ const routeTree = rootRoute.addChildren([
         adminSignupRequestsRoute,
         adminPasswordRequestsRoute,
     ]),
+    principalRoute.addChildren([
+        principalIndexRoute,
+        principalDashboardRoute,
+        principalUsersRoute,
+        principalCoursesRoute,
+        principalCourseDetailRoute,
+        principalEnrollmentsRoute,
+        principalActivityLogsRoute,
+        principalTeacherReviewRoute,
+        principalSignupRequestsRoute,
+        principalPasswordRequestsRoute,
+    ]),
     teacherRoute.addChildren([
         teacherIndexRoute,
         teacherCoursesRoute,
+        teacherUsersRoute,
+        teacherEnrollmentsRoute,
         teacherUploadRoute,
         teacherAssignmentRoute,
         teacherManageMaterialsRoute,
-        teacherEvaluationRoute
+        teacherEvaluationRoute,
+        teacherSignupRequestsRoute,
+        teacherPasswordRequestsRoute,
     ]),
     studentRoute.addChildren([
         studentIndexRoute,

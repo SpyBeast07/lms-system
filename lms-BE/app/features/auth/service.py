@@ -203,7 +203,7 @@ class AuthService:
         return {"detail": "Password change request submitted for admin approval."}
 
     @staticmethod
-    async def get_password_requests(db: AsyncSession, page: int = 1, limit: int = 10, status_filter: Optional[str] = None):
+    async def get_password_requests(db: AsyncSession, page: int = 1, limit: int = 10, status_filter: Optional[str] = None, target_role: Optional[str] = None):
         skip = (page - 1) * limit
         
         query = select(PasswordChangeRequest).options(joinedload(PasswordChangeRequest.user))
@@ -212,6 +212,10 @@ class AuthService:
         if status_filter:
             query = query.filter(PasswordChangeRequest.status == status_filter)
             count_query = count_query.filter(PasswordChangeRequest.status == status_filter)
+
+        if target_role:
+            query = query.join(User).filter(User.role == target_role)
+            count_query = count_query.join(User).filter(User.role == target_role)
 
         query = query.order_by(PasswordChangeRequest.created_at.desc()).offset(skip).limit(limit)
 
@@ -236,6 +240,13 @@ class AuthService:
         user = user_result.scalars().first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+            
+        if current_admin.role == "super_admin" and user.role != "principal":
+            raise HTTPException(status_code=403, detail="Super Admins can only approve principal requests")
+        if current_admin.role == "principal" and user.role != "teacher":
+            raise HTTPException(status_code=403, detail="Principals can only approve teacher requests")
+        if current_admin.role == "teacher" and user.role != "student":
+            raise HTTPException(status_code=403, detail="Teachers can only approve student requests")
 
         # 1️⃣ Update password and request status
         user.password_hash = request.new_password_hash
@@ -294,6 +305,14 @@ class AuthService:
         # 2️⃣ Fetch user for logging/notification
         user_result = await db.execute(select(User).filter(User.id == request.user_id))
         user = user_result.scalars().first()
+        
+        if user:
+            if current_admin.role == "super_admin" and user.role != "principal":
+                raise HTTPException(status_code=403, detail="Super Admins can only reject principal requests")
+            if current_admin.role == "principal" and user.role != "teacher":
+                raise HTTPException(status_code=403, detail="Principals can only reject teacher requests")
+            if current_admin.role == "teacher" and user.role != "student":
+                raise HTTPException(status_code=403, detail="Teachers can only reject student requests")
 
         if user:
             # 3️⃣ Logging

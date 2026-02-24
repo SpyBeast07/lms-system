@@ -16,11 +16,21 @@ router = APIRouter(prefix="/materials", tags=["Learning Material"])
 async def get_course_materials_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher", "student", "admin"))
+    current_user=Depends(require_role("teacher", "student", "admin", "principal"))
 ):
     student_id = current_user.id if current_user.role == "student" else None
     materials = await material_crud.get_course_materials(db, course_id, student_id=student_id)
     return materials
+
+
+@router.get("/teacher/{teacher_id}/course/{course_id}")
+async def get_teacher_course_materials_api(
+    teacher_id: int,
+    course_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_role("admin", "principal"))
+):
+    return await material_crud.get_teacher_course_materials(db, teacher_id, course_id)
 
 
 @router.post("/notes/{teacher_id}")

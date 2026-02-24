@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'teacher' | 'student';
+export type UserRole = 'super_admin' | 'principal' | 'teacher' | 'student';
 
 export interface DecodedJWT {
     sub: string;

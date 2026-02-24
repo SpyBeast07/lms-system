@@ -7,8 +7,10 @@ import {
     useCoursesQuery,
     useCreateCourseMutation,
     useDeleteCourseMutation,
-    useRestoreCourseMutation
+    useRestoreCourseMutation,
+    useHardDeleteCourseMutation
 } from '../hooks/useCourses';
+import { useAuthStore } from '../../../app/store/authStore';
 import { Button } from '../../../shared/components/Button';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
@@ -23,13 +25,15 @@ type UiState = {
     isCreateModalOpen: boolean;
     courseToDelete: string | null;
     courseToRestore: string | null;
+    courseToHardDelete: string | null;
 };
 
 type UiAction =
     | { type: 'OPEN_CREATE' }
     | { type: 'CLOSE_CREATE' }
     | { type: 'SET_DELETE'; id: string | null }
-    | { type: 'SET_RESTORE'; id: string | null };
+    | { type: 'SET_RESTORE'; id: string | null }
+    | { type: 'SET_HARD_DELETE'; id: string | null };
 
 const uiReducer = (state: UiState, action: UiAction): UiState => {
     switch (action.type) {
@@ -37,6 +41,7 @@ const uiReducer = (state: UiState, action: UiAction): UiState => {
         case 'CLOSE_CREATE': return { ...state, isCreateModalOpen: false };
         case 'SET_DELETE': return { ...state, courseToDelete: action.id };
         case 'SET_RESTORE': return { ...state, courseToRestore: action.id };
+        case 'SET_HARD_DELETE': return { ...state, courseToHardDelete: action.id };
         default: return state;
     }
 };
@@ -50,15 +55,18 @@ export const CoursesPage: React.FC = () => {
     const createMutation = useCreateCourseMutation();
     const deleteMutation = useDeleteCourseMutation();
     const restoreMutation = useRestoreCourseMutation();
+    const hardDeleteMutation = useHardDeleteCourseMutation();
     const generateContentMutation = useGenerateCourseContent();
     const { addToast } = useToastStore();
+    const { userRole } = useAuthStore();
 
     const [ui, dispatch] = useReducer(uiReducer, {
         isCreateModalOpen: false,
         courseToDelete: null,
         courseToRestore: null,
+        courseToHardDelete: null,
     });
-    const { isCreateModalOpen, courseToDelete, courseToRestore } = ui;
+    const { isCreateModalOpen, courseToDelete, courseToRestore, courseToHardDelete } = ui;
 
     const {
         register,
@@ -104,6 +112,17 @@ export const CoursesPage: React.FC = () => {
         ));
     };
 
+    const handleHardDeleteConfirm = () => {
+        if (!courseToHardDelete) return;
+
+        hardDeleteMutation.mutate(courseToHardDelete, mutationToastHandlers(
+            'Course permanently deleted.',
+            undefined,
+            () => dispatch({ type: 'SET_HARD_DELETE', id: null }),
+            () => dispatch({ type: 'SET_HARD_DELETE', id: null })
+        ));
+    };
+
     const handleGenerateFullAi = () => {
         const currentDescription = watch('description');
         const courseName = watch('name');
@@ -140,7 +159,7 @@ export const CoursesPage: React.FC = () => {
             cell: ({ row }: { row: Course }) => (
                 <div className="flex justify-start gap-4">
                     <Link
-                        to="/admin/courses/$courseId"
+                        to={userRole === 'super_admin' ? '/admin/courses/$courseId' : '/principal/courses/$courseId'}
                         params={{ courseId: row.id }}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
@@ -169,13 +188,21 @@ export const CoursesPage: React.FC = () => {
         {
             header: 'Actions',
             cell: ({ row }: { row: Course }) => (
-                <div className="flex justify-start">
+                <div className="flex justify-start gap-2">
                     <button
                         onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
                         Restore
                     </button>
+                    {userRole === 'super_admin' && (
+                        <button
+                            onClick={() => dispatch({ type: 'SET_HARD_DELETE', id: row.id })}
+                            className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"
+                        >
+                            Hard Delete
+                        </button>
+                    )}
                 </div>
             )
         }
@@ -275,6 +302,17 @@ export const CoursesPage: React.FC = () => {
                 isLoading={restoreMutation.isPending}
                 onConfirm={handleRestoreConfirm}
                 onCancel={() => dispatch({ type: 'SET_RESTORE', id: null })}
+            />
+
+            <ConfirmDialog
+                isOpen={courseToHardDelete !== null}
+                title="Confirm Permanent Deletion"
+                message="Are you sure you want to PERMANENTLY delete this course? This action CANNOT be undone and will remove all associated data, including enrollments and materials."
+                confirmText="Permanently Delete"
+                variant="danger"
+                isLoading={hardDeleteMutation.isPending}
+                onConfirm={handleHardDeleteConfirm}
+                onCancel={() => dispatch({ type: 'SET_HARD_DELETE', id: null })}
             />
         </div>
     );

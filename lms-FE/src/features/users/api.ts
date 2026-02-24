@@ -31,5 +31,9 @@ export const usersApi = {
 
     restore: async (id: string): Promise<void> => {
         await api.post(`/users/${id}/restore/`);
+    },
+
+    hardDelete: async (id: string): Promise<void> => {
+        await api.delete(`/users/${id}/permanent/`);
     }
 };

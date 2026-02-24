@@ -29,12 +29,20 @@ async def list_signup_requests(
     size: int = Query(20, ge=1, le=100),
     show_all: bool = Query(False, description="Include approved/rejected requests"),
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("super_admin", "principal", "teacher")),
 ):
     """Admin only — list pending (or all) signup requests."""
+    target_role = None
+    if current_user.role == "super_admin":
+        target_role = "principal"
+    elif current_user.role == "principal":
+        target_role = "teacher"
+    elif current_user.role == "teacher":
+        target_role = "student"
+
     if show_all:
-        return await service.get_all_requests(db, page, size)
-    return await service.get_pending_requests(db, page, size)
+        return await service.get_all_requests(db, page, size, target_role)
+    return await service.get_pending_requests(db, page, size, target_role)
 
 
 @router.patch("/signup-requests/{request_id}/approve", response_model=SignupRequestRead)
@@ -42,17 +50,15 @@ async def approve_request(
     request_id: int,
     data: SignupApprovalRequest = SignupApprovalRequest(),
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("super_admin", "principal", "teacher")),
 ):
-    """Admin only — approve a signup request, optionally overriding the role."""
-    return await service.approve_signup_request(db, request_id, data)
+    return await service.approve_signup_request(db, request_id, data, current_user)
 
 
 @router.patch("/signup-requests/{request_id}/reject", response_model=SignupRequestRead)
 async def reject_request(
     request_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("super_admin", "principal", "teacher")),
 ):
-    """Admin only — reject a signup request."""
-    return await service.reject_signup_request(db, request_id)
+    return await service.reject_signup_request(db, request_id, current_user)

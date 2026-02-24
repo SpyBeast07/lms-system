@@ -40,3 +40,13 @@ export const useRestoreUserMutation = () => {
         }
     });
 };
+
+export const useHardDeleteUserMutation = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => usersService.hardDeleteUser(id),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: USERS_KEY });
+        }
+    });
+};

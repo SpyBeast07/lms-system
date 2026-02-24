@@ -7,7 +7,7 @@ class SignupRequestCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
     password: str = Field(..., min_length=6)
-    requested_role: Literal["student", "teacher"]
+    requested_role: Literal["student", "teacher", "principal"]
 
 
 class SignupRequestRead(BaseModel):
@@ -26,7 +26,7 @@ class SignupRequestRead(BaseModel):
 
 class SignupApprovalRequest(BaseModel):
     """Optional role override on approval. If omitted, uses requested_role."""
-    approved_role: Optional[Literal["student", "teacher"]] = None
+    approved_role: Optional[Literal["student", "teacher", "principal"]] = None
 
 
 class PaginatedSignupRequests(BaseModel):

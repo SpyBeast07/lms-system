@@ -107,6 +107,7 @@ export const SignupPage: React.FC = () => {
                             >
                                 <option value="student">Student</option>
                                 <option value="teacher">Teacher / Instructor</option>
+                                <option value="principal">Principal</option>
                             </select>
                             {errors.requested_role && (
                                 <p className="text-rose-400 text-xs mt-1.5 font-medium">{errors.requested_role.message}</p>

@@ -5,6 +5,7 @@ from typing import Optional
 
 from .models import ActivityLog
 from .schemas import ActivityLogCreate, PaginatedActivityLogs
+from app.features.users.models import User
 
 async def log_action(db: AsyncSession, schema: ActivityLogCreate) -> ActivityLog:
     log = ActivityLog(
@@ -26,6 +27,7 @@ async def get_activity_logs(
     user_id: Optional[int] = None,
     action: Optional[str] = None,
     exclude_actions: Optional[list] = None,
+    user_role: Optional[str] = None,
 ) -> PaginatedActivityLogs:
     
     query = select(ActivityLog).options(selectinload(ActivityLog.user))
@@ -42,6 +44,10 @@ async def get_activity_logs(
     if exclude_actions:
         query = query.where(ActivityLog.action.not_in(exclude_actions))
         count_query = count_query.where(ActivityLog.action.not_in(exclude_actions))
+        
+    if user_role is not None:
+        query = query.join(User).where(User.role == user_role)
+        count_query = count_query.join(User).where(User.role == user_role)
         
     total = (await db.scalar(count_query)) or 0
     pages = (total + size - 1) // size

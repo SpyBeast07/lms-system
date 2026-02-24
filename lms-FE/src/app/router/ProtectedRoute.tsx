@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { decodeToken } from '../../shared/utils/jwt';
 
 interface ProtectedRouteProps {
-    allowedRoles?: Array<'super_admin' | 'student' | 'teacher'>;
+    allowedRoles?: Array<'super_admin' | 'principal' | 'student' | 'teacher'>;
     children?: React.ReactNode;
 }
 

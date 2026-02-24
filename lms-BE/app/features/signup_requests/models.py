@@ -17,12 +17,12 @@ class SignupRequest(Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     requested_role: Mapped[str] = mapped_column(
-        Enum("student", "teacher", name="signup_requested_role"),
+        Enum("student", "teacher", "principal", name="signup_requested_role"),
         nullable=False,
     )
 
     approved_role: Mapped[str | None] = mapped_column(
-        Enum("student", "teacher", name="signup_approved_role"),
+        Enum("student", "teacher", "principal", name="signup_approved_role"),
         nullable=True,
         default=None,
     )

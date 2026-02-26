@@ -12,14 +12,19 @@ from app.features.auth.dependencies import require_role
 
 router = APIRouter(prefix="/materials", tags=["Learning Material"])
 
+from app.core.school_guard import validate_school_subscription
+from app.features.users.models import User
+
 @router.get("/course/{course_id}")
 async def get_course_materials_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher", "student", "admin", "principal"))
+    current_user: User = Depends(require_role("teacher", "student", "admin", "principal")),
+    school_info = Depends(validate_school_subscription)
 ):
     student_id = current_user.id if current_user.role == "student" else None
-    materials = await material_crud.get_course_materials(db, course_id, student_id=student_id)
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    materials = await material_crud.get_course_materials(db, course_id, school_id=school_id, student_id=student_id)
     return materials
 
 
@@ -28,9 +33,11 @@ async def get_teacher_course_materials_api(
     teacher_id: int,
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("admin", "principal"))
+    current_user: User = Depends(require_role("admin", "principal")),
+    school_info = Depends(validate_school_subscription)
 ):
-    return await material_crud.get_teacher_course_materials(db, teacher_id, course_id)
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    return await material_crud.get_teacher_course_materials(db, teacher_id, course_id, school_id=school_id)
 
 
 @router.post("/notes/{teacher_id}")
@@ -38,9 +45,10 @@ async def create_notes_api(
     teacher_id: int,
     data: NotesCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher")),
+    current_user: User = Depends(require_role("teacher")),
+    school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.create_notes(db, teacher_id, data)
+    material = await material_crud.create_notes(db, teacher_id, data, school_id=current_user.school_id)
     return {
         "id": material.id,
         "title": material.title,
@@ -53,9 +61,10 @@ async def create_assignment_api(
     teacher_id: int,
     data: AssignmentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher")),
+    current_user: User = Depends(require_role("teacher")),
+    school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.create_assignment(db, teacher_id, data)
+    material = await material_crud.create_assignment(db, teacher_id, data, school_id=current_user.school_id)
     return {
         "id": material.id,
         "title": material.title,
@@ -68,9 +77,11 @@ async def update_material_api(
     material_id: int,
     data: LearningMaterialUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher")),
+    current_user: User = Depends(require_role("teacher")),
+    school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.get_material(db, material_id)
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    material = await material_crud.get_material(db, material_id, school_id=school_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
@@ -81,9 +92,11 @@ async def update_material_api(
 async def delete_material_api(
     material_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher")),
+    current_user: User = Depends(require_role("teacher")),
+    school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.get_material(db, material_id)
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    material = await material_crud.get_material(db, material_id, school_id=school_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 
@@ -95,9 +108,11 @@ async def delete_material_api(
 async def restore_material_api(
     material_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("teacher")),
+    current_user: User = Depends(require_role("teacher")),
+    school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.get_material_any(db, material_id)
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    material = await material_crud.get_material_any(db, material_id, school_id=school_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
 

@@ -7,9 +7,10 @@ from .models import ActivityLog
 from .schemas import ActivityLogCreate, PaginatedActivityLogs
 from app.features.users.models import User
 
-async def log_action(db: AsyncSession, schema: ActivityLogCreate) -> ActivityLog:
+async def log_action(db: AsyncSession, schema: ActivityLogCreate, school_id: Optional[int] = None) -> ActivityLog:
     log = ActivityLog(
         user_id=schema.user_id,
+        school_id=school_id,
         action=schema.action,
         entity_type=schema.entity_type,
         entity_id=schema.entity_id,
@@ -28,11 +29,16 @@ async def get_activity_logs(
     action: Optional[str] = None,
     exclude_actions: Optional[list] = None,
     user_role: Optional[str] = None,
+    school_id: Optional[int] = None,
 ) -> PaginatedActivityLogs:
     
     query = select(ActivityLog).options(selectinload(ActivityLog.user))
     count_query = select(func.count()).select_from(ActivityLog)
     
+    if school_id is not None:
+        query = query.where(ActivityLog.school_id == school_id)
+        count_query = count_query.where(ActivityLog.school_id == school_id)
+
     if user_id is not None:
         query = query.where(ActivityLog.user_id == user_id)
         count_query = count_query.where(ActivityLog.user_id == user_id)

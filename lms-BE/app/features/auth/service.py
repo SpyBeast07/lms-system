@@ -28,7 +28,9 @@ class AuthService:
         Authenticate user and issue new access & refresh tokens.
         """
         result = await db.execute(
-            select(User).filter(
+            select(User)
+            .options(joinedload(User.school))
+            .filter(
                 User.email == form_data.username,
                 User.is_deleted == False,
             )
@@ -54,6 +56,9 @@ class AuthService:
                 "sub": str(user.id),
                 "role": user.role,
                 "name": user.name,
+                "school_id": user.school_id,
+                "school_name": user.school.name if user.school else None,
+                "subscription_end": user.school.subscription_end.isoformat() if user.school else None
             }
         )
 
@@ -106,7 +111,9 @@ class AuthService:
             )
 
         result = await db.execute(
-            select(User).filter(
+            select(User)
+            .options(joinedload(User.school))
+            .filter(
                 User.id == token.user_id,
                 User.is_deleted == False,
             )
@@ -126,6 +133,9 @@ class AuthService:
                 "sub": str(user.id),
                 "role": user.role,
                 "name": user.name,
+                "school_id": user.school_id,
+                "school_name": user.school.name if user.school else None,
+                "subscription_end": user.school.subscription_end.isoformat() if user.school else None
             }
         )
 
@@ -158,9 +168,9 @@ class AuthService:
         return {"detail": "Logged out from all sessions"}
 
     @staticmethod
-    async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest):
+    async def change_password(db: AsyncSession, user: User, data: ChangePasswordRequest, school_id: Optional[int] = None):
         """
-        Verify old password and create a password change request. Notify super admins.
+        Verify old password and create a password change request. Notify admins of the same school.
         """
         # 1️⃣ Verify current password (async)
         is_valid = await verify_password(data.current_password, user.password_hash)
@@ -175,7 +185,8 @@ class AuthService:
         request = PasswordChangeRequest(
             user_id=user.id,
             new_password_hash=new_hash,
-            status="pending"
+            status="pending",
+            school_id=school_id
         )
         db.add(request)
         await db.commit()
@@ -187,23 +198,39 @@ class AuthService:
             entity_type="user",
             entity_id=user.id,
             details=f"User '{user.name}' requested a password change"
-        ))
+        ), school_id=school_id)
 
-        # 4️⃣ Notify Super Admins
-        super_admins_result = await db.execute(select(User).filter(User.role == "super_admin", User.is_deleted == False))
-        super_admins = super_admins_result.scalars().all()
-        for admin in super_admins:
-            await create_notification(db, NotificationCreate(
-                user_id=admin.id,
-                type="password_change_request",
-                message=f"User '{user.name}' ({user.email}) requested a password change.",
-                entity_id=request.id
-            ))
+        # 4️⃣ Notify Admins of the same school
+        admin_query = select(User).filter(User.is_deleted == False)
+        if school_id:
+            admin_query = admin_query.filter(User.school_id == school_id, User.role.in_(["principal", "teacher"]))
+        else:
+            admin_query = admin_query.filter(User.role == "super_admin")
+            
+        admins_result = await db.execute(admin_query)
+        admins = admins_result.scalars().all()
+        for admin in admins:
+            # Determine if this admin should see this request based on roles
+            should_notify = False
+            if admin.role == "super_admin" and user.role == "principal":
+                should_notify = True
+            elif admin.role == "principal" and user.role == "teacher":
+                should_notify = True
+            elif admin.role == "teacher" and user.role == "student":
+                should_notify = True
+                
+            if should_notify:
+                await create_notification(db, NotificationCreate(
+                    user_id=admin.id,
+                    type="password_change_request",
+                    message=f"User '{user.name}' ({user.email}) requested a password change.",
+                    entity_id=request.id
+                ), school_id=school_id)
 
         return {"detail": "Password change request submitted for admin approval."}
 
     @staticmethod
-    async def get_password_requests(db: AsyncSession, page: int = 1, limit: int = 10, status_filter: Optional[str] = None, target_role: Optional[str] = None):
+    async def get_password_requests(db: AsyncSession, page: int = 1, limit: int = 10, status_filter: Optional[str] = None, target_role: Optional[str] = None, school_id: Optional[int] = None):
         skip = (page - 1) * limit
         
         query = select(PasswordChangeRequest).options(joinedload(PasswordChangeRequest.user))
@@ -217,6 +244,10 @@ class AuthService:
             query = query.join(User).filter(User.role == target_role)
             count_query = count_query.join(User).filter(User.role == target_role)
 
+        if school_id:
+            query = query.filter(PasswordChangeRequest.school_id == school_id)
+            count_query = count_query.filter(PasswordChangeRequest.school_id == school_id)
+
         query = query.order_by(PasswordChangeRequest.created_at.desc()).offset(skip).limit(limit)
 
         result = await db.execute(query)
@@ -228,8 +259,12 @@ class AuthService:
         return {"items": items, "total": total, "page": page, "size": limit}
 
     @staticmethod
-    async def approve_password_request(db: AsyncSession, current_admin: User, request_id: int):
-        result = await db.execute(select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id))
+    async def approve_password_request(db: AsyncSession, current_admin: User, request_id: int, school_id: Optional[int] = None):
+        request_query = select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id)
+        if school_id:
+            request_query = request_query.filter(PasswordChangeRequest.school_id == school_id)
+            
+        result = await db.execute(request_query)
         request = result.scalars().first()
         if not request:
             raise HTTPException(status_code=404, detail="Password change request not found")
@@ -268,7 +303,7 @@ class AuthService:
             entity_type="user",
             entity_id=user.id,
             details=log_msg
-        ))
+        ), school_id=school_id)
         # User log
         await log_action(db, ActivityLogCreate(
             user_id=user.id,
@@ -276,7 +311,7 @@ class AuthService:
             entity_type="user",
             entity_id=user.id,
             details="Your password was successfully changed by an admin"
-        ))
+        ), school_id=school_id)
 
         # 4️⃣ Notify user
         await create_notification(db, NotificationCreate(
@@ -284,13 +319,17 @@ class AuthService:
             type="password_change_approved",
             message="Your password change request has been approved. You must log in again.",
             entity_id=request.id
-        ))
+        ), school_id=school_id)
 
         return {"detail": "Password change request approved. User sessions have been revoked."}
 
     @staticmethod
-    async def reject_password_request(db: AsyncSession, current_admin: User, request_id: int):
-        result = await db.execute(select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id))
+    async def reject_password_request(db: AsyncSession, current_admin: User, request_id: int, school_id: Optional[int] = None):
+        request_query = select(PasswordChangeRequest).filter(PasswordChangeRequest.id == request_id)
+        if school_id:
+            request_query = request_query.filter(PasswordChangeRequest.school_id == school_id)
+            
+        result = await db.execute(request_query)
         request = result.scalars().first()
         if not request:
             raise HTTPException(status_code=404, detail="Password change request not found")
@@ -324,7 +363,7 @@ class AuthService:
                 entity_type="user",
                 entity_id=user.id,
                 details=log_msg
-            ))
+            ), school_id=school_id)
             # User log
             await log_action(db, ActivityLogCreate(
                 user_id=user.id,
@@ -332,7 +371,7 @@ class AuthService:
                 entity_type="user",
                 entity_id=user.id,
                 details="Your password change request was rejected by an admin"
-            ))
+            ), school_id=school_id)
 
             # 4️⃣ Notify user
             await create_notification(db, NotificationCreate(
@@ -340,7 +379,7 @@ class AuthService:
                 type="password_change_rejected",
                 message="Your password change request was rejected.",
                 entity_id=request.id
-            ))
+            ), school_id=school_id)
 
         return {"detail": "Password change request rejected."}
 

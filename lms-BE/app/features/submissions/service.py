@@ -16,7 +16,7 @@ from app.features.courses.models_materials import LearningMaterial
 from app.features.enrollments.models_teacher import TeacherCourse
 from app.core.storage import get_minio_client
 
-async def create_submission(db: AsyncSession, student_id: int, schema: SubmissionCreate) -> Submission:
+async def create_submission(db: AsyncSession, student_id: int, schema: SubmissionCreate, school_id: int) -> Submission:
     # 1. Fetch assignment and check deadline
     assignment_result = await db.scalars(
         select(Assignment).where(Assignment.material_id == schema.assignment_id)
@@ -47,6 +47,7 @@ async def create_submission(db: AsyncSession, student_id: int, schema: Submissio
     submission = Submission(
         student_id=student_id,
         assignment_id=schema.assignment_id,
+        school_id=school_id,
         file_url=str(schema.file_url),
         object_name=schema.object_name,
         comments=schema.comments,
@@ -61,7 +62,7 @@ async def create_submission(db: AsyncSession, student_id: int, schema: Submissio
         action="submit_assignment",
         entity_type="submission",
         entity_id=submission.id,
-        details=f"Student {student_id} submitted to assignment {schema.assignment_id}"
+        details=f"Student {student_id} submitted to assignment {schema.assignment_id} in school {school_id}"
     ))
     
     # Refetch with student loaded to match SubmissionRead schema
@@ -79,9 +80,17 @@ async def create_submission(db: AsyncSession, student_id: int, schema: Submissio
             
     return sub
 
-async def get_student_submissions(db: AsyncSession, student_id: int, limit: int = 100, offset: int = 0) -> dict:
-    stmt = select(Submission).options(selectinload(Submission.student)).where(Submission.student_id == student_id).order_by(Submission.submitted_at.desc())
-    count = (await db.scalar(select(func.count(Submission.id)).where(Submission.student_id == student_id))) or 0
+async def get_student_submissions(db: AsyncSession, student_id: int, school_id: int, limit: int = 100, offset: int = 0) -> dict:
+    stmt = select(Submission).options(selectinload(Submission.student)).where(
+        Submission.student_id == student_id,
+        Submission.school_id == school_id
+    ).order_by(Submission.submitted_at.desc())
+    
+    count_stmt = select(func.count(Submission.id)).where(
+        Submission.student_id == student_id,
+        Submission.school_id == school_id
+    )
+    count = (await db.scalar(count_stmt)) or 0
     results = (await db.scalars(stmt.offset(offset).limit(limit))).all()
     
     minio_client = get_minio_client()
@@ -94,11 +103,13 @@ async def get_student_submissions(db: AsyncSession, student_id: int, limit: int 
                 
     return {"total_count": count, "results": results}
 
-async def _verify_teacher_course(db: AsyncSession, teacher_id: int, assignment_id: int):
+async def _verify_teacher_course(db: AsyncSession, teacher_id: int, assignment_id: int, school_id: Optional[int] = None):
     # Get course_id for this assignment
-    material_result = await db.scalars(
-        select(LearningMaterial).where(LearningMaterial.id == assignment_id)
-    )
+    query = select(LearningMaterial).where(LearningMaterial.id == assignment_id)
+    if school_id:
+        query = query.filter(LearningMaterial.school_id == school_id)
+        
+    material_result = await db.scalars(query)
     material = material_result.first()
     if not material:
         raise HTTPException(status_code=404, detail="Assignment not found.")
@@ -113,12 +124,21 @@ async def _verify_teacher_course(db: AsyncSession, teacher_id: int, assignment_i
     teacher_mapping = teacher_mapping_result.first()
     if not teacher_mapping:
         raise HTTPException(status_code=403, detail="You do not teach this course.")
+    return material
 
-async def get_assignment_submissions(db: AsyncSession, assignment_id: int, teacher_id: int, limit: int = 100, offset: int = 0) -> dict:
-    await _verify_teacher_course(db, teacher_id, assignment_id)
+async def get_assignment_submissions(db: AsyncSession, assignment_id: int, teacher_id: int, school_id: int, limit: int = 100, offset: int = 0) -> dict:
+    await _verify_teacher_course(db, teacher_id, assignment_id, school_id)
     
-    stmt = select(Submission).options(selectinload(Submission.student)).where(Submission.assignment_id == assignment_id).order_by(Submission.submitted_at.desc())
-    count = (await db.scalar(select(func.count(Submission.id)).where(Submission.assignment_id == assignment_id))) or 0
+    stmt = select(Submission).options(selectinload(Submission.student)).where(
+        Submission.assignment_id == assignment_id,
+        Submission.school_id == school_id
+    ).order_by(Submission.submitted_at.desc())
+    
+    count_stmt = select(func.count(Submission.id)).where(
+        Submission.assignment_id == assignment_id,
+        Submission.school_id == school_id
+    )
+    count = (await db.scalar(count_stmt)) or 0
     results = (await db.scalars(stmt.offset(offset).limit(limit))).all()
     
     minio_client = get_minio_client()
@@ -131,17 +151,17 @@ async def get_assignment_submissions(db: AsyncSession, assignment_id: int, teach
                 
     return {"total_count": count, "results": results}
 
-async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int, schema: SubmissionGrade) -> Submission:
+async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int, school_id: int, schema: SubmissionGrade) -> Submission:
     result = await db.scalars(
         select(Submission)
         .options(selectinload(Submission.student))
-        .where(Submission.id == submission_id)
+        .where(Submission.id == submission_id, Submission.school_id == school_id)
     )
     submission = result.first()
     if not submission:
         return None
         
-    await _verify_teacher_course(db, teacher_id, submission.assignment_id)
+    await _verify_teacher_course(db, teacher_id, submission.assignment_id, school_id)
     
     submission.grade = schema.grade
     submission.feedback = schema.feedback
@@ -156,7 +176,7 @@ async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int
         type="assignment_graded",
         message=f"Your assignment submission has been graded: {schema.grade}/100",
         entity_id=submission.id
-    ))
+    ), school_id=school_id)
     
     await log_action(db, ActivityLogCreate(
         user_id=teacher_id,
@@ -164,7 +184,7 @@ async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int
         entity_type="submission",
         entity_id=submission.id,
         details=f"Graded submission {submission.id} with {schema.grade}/100"
-    ))
+    ), school_id=school_id)
     
     # Refetch with student loaded to avoid MissingGreenlet after refresh
     result = await db.scalars(

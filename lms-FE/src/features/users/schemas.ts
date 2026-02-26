@@ -17,9 +17,22 @@ export const userCreateSchema = z.object({
     role: z.enum(['super_admin', 'principal', 'teacher', 'student'] as const, {
         message: 'Please select a valid role',
     }),
+    school_id: z.number().int().positive().optional(),
+}).superRefine((data, ctx) => {
+    if (data.role === 'principal' && (!data.school_id || isNaN(data.school_id))) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Please select a school for the principal',
+            path: ['school_id'],
+        });
+    }
 });
 
-export const userUpdateSchema = userCreateSchema.partial().extend({
+export const userUpdateSchema = z.object({
+    name: z.string().min(2).optional(),
+    email: z.string().email().optional(),
+    password: z.string().min(8).optional(),
+    role: z.enum(['super_admin', 'principal', 'teacher', 'student'] as const).optional(),
     is_active: z.boolean().optional(),
 });
 

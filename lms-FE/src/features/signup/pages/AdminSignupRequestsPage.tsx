@@ -109,6 +109,7 @@ export const AdminSignupRequestsPage: React.FC = () => {
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Requested Role</th>
+                                <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">School</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Submitted</th>
                                 <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
@@ -123,6 +124,9 @@ export const AdminSignupRequestsPage: React.FC = () => {
                                         <span className="font-medium text-slate-700">
                                             {ROLE_LABEL[req.requested_role] || req.requested_role}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-600">
+                                        {req.school_name || <span className="text-slate-400 italic">None</span>}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${STATUS_BADGE[req.status]}`}>

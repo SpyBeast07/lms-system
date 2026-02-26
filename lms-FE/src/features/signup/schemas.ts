@@ -7,6 +7,7 @@ export const signupSchema = z.object({
     requested_role: z.enum(['student', 'teacher', 'principal'], {
         message: 'Please select a role',
     }),
+    school_id: z.number().positive().optional(),
 });
 
 export type SignupFormData = z.infer<typeof signupSchema>;
@@ -18,6 +19,7 @@ export interface SignupRequestRead {
     requested_role: string;
     approved_role: string | null;
     status: 'pending' | 'approved' | 'rejected';
+    school_name?: string;
     created_at: string;
     approved_at: string | null;
 }

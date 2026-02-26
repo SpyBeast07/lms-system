@@ -14,6 +14,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: UserRole
+    school_id: Optional[int] = None
 
 class UserRead(BaseModel):
     id: int

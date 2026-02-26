@@ -10,11 +10,9 @@ export const Sidebar: React.FC = () => {
 
     const navItems = [
         { path: '/admin/users', label: 'Users Management', icon: '👥' },
-        { path: '/admin/courses', label: 'Courses Management', icon: '📚' },
-        { path: '/admin/enrollments', label: 'Enrollments', icon: '🎓' },
+        { path: '/admin/schools', label: 'Schools Management', icon: '🏢' },
         { path: '/admin/signup-requests', label: 'Signup Requests', icon: '📝' },
         { path: '/admin/password-requests', label: 'Password Requests', icon: '🔐' },
-        { path: '/admin/files', label: 'File Storage', icon: '🗄️' },
         { path: '/admin/activity-logs', label: 'Activity Logs', icon: '📋' },
         { path: '/admin/health', label: 'System Health', icon: '🩺' },
     ];

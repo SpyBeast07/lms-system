@@ -1,93 +1,214 @@
-# Eurobliz LMS System - Backend (FastAPI)
+# LMS Backend — FastAPI
 
-The backend layer of the Eurobliz LMS, built with modern Python, FastAPI, and asynchronous SQLAlchemy. It is designed for high performance, strict typing, and domain-driven modularity.
+The backend layer of the LMS System. Built with FastAPI + async SQLAlchemy, it enforces **school-based multitenancy**, **subscription-gated access**, and a **strict role hierarchy** on every request.
+
+---
 
 ## 🛠️ Technologies
-- **Framework:** FastAPI
-- **Language:** Python 3.12+ (managed via `uv`)
-- **Database:** PostgreSQL (AsyncPG driver) with SQLAlchemy ORM
-- **Migrations:** Alembic
-- **Object Storage:** MinIO (S3 Compatible)
-- **Caching & Rate Limiting:** Redis & SlowAPI
-- **Cron Jobs:** APScheduler (AsyncIOScheduler)
+
+| Concern | Library |
+|---|---|
+| Framework | FastAPI (async) |
+| Language | Python 3.12+ (`uv`) |
+| Database | PostgreSQL via AsyncPG + SQLAlchemy ORM |
+| Migrations | Alembic |
+| Object Storage | MinIO (S3-compatible) |
+| Rate Limiting | SlowAPI + Redis |
+| Background Jobs | APScheduler (AsyncIOScheduler) |
+
+---
 
 ## 📂 Backend Structure
-The project follows a **feature-based** directory layout.
+
 ```text
 lms-BE/
-├── alembic/              # Migration configurations
+├── alembic/
+│   └── versions/             # All migration scripts
 ├── app/
-│   ├── core/             # Global configurations, DB Session setup, Exceptions, standard Responses, Storage connections
-│   ├── features/         # Domain specific modules.
-│   │   ├── activity_logs/
-│   │   ├── ai/           # Unified Course Content Generation (Ollama/OpenAI)
-│   │   ├── auth/         # JWT Security, Password Hashing
-│   │   ├── courses/      # Course Creation, Material Uploads, Hard Delete (Super Admin)
-│   │   ├── enrollments/  # Teacher-Student assignments and course access
-│   │   ├── notifications/# Smart Deduplicating Notifications
-│   │   ├── signup_requests/# Admin/Principal Approval Registration Flow
-│   │   ├── submissions/  # Student Document processing & Teacher Grading Audit
-│   │   └── users/        # Administration profiles with Hard Delete (Super Admin)
-│   └── main.py           # Application Entry Point & Exception interceptors
+│   ├── core/
+│   │   ├── config.py         # Pydantic settings (env vars)
+│   │   ├── database.py       # Async SQLAlchemy engine + get_db
+│   │   ├── db_base.py        # Declarative Base
+│   │   ├── school_guard.py   # ← SchoolGuard dependency
+│   │   ├── storage.py        # MinIOClient wrapper
+│   │   ├── rate_limiter.py   # SlowAPI + Redis limiter
+│   │   ├── cleanup_tasks.py  # APScheduler background jobs
+│   │   ├── exceptions.py     # Custom HTTP exception handlers
+│   │   ├── pagination.py     # PaginatedResponse generic
+│   │   └── response.py       # Standardized API envelope
+│   │
+│   ├── features/
+│   │   ├── auth/             # JWT login, token refresh, password change requests
+│   │   ├── schools/          # School CRUD + subscription + principal assignment
+│   │   ├── users/            # User management (role-hierarchy scoped)
+│   │   ├── courses/          # Course CRUD, soft & hard delete, materials
+│   │   ├── enrollments/      # Teacher-course & student-course assignments
+│   │   ├── files/            # MinIO upload + DB-backed file registry
+│   │   ├── submissions/      # Student submission processing + grading
+│   │   ├── notifications/    # Event-driven, deduplicated notification system
+│   │   ├── activity_logs/    # System-wide audit logging
+│   │   ├── signup_requests/  # Public registration + approval workflow
+│   │   ├── ai/               # AI course content generation (Ollama/OpenAI)
+│   │   └── stats/            # Aggregate dashboard statistics
+│   │
+│   └── main.py               # App factory, middleware, router registration
 ```
 
-Each feature directory (e.g., `features/submissions/`) typically contains:
-- `router.py`: FastAPI endpoints.
-- `schemas.py`: Pydantic models for validation.
-- `models.py`: SQLAlchemy database models.
-- `service.py`: Business logic and database operations.
+Each feature follows this internal layout:
+```
+feature/
+├── models.py     # SQLAlchemy ORM model
+├── schemas.py    # Pydantic request/response models
+├── service.py    # Business logic + DB queries
+└── router.py     # FastAPI route handlers
+```
+
+---
+
+## 🏢 School Model & Multitenancy
+
+### School Fields
+
+```python
+class School(Base):
+    id: int
+    name: str                  # unique
+    subscription_start: datetime
+    subscription_end: datetime  # access expires here
+    max_teachers: int           # hard cap on teachers per school
+    created_at: datetime
+    updated_at: datetime
+```
+
+### Relationships
+`School` has one-to-many relationships with: `User`, `Course`, `LearningMaterial`, `Submission`, `TeacherCourse`, `StudentCourse`.
+
+### School Isolation in Queries
+All service functions accept an optional `school_id` parameter. When provided (for principal/teacher/student roles), queries automatically filter by that column:
+```python
+school_id = current_user.school_id if current_user.role != "super_admin" else None
+return await user_crud.list_users(db, ..., school_id=school_id)
+```
+Super admins receive `school_id=None`, seeing all data globally.
+
+---
+
+## 🔐 Subscription Enforcement — SchoolGuard
+
+`app/core/school_guard.py` exports a FastAPI `Depends` that is applied to **every non-public, non-super-admin endpoint**:
+
+```python
+async def validate_school_subscription(current_user, db) -> School:
+    if current_user.role == "super_admin":
+        return None                        # bypass
+    if not current_user.school_id:
+        raise 403                          # not assigned to school
+    school = await db.get(School, current_user.school_id)
+    if school.subscription_end < datetime.now(UTC):
+        raise 403 "School subscription has expired."
+    return school
+```
+
+When a school's subscription expires every API call from its principals, teachers, and students returns `403 Forbidden` immediately. Data is retained; only active access is blocked.
+
+---
+
+## 🗄️ File Storage — School Isolation
+
+Files are stored in MinIO and tracked in a `file_records` database table:
+
+```
+file_records
+├── id, object_name (unique)
+├── original_filename          # human-readable name
+├── size, content_type
+├── school_id (FK → schools)   # NULL for super_admin uploads
+├── uploaded_by (FK → users)
+└── created_at
+```
+
+**Upload flow:**  
+Non-super-admin uploads are prefixed `schools/{school_id}/{folder}/uuid_filename.ext` in MinIO and a `FileRecord` row is created with `school_id`.
+
+**List/access flow:**  
+The list endpoint queries `FileRecord` filtered by `school_id`. Principals only see their school's files. Super admins see all. Presigned URL and delete endpoints verify ownership via DB before acting on MinIO.
+
+---
+
+## 👥 Role Hierarchy & User Creation
+
+| Creator | Can create |
+|---|---|
+| `super_admin` | `super_admin`, `principal` (with optional `school_id`) |
+| `principal` | `teacher` (auto-scoped to principal's school) |
+| `teacher` | `student` (auto-scoped to teacher's school) |
+
+When a super_admin creates a principal, they can pass `school_id` in the request body to immediately assign the principal to a school.
+
+---
+
+## 🔑 Auth Flow
+
+1. `POST /auth/login` — returns JWT `access_token` + `refresh_token` (stored as httpOnly-like cookie).
+2. JWT payload includes `user_id`, `role`, `school_id` — used by all downstream isolation logic.
+3. `POST /auth/refresh` — issues new access token.
+4. **Password change requests**: Users request a password change; principal/admin approves or rejects via `/auth/password-requests`.
+
+---
+
+## 📋 API Endpoints Summary
+
+| Prefix | Tag | Access |
+|---|---|---|
+| `/auth/...` | Auth | Public (login), Protected (refresh, password) |
+| `/users/` | Users | super_admin, principal, teacher |
+| `/schools/` | Schools | super_admin only (CRUD + assign-principal) |
+| `/schools/public` | Schools | Public (school list for signup) |
+| `/courses/` | Courses | principal, teacher |
+| `/api/v1/files/` | Files | principal (school-scoped), super_admin |
+| `/submissions/` | Submissions | teacher, student |
+| `/notifications/` | Notifications | all roles |
+| `/activity-logs/` | Logs | all roles (filtered by role) |
+| `/signup-requests/` | Signup | public (create), principal/super_admin (approve) |
+| `/ai/` | AI | teacher |
+| `/stats/` | Stats | principal, super_admin |
+
+---
 
 ## 🚀 Getting Started
 
 ### 1. Requirements
-Ensure you have Python 3.12+ and `uv` installed. You will also need active instances of PostgreSQL, Redis, and MinIO.
+Python 3.12+, `uv`, Docker (or manual PostgreSQL + Redis + MinIO).
 
-### 2. Installation
+### 2. Start Infrastructure
 ```bash
-# Create a virtual environment
-uv venv
-source .venv/bin/activate
-
-# Install dependencies
-uv sync # or uv pip install
+docker compose up -d   # starts postgres, redis, minio
 ```
 
-### 3. Environment Variables
-Create a `.env` file referencing `.env.example`:
-```ini
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/lms
-ASYNC_DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/lms
-SECRET_KEY=your-super-secret-key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# MinIO
-MINIO_URL=localhost:9000
-MINIO_ACCESS_KEY=admin
-MINIO_SECRET_KEY=password
-MINIO_SECURE=false
-
-# AI Assistance (Ollama/OpenAI)
-AI_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434/api/generate
-OLLAMA_MODEL=llama3
+### 3. Install & Configure
+```bash
+uv venv && source .venv/bin/activate
+uv sync
+cp .env.example .env   # fill in credentials
 ```
 
-### 4. Database Migrations
-Always ensure your database is up-to-date:
+### 4. Run Migrations
 ```bash
 uv run alembic upgrade head
 ```
-*Note: If you make changes to `models.py`, generate a new migration via `uv run alembic revision --autogenerate -m "message"`.*
+> For any SQLAlchemy model change: `uv run alembic revision --autogenerate -m "description"`
 
-### 5. Running the Application
+### 5. Start Server
 ```bash
 uv run uvicorn app.main:app --reload
 ```
-Access the interactive Swagger UI documentation at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
+Swagger UI: http://127.0.0.1:8000/docs
+
+---
 
 ## 🛡️ Production Hardening
-This backend includes built-in operational resilience:
-1. **Rate Limiting:** Managed via `slowapi` utilizing a Redis connection backend. Critical routes like `/auth` and `/files/upload` are heavily restricted to prevent abuse.
-2. **Background Cleanups:** An asynchronous job scheduler (`APScheduler`) systematically purges expired tokens and orphaned MinIO files every 12 hours.
-3. **Response Standardization:** Every outbound request (excluding pure binary/auth pipelines) is globally intercepted and formatted into `{ success, data, message, meta }` to ensure fault-tolerant frontend integrations.
+
+1. **Rate Limiting** — SlowAPI + Redis. Critical routes (`/auth`, `/files/upload`) restrict to 20 req/min.
+2. **Background Cleanup** — APScheduler prunes expired refresh tokens and orphaned MinIO files every 12 hours.
+3. **Response Standardization** — Global exception handlers wrap all responses in `{ success, data, message, meta }`.
+4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.

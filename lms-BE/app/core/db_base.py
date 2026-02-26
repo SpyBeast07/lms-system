@@ -4,6 +4,7 @@ class Base(DeclarativeBase):
     pass
 
 # Import all models for Alembic autogenerate
+from app.features.schools import models as school_models
 from app.features.users import models, models_student, models_teacher
 from app.features.courses import (
     models as list_models,

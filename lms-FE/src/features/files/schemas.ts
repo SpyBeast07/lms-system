@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const fileInfoSchema = z.object({
     object_name: z.string(),
+    original_filename: z.string().optional().default(''),
     size: z.number(),
     last_modified: z.string(),
     content_type: z.string().optional(),

@@ -13,18 +13,19 @@ router = APIRouter(prefix="/student-course", tags=["Student-Course"])
 async def enroll_student(
     data: StudentCourseCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal", "teacher")),
+    current_user=Depends(require_role("principal", "teacher")),
 ):
     await enroll_student_in_course(
         db,
         student_id=data.student_id,
         course_id=data.course_id,
+        school_id=current_user.school_id,
     )
     return {"message": "Student enrolled in course successfully"}
 
 @router.get("/")
 async def list_student_enrollments(
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal", "teacher")),
+    current_user=Depends(require_role("principal", "teacher")),
 ):
-    return await get_all_student_enrollments(db)
+    return await get_all_student_enrollments(db, school_id=current_user.school_id)

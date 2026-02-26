@@ -4,6 +4,9 @@ export interface DecodedJWT {
     sub: string;
     role: UserRole;
     name: string;
+    school_id: number | null;
+    school_name?: string | null;
+    subscription_end?: string | null;
     exp: number;
 }
 

@@ -42,8 +42,9 @@ export const TeacherReviewPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">1. Select Instructor</label>
+                    <label htmlFor="teacher-select" className="block text-sm font-semibold text-slate-700 mb-2">1. Select Instructor</label>
                     <select
+                        id="teacher-select"
                         value={selectedTeacherId}
                         onChange={handleTeacherChange}
                         className="w-full h-11 px-4 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
@@ -56,8 +57,9 @@ export const TeacherReviewPage: React.FC = () => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">2. Select Assigned Course</label>
+                    <label htmlFor="course-select" className="block text-sm font-semibold text-slate-700 mb-2">2. Select Assigned Course</label>
                     <select
+                        id="course-select"
                         value={selectedCourseId}
                         onChange={(e) => setSelectedCourseId(e.target.value)}
                         disabled={!selectedTeacherId}

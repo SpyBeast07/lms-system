@@ -98,5 +98,13 @@ class PasswordChangeRequest(Base):
         nullable=True,
     )
 
+    school_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("schools.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
     # relationships
     user = relationship("User")
+    school = relationship("School")

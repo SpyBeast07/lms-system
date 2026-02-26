@@ -10,14 +10,18 @@ from app.features.auth.dependencies import get_current_user, require_role
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
 
-# CREATE → admin / principal
+from app.core.school_guard import validate_school_subscription
+from app.features.users.models import User
+
+# CREATE → principal
 @router.post("/", response_model=CourseRead)
 async def create_course_api(
     course_in: CourseCreate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user: User = Depends(require_role("principal")),
+    school_info = Depends(validate_school_subscription)
 ):
-    return await course_crud.create_course(db, course_in)
+    return await course_crud.create_course(db, course_in, current_user.school_id)
 
 
 from app.core.pagination import PaginatedResponse
@@ -39,37 +43,44 @@ async def list_courses_api(
 async def get_course_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
+    school_info = Depends(validate_school_subscription)
 ):
-    course = await course_crud.get_course(db, course_id)
+    # Pass school_id filter unless super_admin
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    course = await course_crud.get_course(db, course_id, school_id=school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     return course
 
 
-# UPDATE → admin / principal
+# UPDATE → principal
 @router.put("/{course_id}", response_model=CourseRead)
 async def update_course_api(
     course_id: int,
     data: CourseUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user: User = Depends(require_role("principal")),
+    school_info = Depends(validate_school_subscription)
 ):
-    course = await course_crud.get_course(db, course_id)
+    school_id = current_user.school_id
+    course = await course_crud.get_course(db, course_id, school_id=school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
     return await course_crud.update_course(db, course, data)
 
 
-# DELETE → admin / principal
+# DELETE → principal
 @router.delete("/{course_id}")
 async def delete_course_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user: User = Depends(require_role("principal")),
+    school_info = Depends(validate_school_subscription)
 ):
-    course = await course_crud.get_course(db, course_id)
+    school_id = current_user.school_id
+    course = await course_crud.get_course(db, course_id, school_id=school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
@@ -77,14 +88,14 @@ async def delete_course_api(
     return {"status": "deleted"}
 
 
-# RESTORE → admin / principal
+# RESTORE → principal
 @router.post("/{course_id}/restore")
 async def restore_course_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin", "principal")),
+    current_user=Depends(require_role("principal")),
 ):
-    course = await course_crud.get_course_any(db, course_id)
+    course = await course_crud.get_course_any(db, course_id, school_id=current_user.school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
@@ -97,9 +108,9 @@ async def restore_course_api(
 async def hard_delete_course_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user=Depends(require_role("super_admin")),
+    current_user=Depends(require_role("principal")),
 ):
-    course = await course_crud.get_course_any(db, course_id)
+    course = await course_crud.get_course_any(db, course_id, school_id=current_user.school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 

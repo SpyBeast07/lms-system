@@ -2,8 +2,11 @@ from sqlalchemy import Integer, String, Text, Boolean, ForeignKey, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
-
 from app.core.db_base import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.features.schools.models import School
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -11,6 +14,10 @@ class Notification(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
+    school_id: Mapped[int | None] = mapped_column(
+        ForeignKey("schools.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+
     # E.g., 'assignment_posted', 'assignment_graded', 'course_enrollment', 'material_uploaded'
     type: Mapped[str] = mapped_column(String(50), nullable=False)
     
@@ -25,3 +32,4 @@ class Notification(Base):
     )
 
     user = relationship("User")
+    school = relationship("School")

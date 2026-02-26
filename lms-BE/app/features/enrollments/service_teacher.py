@@ -15,6 +15,7 @@ async def assign_teacher_to_course(
     db: AsyncSession,
     teacher_id: int,
     course_id: int,
+    school_id: Optional[int] = None
 ):
     # 1️⃣ Check teacher exists and is a teacher
     result = await db.execute(select(User).filter(User.id == teacher_id))
@@ -22,16 +23,23 @@ async def assign_teacher_to_course(
     if not teacher or teacher.role not in ("teacher", "principal"):
         raise ValueError("User is not a teacher")
 
+    if school_id and teacher.school_id != school_id:
+        raise ValueError("Teacher does not belong to your school")
+
     # 2️⃣ Check course exists
     result = await db.execute(select(Course).filter(Course.id == course_id))
     course = result.scalars().first()
     if not course:
         raise ValueError("Course not found")
+        
+    if school_id and course.school_id != school_id:
+        raise ValueError("Course does not belong to your school")
 
     # 3️⃣ Create mapping
     mapping = TeacherCourse(
         teacher_id=teacher_id,
         course_id=course_id,
+        school_id=course.school_id
     )
 
     db.add(mapping)
@@ -52,24 +60,29 @@ async def assign_teacher_to_course(
         entity_type="enrollment",
         entity_id=course_id,
         details=f"Teacher '{teacher_name}' assigned to course '{course_name}'"
-    ))
+    ), school_id=course.school_id)
 
     await create_notification(db, NotificationCreate(
         user_id=teacher_id,
         type="teacher_assignment",
         message=f"You have been assigned to teach the course: {course_name}",
         entity_id=course_id
-    ))
+    ), school_id=course.school_id)
 
     return mapping
 
-async def get_all_teacher_assignments(db: AsyncSession):
-    result = await db.execute(
+async def get_all_teacher_assignments(db: AsyncSession, school_id: Optional[int] = None):
+    query = (
         select(TeacherCourse, User.name.label("teacher_name"), Course.name.label("course_name"))
         .join(User, User.id == TeacherCourse.teacher_id)
         .join(Course, Course.id == TeacherCourse.course_id)
         .filter(User.is_deleted != True, Course.is_deleted != True)
     )
+    
+    if school_id:
+        query = query.filter(TeacherCourse.school_id == school_id)
+
+    result = await db.execute(query)
     
     assignments = []
     for row in result.all():

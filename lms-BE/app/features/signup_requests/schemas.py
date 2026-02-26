@@ -8,6 +8,7 @@ class SignupRequestCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     requested_role: Literal["student", "teacher", "principal"]
+    school_id: Optional[int] = None
 
 
 class SignupRequestRead(BaseModel):
@@ -17,6 +18,8 @@ class SignupRequestRead(BaseModel):
     requested_role: str
     approved_role: Optional[str] = None
     status: str
+    school_id: Optional[int] = None
+    school_name: Optional[str] = None
     created_at: datetime
     approved_at: Optional[datetime] = None
 

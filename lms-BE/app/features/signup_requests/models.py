@@ -1,9 +1,11 @@
-from sqlalchemy import Integer, String, Enum, TIMESTAMP, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Integer, String, Enum, TIMESTAMP, DateTime, func, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
-
 from app.core.db_base import Base
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from app.features.schools.models import School
 
 class SignupRequest(Base):
     __tablename__ = "signup_requests"
@@ -15,6 +17,10 @@ class SignupRequest(Base):
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
 
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
+
+    school_id: Mapped[int | None] = mapped_column(
+        ForeignKey("schools.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
     requested_role: Mapped[str] = mapped_column(
         Enum("student", "teacher", "principal", name="signup_requested_role"),
@@ -44,3 +50,5 @@ class SignupRequest(Base):
         nullable=True,
         default=None,
     )
+
+    school = relationship("School")

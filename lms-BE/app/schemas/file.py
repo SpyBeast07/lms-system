@@ -87,10 +87,12 @@ class FileListItem(BaseModel):
     """Individual file item in the list."""
     
     object_name: str = Field(..., description="Full object path in bucket")
+    original_filename: str = Field("", description="Original filename as uploaded by the user")
     size: int = Field(..., description="File size in bytes")
     last_modified: datetime = Field(..., description="Last modification timestamp")
-    etag: str = Field(..., description="Entity tag (hash) of the file")
-    is_dir: bool = Field(..., description="Whether this is a directory")
+    etag: str = Field("", description="Entity tag (hash) of the file")
+    is_dir: bool = Field(False, description="Whether this is a directory")
+    content_type: Optional[str] = Field(None, description="MIME type of the file")
     
     class Config:
         json_schema_extra = {

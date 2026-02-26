@@ -159,7 +159,7 @@ export const CoursesPage: React.FC = () => {
             cell: ({ row }: { row: Course }) => (
                 <div className="flex justify-start gap-4">
                     <Link
-                        to={userRole === 'super_admin' ? '/admin/courses/$courseId' : '/principal/courses/$courseId'}
+                        to={'/principal/courses/$courseId'}
                         params={{ courseId: row.id }}
                         className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
@@ -195,7 +195,7 @@ export const CoursesPage: React.FC = () => {
                     >
                         Restore
                     </button>
-                    {userRole === 'super_admin' && (
+                    {(userRole === 'super_admin' || userRole === 'principal') && (
                         <button
                             onClick={() => dispatch({ type: 'SET_HARD_DELETE', id: row.id })}
                             className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"

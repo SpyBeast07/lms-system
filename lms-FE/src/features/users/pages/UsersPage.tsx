@@ -1,7 +1,4 @@
 import React, { useState, useReducer } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { userCreateSchema, type UserCreateData } from '../schemas';
 import {
     useUsersQuery,
     useCreateUserMutation,
@@ -9,17 +6,14 @@ import {
     useRestoreUserMutation,
     useHardDeleteUserMutation
 } from '../hooks/useUsers';
-import { FormInput } from '../../../shared/components/form/FormInput';
-import { FormSelect } from '../../../shared/components/form/FormSelect';
 import { Button } from '../../../shared/components/Button';
-import { Table } from '../../../shared/components/ui/Table';
-import { Modal } from '../../../shared/components/ui/Modal';
-import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
-import { Pagination } from '../../../shared/components/ui/Pagination';
 import { useAuthStore } from '../../../app/store/authStore';
-import type { User } from '../schemas';
+import type { User, UserCreateData } from '../schemas';
+import { UserCreateModal } from '../components/UserCreateModal';
+import { UserListSection } from '../components/UserListSection';
+import { UserConfirmations } from '../components/UserConfirmations';
 
 type UiState = {
     isCreateModalOpen: boolean;
@@ -62,15 +56,12 @@ export const UsersPage: React.FC = () => {
         if (currentUserRole === 'super_admin') {
             return [
                 { value: 'super_admin', label: 'Super Admin' },
-                { value: 'principal', label: 'Principal' },
-                { value: 'teacher', label: 'Teacher' },
-                { value: 'student', label: 'Student' }
+                { value: 'principal', label: 'Principal' }
             ];
         }
         if (currentUserRole === 'principal') {
             return [
-                { value: 'teacher', label: 'Teacher' },
-                { value: 'student', label: 'Student' }
+                { value: 'teacher', label: 'Teacher' }
             ];
         }
         return [
@@ -91,29 +82,16 @@ export const UsersPage: React.FC = () => {
     });
     const { isCreateModalOpen, userToDelete, userToRestore, userToHardDelete } = ui;
 
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors },
-    } = useForm<UserCreateData>({
-        resolver: zodResolver(userCreateSchema),
-    });
-
-    const onSubmit = (data: UserCreateData) => {
+    const handleCreateSubmit = (data: UserCreateData) => {
         createMutation.mutate(data, mutationToastHandlers(
             'User created successfully!',
             undefined,
-            () => {
-                dispatch({ type: 'CLOSE_CREATE' });
-                reset();
-            }
+            () => dispatch({ type: 'CLOSE_CREATE' })
         ));
     };
 
     const handleDeleteConfirm = () => {
         if (!userToDelete) return;
-
         deleteMutation.mutate(userToDelete, mutationToastHandlers(
             'User deleted successfully.',
             undefined,
@@ -124,7 +102,6 @@ export const UsersPage: React.FC = () => {
 
     const handleRestoreConfirm = () => {
         if (!userToRestore) return;
-
         restoreMutation.mutate(userToRestore, mutationToastHandlers(
             'User restored successfully.',
             undefined,
@@ -135,12 +112,11 @@ export const UsersPage: React.FC = () => {
 
     const handleHardDeleteConfirm = () => {
         if (!userToHardDelete) return;
-
         hardDeleteMutation.mutate(userToHardDelete, mutationToastHandlers(
             'User permanently deleted.',
             undefined,
-            () => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null }),
-            () => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null })
+            () => dispatch({ type: 'SET_HARD_DELETE', id: null }),
+            () => dispatch({ type: 'SET_HARD_DELETE', id: null })
         ));
     };
 
@@ -200,9 +176,9 @@ export const UsersPage: React.FC = () => {
                     >
                         Restore
                     </button>
-                    {currentUserRole === 'super_admin' && (
+                    {(currentUserRole === 'super_admin' || currentUserRole === 'principal' || currentUserRole === 'teacher') && (
                         <button
-                            onClick={() => (dispatch as any)({ type: 'SET_HARD_DELETE', id: row.id })}
+                            onClick={() => dispatch({ type: 'SET_HARD_DELETE', id: row.id })}
                             className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"
                         >
                             Hard Delete
@@ -227,6 +203,7 @@ export const UsersPage: React.FC = () => {
             </div>
         );
     }
+
     if (activeQuery.isError || deletedQuery.isError) {
         return (
             <div className="p-8 text-red-500">
@@ -244,130 +221,53 @@ export const UsersPage: React.FC = () => {
                 </Button>
             </div>
 
-            <div className="space-y-4">
-                <h2 className="text-lg font-bold text-slate-700">Active Users</h2>
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <Table<User>
-                        data={activeUsers}
-                        columns={activeColumns}
-                        emptyMessage="No active users found."
-                    />
-                    <Pagination
-                        currentPage={activePage}
-                        totalItems={(activeQuery.data as any)?.total || 0}
-                        pageSize={limit}
-                        onPageChange={setActivePage}
-                        isLoading={activeQuery.isLoading}
-                    />
-                </div>
-            </div>
+            <UserListSection
+                title="Active Users"
+                users={activeUsers}
+                columns={activeColumns}
+                currentPage={activePage}
+                totalItems={(activeQuery.data as any)?.total || 0}
+                pageSize={limit}
+                onPageChange={setActivePage}
+                isLoading={activeQuery.isLoading}
+                emptyMessage="No active users found."
+            />
 
-            {((deletedQuery.data as any)?.total > 0 || deletedUsers.length > 0) && (
-                <div className="space-y-4">
-                    <h2 className="text-lg font-bold text-slate-700">Deleted Users</h2>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                        <Table<User>
-                            data={deletedUsers}
-                            columns={deletedColumns}
-                            isLoading={false}
-                            emptyMessage="No deleted users found."
-                        />
-                        <Pagination
-                            currentPage={deletedPage}
-                            totalItems={(deletedQuery.data as any)?.total || 0}
-                            pageSize={limit}
-                            onPageChange={setDeletedPage}
-                            isLoading={deletedQuery.isLoading}
-                        />
-                    </div>
-                </div>
-            )}
+            <UserListSection
+                title="Deleted Users"
+                users={deletedUsers}
+                columns={deletedColumns}
+                currentPage={deletedPage}
+                totalItems={(deletedQuery.data as any)?.total || 0}
+                pageSize={limit}
+                onPageChange={setDeletedPage}
+                isLoading={deletedQuery.isLoading}
+                emptyMessage="No deleted users found."
+            />
 
-            <Modal
+            <UserCreateModal
                 isOpen={isCreateModalOpen}
-                onClose={() => {
-                    dispatch({ type: 'CLOSE_CREATE' });
-                    reset();
+                onClose={() => dispatch({ type: 'CLOSE_CREATE' })}
+                onSubmit={handleCreateSubmit}
+                isSubmitting={createMutation.isPending}
+                roleOptions={roleOptions}
+            />
+
+            <UserConfirmations
+                userToDelete={userToDelete}
+                userToRestore={userToRestore}
+                userToHardDelete={userToHardDelete}
+                onDeleteConfirm={handleDeleteConfirm}
+                onRestoreConfirm={handleRestoreConfirm}
+                onHardDeleteConfirm={handleHardDeleteConfirm}
+                onCancel={(type) => {
+                    if (type === 'delete') dispatch({ type: 'SET_DELETE', id: null });
+                    if (type === 'restore') dispatch({ type: 'SET_RESTORE', id: null });
+                    if (type === 'hardDelete') dispatch({ type: 'SET_HARD_DELETE', id: null });
                 }}
-                title="Create New User"
-            >
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <FormInput
-                        label="Full Name"
-                        type="text"
-                        placeholder="John Doe"
-                        register={register('name')}
-                        error={errors.name?.message}
-                    />
-                    <FormInput
-                        label="Email Address"
-                        type="email"
-                        placeholder="john@example.com"
-                        register={register('email')}
-                        error={errors.email?.message}
-                    />
-                    <FormInput
-                        label="Temporary Password"
-                        type="password"
-                        placeholder="••••••••"
-                        register={register('password')}
-                        error={errors.password?.message}
-                    />
-                    <FormSelect
-                        label="Role"
-                        register={register('role')}
-                        error={errors.role?.message}
-                        options={roleOptions}
-                    />
-                    <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                dispatch({ type: 'CLOSE_CREATE' });
-                                reset();
-                            }}
-                            className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                        <Button type="submit" isLoading={createMutation.isPending}>
-                            Create User
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
-
-            <ConfirmDialog
-                isOpen={userToDelete !== null}
-                title="Confirm Deletion"
-                message="Are you sure you want to permanently delete this user? This action cannot be undone."
-                confirmText="Delete User"
-                variant="danger"
-                isLoading={deleteMutation.isPending}
-                onConfirm={handleDeleteConfirm}
-                onCancel={() => dispatch({ type: 'SET_DELETE', id: null })}
-            />
-
-            <ConfirmDialog
-                isOpen={userToRestore !== null}
-                title="Confirm Restoration"
-                message="Are you sure you want to restore this user? They will regain access to the platform."
-                confirmText="Restore User"
-                variant="primary"
-                isLoading={restoreMutation.isPending}
-                onConfirm={handleRestoreConfirm}
-                onCancel={() => dispatch({ type: 'SET_RESTORE', id: null })}
-            />
-
-            <ConfirmDialog
-                isOpen={userToHardDelete !== null}
-                title="Confirm Permanent Deletion"
-                message="Are you sure you want to PERMANENTLY delete this user? This action CANNOT be undone and will remove all their data from the system."
-                confirmText="Permanently Delete"
-                variant="danger"
-                isLoading={hardDeleteMutation.isPending}
-                onConfirm={handleHardDeleteConfirm}
-                onCancel={() => (dispatch as any)({ type: 'SET_HARD_DELETE', id: null })}
+                isDeleting={deleteMutation.isPending}
+                isRestoring={restoreMutation.isPending}
+                isHardDeleting={hardDeleteMutation.isPending}
             />
         </div>
     );

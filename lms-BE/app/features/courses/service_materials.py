@@ -22,10 +22,11 @@ from app.features.submissions.models import Submission
 
 # -------------------- CREATE --------------------
 
-async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> LearningMaterial:
+async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate, school_id: int) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
         created_by_teacher_id=teacher_id,
+        school_id=school_id,
         title=data.title,
         type="notes",
     )
@@ -47,7 +48,7 @@ async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> 
         entity_type="material",
         entity_id=material.id,
         details=f"Created notes: {data.title}"
-    ))
+    ), school_id=school_id)
 
     stmt = select(StudentCourse.student_id).where(StudentCourse.course_id == material.course_id)
     result = await db.execute(stmt)
@@ -57,17 +58,18 @@ async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate) -> 
             type="material_uploaded",
             message=f"New notes available: {data.title}",
             entity_id=material.id
-        ))
+        ), school_id=school_id)
 
     return material
 
 
 async def create_assignment(
-    db: AsyncSession, teacher_id: int, data: AssignmentCreate
+    db: AsyncSession, teacher_id: int, data: AssignmentCreate, school_id: int
 ) -> LearningMaterial:
     material = LearningMaterial(
         course_id=data.course_id,
         created_by_teacher_id=teacher_id,
+        school_id=school_id,
         title=data.title,
         type="assignment",
     )
@@ -93,7 +95,7 @@ async def create_assignment(
         entity_type="material",
         entity_id=material.id,
         details=f"Created assignment: {data.title}"
-    ))
+    ), school_id=school_id)
     
     stmt = select(StudentCourse.student_id).where(StudentCourse.course_id == material.course_id)
     result = await db.execute(stmt)
@@ -103,19 +105,20 @@ async def create_assignment(
             type="assignment_created",
             message=f"New assignment posted: {data.title}",
             entity_id=material.id
-        ))
+        ), school_id=school_id)
 
     return material
 
 
 # -------------------- READ --------------------
 
-async def get_course_materials(db: AsyncSession, course_id: int, student_id: int = None):
+async def get_course_materials(db: AsyncSession, course_id: int, school_id: int, student_id: int = None):
     stmt = (
         select(LearningMaterial)
         .options(selectinload(LearningMaterial.notes), selectinload(LearningMaterial.assignment))
         .filter(
             LearningMaterial.course_id == course_id,
+            LearningMaterial.school_id == school_id,
             LearningMaterial.is_deleted == False
         )
         .order_by(LearningMaterial.created_at.desc())
@@ -128,6 +131,7 @@ async def get_course_materials(db: AsyncSession, course_id: int, student_id: int
     if student_id:
         sub_stmt = select(Submission.assignment_id, func.count(Submission.id)).where(
             Submission.student_id == student_id,
+            Submission.school_id == school_id,
             Submission.assignment_id.in_([m.id for m in materials if m.type == "assignment"])
         ).group_by(Submission.assignment_id)
         sub_result = await db.execute(sub_stmt)
@@ -162,12 +166,13 @@ async def get_course_materials(db: AsyncSession, course_id: int, student_id: int
         
     return response
 
-async def get_teacher_course_materials(db: AsyncSession, teacher_id: int, course_id: int):
+async def get_teacher_course_materials(db: AsyncSession, teacher_id: int, course_id: int, school_id: int):
     stmt = (
         select(LearningMaterial)
         .options(selectinload(LearningMaterial.notes), selectinload(LearningMaterial.assignment))
         .filter(
             LearningMaterial.course_id == course_id,
+            LearningMaterial.school_id == school_id,
             LearningMaterial.created_by_teacher_id == teacher_id,
             LearningMaterial.is_deleted == False
         )
@@ -199,20 +204,24 @@ async def get_teacher_course_materials(db: AsyncSession, teacher_id: int, course
         
     return response
 
-async def get_material(db: AsyncSession, material_id: int):
-    result = await db.execute(
-        select(LearningMaterial).filter(
-            LearningMaterial.id == material_id,
-            LearningMaterial.is_deleted == False,
-        )
+async def get_material(db: AsyncSession, material_id: int, school_id: Optional[int] = None):
+    query = select(LearningMaterial).filter(
+        LearningMaterial.id == material_id,
+        LearningMaterial.is_deleted == False,
     )
+    if school_id:
+        query = query.filter(LearningMaterial.school_id == school_id)
+        
+    result = await db.execute(query)
     return result.scalars().first()
 
 
-async def get_material_any(db: AsyncSession, material_id: int):
-    result = await db.execute(
-        select(LearningMaterial).filter(LearningMaterial.id == material_id)
-    )
+async def get_material_any(db: AsyncSession, material_id: int, school_id: Optional[int] = None):
+    query = select(LearningMaterial).filter(LearningMaterial.id == material_id)
+    if school_id:
+        query = query.filter(LearningMaterial.school_id == school_id)
+        
+    result = await db.execute(query)
     return result.scalars().first()
 
 

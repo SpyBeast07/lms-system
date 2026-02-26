@@ -9,33 +9,50 @@ from app.features.auth.hashing import hash_password
 from app.features.activity_logs.service import log_action
 from app.features.activity_logs.schemas import ActivityLogCreate
 
-async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
+from app.features.schools.service import validate_teacher_limit
+
+async def create_user(db: AsyncSession, user_in: UserCreate, school_id: Optional[int] = None) -> User:
+    if user_in.role == "teacher" and school_id:
+        await validate_teacher_limit(db, school_id)
+
     user = User(
         name=user_in.name,
         email=user_in.email,
         password_hash=await hash_password(user_in.password),
         role=user_in.role,
+        school_id=school_id,
         created_at=datetime.now(UTC),
     )
     db.add(user)
     await db.commit()
-    await db.refresh(user)  # refresh before reading attributes
+    await db.refresh(user)
 
     await log_action(db, ActivityLogCreate(
+        user_id=user.id,
         action="user_created",
         entity_type="user",
         entity_id=user.id,
-        details=f"User '{user.name}' ({user.email}) created with role '{user.role}'"
-    ))
+        details=f"User '{user.name}' ({user.email}) created with role '{user.role}' in school {school_id}"
+    ), school_id=school_id)
 
     return user
 
-
-async def list_users(db: AsyncSession, page: int = 1, limit: int = 10, is_deleted: Optional[bool] = None, allowed_roles: Optional[list] = None):
+async def list_users(
+    db: AsyncSession, 
+    page: int = 1, 
+    limit: int = 10, 
+    is_deleted: Optional[bool] = None, 
+    allowed_roles: Optional[list] = None,
+    school_id: Optional[int] = None
+):
     skip = (page - 1) * limit
 
     query = select(User).order_by(User.id.desc())
     count_query = select(func.count(User.id))
+
+    if school_id:
+        query = query.filter(User.school_id == school_id)
+        count_query = count_query.filter(User.school_id == school_id)
 
     if is_deleted is not None:
         query = query.filter(User.is_deleted == is_deleted)
@@ -53,16 +70,18 @@ async def list_users(db: AsyncSession, page: int = 1, limit: int = 10, is_delete
 
     return {"items": items, "total": total, "page": page, "limit": limit}
 
-
-async def get_user(db: AsyncSession, user_id: int):
-    result = await db.execute(
-        select(User).filter(User.id == user_id, User.is_deleted == False)
-    )
+async def get_user(db: AsyncSession, user_id: int, school_id: Optional[int] = None):
+    query = select(User).filter(User.id == user_id, User.is_deleted == False)
+    if school_id:
+        query = query.filter(User.school_id == school_id)
+    result = await db.execute(query)
     return result.scalars().first()
 
-
-async def get_user_any(db: AsyncSession, user_id: int):
-    result = await db.execute(select(User).filter(User.id == user_id))
+async def get_user_any(db: AsyncSession, user_id: int, school_id: Optional[int] = None):
+    query = select(User).filter(User.id == user_id)
+    if school_id:
+        query = query.filter(User.school_id == school_id)
+    result = await db.execute(query)
     return result.scalars().first()
 
 
@@ -77,7 +96,7 @@ async def update_user(db: AsyncSession, user: User, data):
 
 async def soft_delete_user(db: AsyncSession, user: User):
     # Capture values BEFORE commit — commit expires all ORM attributes
-    uid, uname, uemail = user.id, user.name, user.email
+    uid, uname, uemail, uschool = user.id, user.name, user.email, user.school_id
     user.is_deleted = True
     user.updated_at = datetime.now(UTC)
     await db.commit()
@@ -87,12 +106,12 @@ async def soft_delete_user(db: AsyncSession, user: User):
         entity_type="user",
         entity_id=uid,
         details=f"User '{uname}' ({uemail}) deleted"
-    ))
+    ), school_id=uschool)
 
 
 async def restore_user(db: AsyncSession, user: User):
     # Capture values BEFORE commit — commit expires all ORM attributes
-    uid, uname, uemail = user.id, user.name, user.email
+    uid, uname, uemail, uschool = user.id, user.name, user.email, user.school_id
     user.is_deleted = False
     user.updated_at = datetime.now(UTC)
     await db.commit()
@@ -102,7 +121,7 @@ async def restore_user(db: AsyncSession, user: User):
         entity_type="user",
         entity_id=uid,
         details=f"User '{uname}' ({uemail}) restored"
-    ))
+    ), school_id=uschool)
 
 
 async def hard_delete_user(db: AsyncSession, user: User):

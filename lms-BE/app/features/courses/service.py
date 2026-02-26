@@ -13,53 +13,53 @@ from app.features.users.models import User
 from app.features.activity_logs.service import log_action
 from app.features.activity_logs.schemas import ActivityLogCreate
 
-async def create_course(db: AsyncSession, course_in: CourseCreate) -> Course:
+async def create_course(db: AsyncSession, course_in: CourseCreate, school_id: int) -> Course:
     course = Course(
         name=course_in.name,
         description=course_in.description,
+        school_id=school_id
     )
     db.add(course)
     await db.commit()
     await db.refresh(course)
     
-    # We ideally need the user performing the action to accurately log it
-    # Currently `create_course` does not receive `user_id`, so we will log loosely
     await log_action(db, ActivityLogCreate(
         action="create_course",
         entity_type="course",
         entity_id=course.id,
-        details=f"Course '{course.name}' created"
-    ))
+        details=f"Course '{course.name}' created for school {school_id}"
+    ), school_id=school_id)
 
     return course
 
-
-async def get_courses(db: AsyncSession):
-    result = await db.execute(
-        select(Course).filter(Course.is_deleted == False)
-    )
+async def get_courses(db: AsyncSession, school_id: Optional[int] = None):
+    query = select(Course).filter(Course.is_deleted == False)
+    if school_id:
+        query = query.filter(Course.school_id == school_id)
+    result = await db.execute(query)
     return result.scalars().all()
-
-
-from typing import Optional
 
 async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limit: int = 10, is_deleted: Optional[bool] = None):
     skip = (page - 1) * limit
     
     # Base query
+    query = select(Course)
+    count_query = select(func.count(Course.id))
+    
+    # Super Admin bypasses school filter
+    if user.role != "super_admin":
+        query = query.filter(Course.school_id == user.school_id)
+        count_query = count_query.filter(Course.school_id == user.school_id)
+
     if user.role in ("super_admin", "principal"):
-        query = select(Course)
-        count_query = select(func.count(Course.id))
-        
         if is_deleted is not None:
             query = query.filter(Course.is_deleted == is_deleted)
             count_query = count_query.filter(Course.is_deleted == is_deleted)
             
     elif user.role == "teacher":
-        # Usually teachers only see active, but we'll follow is_deleted if passed
         deleted_filter = is_deleted if is_deleted is not None else False
         query = (
-            select(Course)
+            query
             .join(TeacherCourse, TeacherCourse.course_id == Course.id)
             .filter(
                 TeacherCourse.teacher_id == user.id,
@@ -67,7 +67,7 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
             )
         )
         count_query = (
-            select(func.count(Course.id))
+            count_query
             .join(TeacherCourse, TeacherCourse.course_id == Course.id)
             .filter(
                 TeacherCourse.teacher_id == user.id,
@@ -75,10 +75,9 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
             )
         )
     elif user.role == "student":
-        # Usually students only see active
         deleted_filter = is_deleted if is_deleted is not None else False
         query = (
-            select(Course)
+            query
             .join(StudentCourse, StudentCourse.course_id == Course.id)
             .filter(
                 StudentCourse.student_id == user.id,
@@ -86,7 +85,7 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
             )
         )
         count_query = (
-            select(func.count(Course.id))
+            count_query
             .join(StudentCourse, StudentCourse.course_id == Course.id)
             .filter(
                 StudentCourse.student_id == user.id,
@@ -110,19 +109,21 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
         "limit": limit
     }
 
-async def get_course(db: AsyncSession, course_id: int):
-    result = await db.execute(
-        select(Course).filter(
-            Course.id == course_id,
-            Course.is_deleted == False
-        )
+async def get_course(db: AsyncSession, course_id: int, school_id: Optional[int] = None):
+    query = select(Course).filter(
+        Course.id == course_id,
+        Course.is_deleted == False
     )
+    if school_id:
+        query = query.filter(Course.school_id == school_id)
+    result = await db.execute(query)
     return result.scalars().first()
 
-async def get_course_any(db: AsyncSession, course_id: int):
-    result = await db.execute(
-        select(Course).filter(Course.id == course_id)
-    )
+async def get_course_any(db: AsyncSession, course_id: int, school_id: Optional[int] = None):
+    query = select(Course).filter(Course.id == course_id)
+    if school_id:
+        query = query.filter(Course.school_id == school_id)
+    result = await db.execute(query)
     return result.scalars().first()
 
 
@@ -137,7 +138,7 @@ async def update_course(db: AsyncSession, course: Course, data: CourseUpdate):
 
 
 async def soft_delete_course(db: AsyncSession, course: Course):
-    cid, cname = course.id, course.name  # capture before commit expires them
+    cid, cname, cschool = course.id, course.name, course.school_id  # capture before commit expires them
     course.is_deleted = True
     course.updated_at = datetime.now(UTC)
     await db.commit()
@@ -147,11 +148,11 @@ async def soft_delete_course(db: AsyncSession, course: Course):
         entity_type="course",
         entity_id=cid,
         details=f"Course '{cname}' soft-deleted"
-    ))
+    ), school_id=cschool)
 
 
 async def restore_course(db: AsyncSession, course: Course):
-    cid, cname = course.id, course.name  # capture before commit expires them
+    cid, cname, cschool = course.id, course.name, course.school_id  # capture before commit expires them
     course.is_deleted = False
     course.updated_at = datetime.now(UTC)
     await db.commit()
@@ -161,7 +162,7 @@ async def restore_course(db: AsyncSession, course: Course):
         entity_type="course",
         entity_id=cid,
         details=f"Course '{cname}' restored"
-    ))
+    ), school_id=cschool)
 
 
 async def hard_delete_course(db: AsyncSession, course: Course):

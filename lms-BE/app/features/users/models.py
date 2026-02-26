@@ -1,8 +1,11 @@
-from sqlalchemy import Integer, String, Enum, TIMESTAMP, func, Boolean, DateTime
+from sqlalchemy import Integer, String, Enum, TIMESTAMP, func, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime, UTC
-
+from datetime import datetime
 from app.core.db_base import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.features.schools.models import School
 
 class User(Base):
     __tablename__ = "users"
@@ -27,6 +30,10 @@ class User(Base):
         nullable=False
     )
 
+    school_id: Mapped[int | None] = mapped_column(
+        ForeignKey("schools.id"), nullable=True, index=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         server_default=func.now(),
@@ -46,5 +53,6 @@ class User(Base):
         onupdate=func.now()
     )
 
+    school = relationship("School", back_populates="users")
     teacher = relationship("Teacher", back_populates="user", uselist=False)
     student = relationship("Student", back_populates="user", uselist=False)

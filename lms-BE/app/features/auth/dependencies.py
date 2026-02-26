@@ -10,6 +10,8 @@ from app.features.auth.jwt import decode_access_token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
+from sqlalchemy.orm import joinedload
+
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
@@ -22,11 +24,14 @@ async def get_current_user(
         )
 
     user_id = payload.get("sub")
+    token_role = payload.get("role")
+    token_school_id = payload.get("school_id")
+    
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
 
     result = await db.execute(
-        select(User).filter(
+        select(User).options(joinedload(User.school)).filter(
             User.id == int(user_id),
             User.is_deleted == False,
         )
@@ -35,6 +40,17 @@ async def get_current_user(
 
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+
+    # Attach token payload properties to user context
+    user.token_role = token_role
+    user.token_school_id = token_school_id
+
+    if user.role != "super_admin":
+        from datetime import datetime, UTC
+        if not user.school:
+            raise HTTPException(status_code=403, detail="School not found")
+        if user.school.subscription_end < datetime.now(UTC):
+            raise HTTPException(status_code=403, detail="School subscription expired")
 
     return user
 

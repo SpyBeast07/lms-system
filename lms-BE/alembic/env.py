@@ -31,6 +31,12 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from app.core.db_base import Base
 
+# Import all models so Alembic autogenerate can detect them
+import app.features.auth.models  # noqa: F401
+import app.features.users.models  # noqa: F401
+import app.features.schools.models  # noqa: F401
+import app.features.files.models  # noqa: F401
+
 target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:

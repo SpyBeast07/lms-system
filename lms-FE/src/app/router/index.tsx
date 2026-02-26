@@ -20,6 +20,7 @@ import { AdminPasswordRequestsPage } from '../../features/auth/pages/AdminPasswo
 import { PrincipalLayout } from '../../features/principal/layout/PrincipalLayout';
 import { PrincipalDashboard } from '../../features/principal/pages/PrincipalDashboard';
 import { TeacherReviewPage } from '../../features/principal/pages/TeacherReviewPage';
+import SchoolsPage from '../../features/schools/pages/SchoolsPage';
 
 
 // Teacher Imports
@@ -177,32 +178,10 @@ const adminUsersRoute = createRoute({
     component: UsersPage,
 });
 
-const adminCoursesRoute = createRoute({
+const adminSchoolsRoute = createRoute({
     getParentRoute: () => adminRoute,
-    path: '/courses',
-    component: CoursesPage,
-});
-
-const adminCourseDetailRoute = createRoute({
-    getParentRoute: () => adminRoute,
-    path: '/courses/$courseId',
-    component: CourseDetailPage,
-});
-
-const adminEnrollmentsRoute = createRoute({
-    getParentRoute: () => adminRoute,
-    path: '/enrollments',
-    component: EnrollmentsManagementPage,
-});
-
-const adminFilesRoute = createRoute({
-    getParentRoute: () => adminRoute,
-    path: '/files',
-    beforeLoad: () => {
-        const payload = decodeToken(useAuthStore.getState().accessToken);
-        if (payload?.role !== 'super_admin') throw redirect({ to: '/admin/dashboard' });
-    },
-    component: FilesPage,
+    path: '/schools',
+    component: SchoolsPage,
 });
 
 const adminHealthRoute = createRoute({
@@ -315,8 +294,13 @@ const principalPasswordRequestsRoute = createRoute({
     component: AdminPasswordRequestsPage,
 });
 
+const principalFilesRoute = createRoute({
+    getParentRoute: () => principalRoute,
+    path: '/files',
+    component: FilesPage,
+});
 
-// 5. Teacher Routing Tree
+
 const teacherRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/teacher',
@@ -477,14 +461,11 @@ const routeTree = rootRoute.addChildren([
         adminIndexRoute,
         adminDashboardRoute,
         adminUsersRoute,
-        adminCoursesRoute,
-        adminCourseDetailRoute,
-        adminEnrollmentsRoute,
-        adminFilesRoute,
         adminHealthRoute,
         adminActivityLogsRoute,
         adminSignupRequestsRoute,
         adminPasswordRequestsRoute,
+        adminSchoolsRoute,
     ]),
     principalRoute.addChildren([
         principalIndexRoute,
@@ -497,6 +478,7 @@ const routeTree = rootRoute.addChildren([
         principalTeacherReviewRoute,
         principalSignupRequestsRoute,
         principalPasswordRequestsRoute,
+        principalFilesRoute,
     ]),
     teacherRoute.addChildren([
         teacherIndexRoute,

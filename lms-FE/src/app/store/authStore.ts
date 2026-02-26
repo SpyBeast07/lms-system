@@ -9,6 +9,9 @@ interface AuthState {
     refreshToken: string | null;
     isAuthenticated: boolean;
     userRole: UserRole | null;
+    schoolId: number | null;
+    schoolName: string | null;
+    subscriptionEnd: string | null;
 
     // Actions
     login: (tokens: AuthTokens) => void;
@@ -24,6 +27,9 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             userRole: null,
+            schoolId: null,
+            schoolName: null,
+            subscriptionEnd: null,
 
             login: (tokens: AuthTokens) => {
                 const payload = decodeToken(tokens.access_token);
@@ -32,6 +38,9 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: tokens.refresh_token,
                     isAuthenticated: true,
                     userRole: payload?.role || null,
+                    schoolId: payload?.school_id ?? null,
+                    schoolName: payload?.school_name ?? null,
+                    subscriptionEnd: payload?.subscription_end ?? null,
                 });
             },
 
@@ -42,6 +51,9 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken,
                     isAuthenticated: true,
                     userRole: payload?.role || null,
+                    schoolId: payload?.school_id ?? null,
+                    schoolName: payload?.school_name ?? null,
+                    subscriptionEnd: payload?.subscription_end ?? null,
                 });
             },
 
@@ -51,7 +63,12 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: null,
                     isAuthenticated: false,
                     userRole: null,
+                    schoolId: null,
+                    schoolName: null,
+                    subscriptionEnd: null,
                 });
+                // CRITICAL: Clear cache here too to prevent stale data between roles/users
+                queryClient.clear();
             },
 
             logout: () => {
@@ -60,6 +77,9 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: null,
                     isAuthenticated: false,
                     userRole: null,
+                    schoolId: null,
+                    schoolName: null,
+                    subscriptionEnd: null,
                 });
 
                 // Clear TanStack Query cache to prevent stale data between different user sessions
@@ -72,7 +92,6 @@ export const useAuthStore = create<AuthState>()(
         {
             name: 'auth-store', // key in localStorage
             // CRITICAL: Only persist the cryptographic tokens.
-            // Automatically prevents 'userRole' or implicit user identity objects from being saved permanently to disk.
             partialize: (state) => ({
                 accessToken: state.accessToken,
                 refreshToken: state.refreshToken
@@ -83,6 +102,9 @@ export const useAuthStore = create<AuthState>()(
                     const payload = decodeToken(state.accessToken);
                     state.isAuthenticated = true;
                     state.userRole = payload?.role || null;
+                    state.schoolId = payload?.school_id ?? null;
+                    state.schoolName = payload?.school_name ?? null;
+                    state.subscriptionEnd = payload?.subscription_end ?? null;
                 }
             }
         }

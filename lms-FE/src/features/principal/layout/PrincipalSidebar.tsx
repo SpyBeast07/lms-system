@@ -15,6 +15,7 @@ export const PrincipalSidebar: React.FC = () => {
         { path: '/principal/enrollments', label: 'Enrollments', icon: '🎓' },
         { path: '/principal/signup-requests', label: 'Signup Requests', icon: '📝' },
         { path: '/principal/password-requests', label: 'Password Requests', icon: '🔐' },
+        { path: '/principal/files', label: 'File Storage', icon: '🗄️' },
         { path: '/principal/activity-logs', label: 'Activity Logs', icon: '📋' },
     ];
 

@@ -61,6 +61,8 @@ export const useSwitchRoleMutation = () => {
                 router.navigate({ to: '/teacher' });
             } else if (targetRole === 'student') {
                 router.navigate({ to: '/student' });
+            } else if (targetRole === 'principal') {
+                router.navigate({ to: '/principal' });
             }
         },
     });

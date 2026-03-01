@@ -3,6 +3,7 @@ export type UserRole = 'super_admin' | 'principal' | 'teacher' | 'student';
 export interface DecodedJWT {
     sub: string;
     role: UserRole;
+    base_role?: UserRole;
     name: string;
     school_id: number | null;
     school_name?: string | null;

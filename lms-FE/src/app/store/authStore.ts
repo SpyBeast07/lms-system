@@ -9,6 +9,7 @@ interface AuthState {
     refreshToken: string | null;
     isAuthenticated: boolean;
     userRole: UserRole | null;
+    baseRole: UserRole | null;
     schoolId: number | null;
     schoolName: string | null;
     subscriptionEnd: string | null;
@@ -27,6 +28,7 @@ export const useAuthStore = create<AuthState>()(
             refreshToken: null,
             isAuthenticated: false,
             userRole: null,
+            baseRole: null,
             schoolId: null,
             schoolName: null,
             subscriptionEnd: null,
@@ -38,6 +40,7 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: tokens.refresh_token,
                     isAuthenticated: true,
                     userRole: payload?.role || null,
+                    baseRole: payload?.base_role || payload?.role || null,
                     schoolId: payload?.school_id ?? null,
                     schoolName: payload?.school_name ?? null,
                     subscriptionEnd: payload?.subscription_end ?? null,
@@ -51,6 +54,7 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken,
                     isAuthenticated: true,
                     userRole: payload?.role || null,
+                    baseRole: payload?.base_role || payload?.role || null,
                     schoolId: payload?.school_id ?? null,
                     schoolName: payload?.school_name ?? null,
                     subscriptionEnd: payload?.subscription_end ?? null,
@@ -63,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: null,
                     isAuthenticated: false,
                     userRole: null,
+                    baseRole: null,
                     schoolId: null,
                     schoolName: null,
                     subscriptionEnd: null,
@@ -77,6 +82,7 @@ export const useAuthStore = create<AuthState>()(
                     refreshToken: null,
                     isAuthenticated: false,
                     userRole: null,
+                    baseRole: null,
                     schoolId: null,
                     schoolName: null,
                     subscriptionEnd: null,
@@ -102,6 +108,7 @@ export const useAuthStore = create<AuthState>()(
                     const payload = decodeToken(state.accessToken);
                     state.isAuthenticated = true;
                     state.userRole = payload?.role || null;
+                    state.baseRole = payload?.base_role || payload?.role || null;
                     state.schoolId = payload?.school_id ?? null;
                     state.schoolName = payload?.school_name ?? null;
                     state.subscriptionEnd = payload?.subscription_end ?? null;

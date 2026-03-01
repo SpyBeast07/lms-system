@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
 import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
+import { useSwitchRoleMutation } from '../../auth/hooks/useAuthMutations';
 
 export const TeacherSidebar: React.FC = () => {
-    const { logout } = useAuthStore();
+    const { logout, baseRole } = useAuthStore();
     const router = useRouter();
     const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+    const switchRoleMutation = useSwitchRoleMutation();
 
     const handleLogout = () => {
         logout();
@@ -56,6 +58,18 @@ export const TeacherSidebar: React.FC = () => {
                     <span className="text-lg">🔐</span>
                     Change Password
                 </button>
+
+                {baseRole === 'principal' && (
+                    <button
+                        onClick={() => switchRoleMutation.mutate('principal')}
+                        disabled={switchRoleMutation.isPending}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-amber-300 rounded-xl hover:bg-amber-500/10 hover:text-amber-200 transition-colors disabled:opacity-50"
+                    >
+                        <span className="text-lg">🔙</span>
+                        {switchRoleMutation.isPending ? 'Switching...' : 'Return to Principal'}
+                    </button>
+                )}
+
                 <button
                     onClick={handleLogout}
                     className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 transition-colors"

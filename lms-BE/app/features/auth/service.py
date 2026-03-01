@@ -55,6 +55,7 @@ class AuthService:
             data={
                 "sub": str(user.id),
                 "role": user.role,
+                "base_role": user.role,       # Add authentic base role here
                 "name": user.name,
                 "school_id": user.school_id,
                 "school_name": user.school.name if user.school else None,
@@ -132,6 +133,7 @@ class AuthService:
             data={
                 "sub": str(user.id),
                 "role": user.role,
+                "base_role": user.role,       # Add authentic base role here
                 "name": user.name,
                 "school_id": user.school_id,
                 "school_name": user.school.name if user.school else None,
@@ -158,7 +160,8 @@ class AuthService:
             "teacher": ["student"]
         }
 
-        if target_role not in allowed_switches.get(user.role, []):
+        # User is ALWAYS allowed to switch back to their authentic base role
+        if target_role != user.role and target_role not in allowed_switches.get(user.role, []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Cannot switch from {user.role} to {target_role}"
@@ -172,7 +175,8 @@ class AuthService:
         access_token = create_access_token(
             data={
                 "sub": str(full_user.id),
-                "role": target_role,          # Note: Emitting the new role here
+                "role": target_role,          # Note: Emitting the new active role here
+                "base_role": full_user.role,  # Track authentic base role
                 "name": full_user.name,
                 "school_id": full_user.school_id,
                 "school_name": full_user.school.name if full_user.school else None,

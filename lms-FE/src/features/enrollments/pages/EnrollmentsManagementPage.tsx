@@ -18,8 +18,8 @@ export const EnrollmentsManagementPage: React.FC = () => {
                 {isTeacher ? 'Student Enrollments' : 'Enrollments & Assignments'}
             </h1>
 
-            <div className={`grid grid-cols-1 ${isTeacher ? '' : 'lg:grid-cols-2'} gap-8`}>
-                {/* Teacher Assignment Panel - Hidden for Teachers */}
+            <div className={`grid grid-cols-1 gap-8`}>
+                {/* Teacher Assignment Panel - Only for Principals/Admins */}
                 {!isTeacher && (
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div className="mb-6">
@@ -30,18 +30,20 @@ export const EnrollmentsManagementPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Student Enrollment Panel */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="mb-6">
-                        <h2 className="text-lg font-bold text-slate-800">Enroll Student in Course</h2>
-                        <p className="text-sm text-slate-500 mt-1">Grant a student access to a module's content.</p>
+                {/* Student Enrollment Panel - Only for Teachers */}
+                {isTeacher && (
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                        <div className="mb-6">
+                            <h2 className="text-lg font-bold text-slate-800">Enroll Student in Course</h2>
+                            <p className="text-sm text-slate-500 mt-1">Grant a student access to a module's content.</p>
+                        </div>
+                        <EnrollStudentForm />
                     </div>
-                    <EnrollStudentForm />
-                </div>
+                )}
             </div>
 
-            <div className={`grid grid-cols-1 ${isTeacher ? '' : 'lg:grid-cols-2'} gap-8 pt-8 border-t border-slate-200`}>
-                {/* Teacher Assignments Table - Hidden for Teachers */}
+            <div className={`grid grid-cols-1 gap-8 pt-8 border-t border-slate-200`}>
+                {/* Teacher Assignments Table - Only for Principals/Admins */}
                 {!isTeacher && (
                     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         <h2 className="text-lg font-bold text-slate-800 mb-4">Current Teacher Assignments</h2>
@@ -57,19 +59,21 @@ export const EnrollmentsManagementPage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Student Enrollments Table */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4">Current Student Enrollments</h2>
-                    <Table
-                        data={studentEnrollments || []}
-                        isLoading={isLoadingStudentEnrollments}
-                        columns={[
-                            { header: 'Student', accessorKey: 'student_name', cell: ({ row }) => <span className="font-medium text-slate-800">{row.student_name}</span> },
-                            { header: 'Course', accessorKey: 'course_name', cell: ({ row }) => <span className="text-emerald-600 font-medium">{row.course_name}</span> }
-                        ]}
-                        emptyMessage="No student enrollments found."
-                    />
-                </div>
+                {/* Student Enrollments Table - Only for Teachers */}
+                {isTeacher && (
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <h2 className="text-lg font-bold text-slate-800 mb-4">Current Student Enrollments</h2>
+                        <Table
+                            data={studentEnrollments || []}
+                            isLoading={isLoadingStudentEnrollments}
+                            columns={[
+                                { header: 'Student', accessorKey: 'student_name', cell: ({ row }) => <span className="font-medium text-slate-800">{row.student_name}</span> },
+                                { header: 'Course', accessorKey: 'course_name', cell: ({ row }) => <span className="text-emerald-600 font-medium">{row.course_name}</span> }
+                            ]}
+                            emptyMessage="No student enrollments found."
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

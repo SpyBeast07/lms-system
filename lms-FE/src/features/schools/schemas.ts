@@ -19,6 +19,7 @@ export const SchoolSchema = z.object({
 
 export const SchoolCreateSchema = z.object({
     name: z.string().min(2, "Name must be at least 2 characters"),
+    subscription_start: z.string().nonempty("Subscription start date is required"),
     subscription_end: z.string().nonempty("Subscription end date is required"),
     max_teachers: z.number().min(1, "Must allow at least 1 teacher"),
 });

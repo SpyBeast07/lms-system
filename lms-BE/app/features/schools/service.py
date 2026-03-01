@@ -8,7 +8,7 @@ from datetime import datetime, UTC
 from typing import Optional
 
 async def create_school(db: AsyncSession, school_in: SchoolCreate) -> School:
-    db_school = School(**school_in.model_dump())
+    db_school = School(**school_in.model_dump(exclude_none=True))
     db.add(db_school)
     await db.commit()
     await db.refresh(db_school)

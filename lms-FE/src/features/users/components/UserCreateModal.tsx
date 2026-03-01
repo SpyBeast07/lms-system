@@ -70,18 +70,28 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
                     error={errors.email?.message}
                 />
                 <FormInput
-                    label="Temporary Password"
+                    label={roleOptions.length === 1 ? "Password" : "Temporary Password"}
                     type="password"
                     placeholder="••••••••"
                     register={register('password')}
                     error={errors.password?.message}
                 />
-                <FormSelect
-                    label="Role"
-                    register={register('role')}
-                    error={errors.role?.message}
-                    options={roleOptions}
-                />
+                {roleOptions.length === 1 ? (
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                        <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 bg-slate-50 cursor-not-allowed font-medium">
+                            {roleOptions[0].label}
+                        </div>
+                        <input type="hidden" value={roleOptions[0].value} {...register('role')} />
+                    </div>
+                ) : (
+                    <FormSelect
+                        label="Role"
+                        register={register('role')}
+                        error={errors.role?.message}
+                        options={roleOptions}
+                    />
+                )}
 
                 {/* Conditional school selector — shown only when creating a principal */}
                 {showSchoolField && (

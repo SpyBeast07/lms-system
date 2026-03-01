@@ -55,5 +55,10 @@ export const authApi = {
     rejectPasswordRequest: async (requestId: number): Promise<{ detail: string }> => {
         const response = await api.patch<{ detail: string }>(`/auth/password-requests/${requestId}/reject`);
         return response.data;
+    },
+
+    switchRole: async (targetRole: string): Promise<TokenResponse> => {
+        const response = await api.post<TokenResponse>('/auth/switch-role', { target_role: targetRole });
+        return response.data;
     }
 };

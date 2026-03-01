@@ -4,6 +4,7 @@ import { useTeacherAssignmentsQuery } from '../../enrollments/hooks/useEnrollmen
 import { useTeacherMaterialsQuery } from '../../materials/hooks/useMaterials';
 import { useActivityLogsQuery } from '../../activityLogs/hooks/useActivityLogs';
 import { Table } from '../../../shared/components/ui/Table';
+import { DownloadButton } from '../../student/components/DownloadButton';
 
 export const TeacherReviewPage: React.FC = () => {
     const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
@@ -114,7 +115,7 @@ export const TeacherReviewPage: React.FC = () => {
                                 {
                                     header: 'Content',
                                     cell: ({ row }: any) => row.file_url ? (
-                                        <a href={row.file_url} target="_blank" rel="noopener noreferrer" className="text-indigo-500 hover:underline text-sm font-medium">Open File</a>
+                                        <DownloadButton label="Open File" objectName={row.file_url} />
                                     ) : (
                                         <span className="text-slate-400 text-xs italic">Assignment Specs</span>
                                     )

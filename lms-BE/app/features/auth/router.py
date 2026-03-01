@@ -14,8 +14,13 @@ from app.features.auth.schemas import (
     ChangePasswordRequest,
     PaginatedPasswordChangeRequests
 )
+from pydantic import BaseModel
+class SwitchRoleRequest(BaseModel):
+    target_role: str
+
 from app.features.auth.service import AuthService
 from app.features.auth.dependencies import get_current_user, require_role
+from app.features.users.models import User
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -45,8 +50,15 @@ async def logout(
 ):
     return await AuthService.logout(db, data)
 
+@router.post("/switch-role", response_model=TokenResponse)
+async def switch_role(
+    data: SwitchRoleRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    return await AuthService.switch_role(db, current_user, data.target_role)
+
 from app.core.school_guard import validate_school_subscription
-from app.features.users.models import User
 
 @router.post("/logout-all")
 async def logout_all(

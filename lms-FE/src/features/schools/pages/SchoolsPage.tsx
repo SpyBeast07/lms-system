@@ -196,6 +196,7 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
     const createSchool = useCreateSchool();
     const [formData, setFormData] = useState<SchoolCreatePayload>({
         name: "",
+        subscription_start: new Date().toISOString().split('T')[0],
         subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
         max_teachers: 10
     });
@@ -235,6 +236,16 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
                             value={formData.max_teachers}
                             onChange={e => setFormData({ ...formData, max_teachers: Number(e.target.value) })}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Subscription Start Date</label>
+                        <input
+                            type="date"
+                            required
+                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
+                            value={formData.subscription_start}
+                            onChange={e => setFormData({ ...formData, subscription_start: e.target.value })}
                         />
                     </div>
                     <div>

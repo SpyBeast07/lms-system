@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
 import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
+import { useSwitchRoleMutation } from '../../auth/hooks/useAuthMutations';
 
 export const PrincipalSidebar: React.FC = () => {
     const location = useLocation();
     const { logout } = useAuthStore();
     const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+    const switchRoleMutation = useSwitchRoleMutation();
 
     const navItems = [
         { path: '/principal/users', label: 'Users Management', icon: '👥' },
@@ -57,6 +59,16 @@ export const PrincipalSidebar: React.FC = () => {
                         <span className="text-lg leading-none">🔐</span>
                         Change Password
                     </button>
+
+                    <button
+                        onClick={() => switchRoleMutation.mutate('teacher')}
+                        disabled={switchRoleMutation.isPending}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-indigo-300 hover:text-white hover:bg-indigo-900/50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-600 disabled:opacity-50"
+                    >
+                        <span className="text-lg leading-none">👨‍🏫</span>
+                        {switchRoleMutation.isPending ? 'Switching...' : 'Switch to Teacher View'}
+                    </button>
+
                     <button
                         onClick={logout}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-600"

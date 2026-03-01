@@ -13,7 +13,7 @@ class PrincipalInfo(BaseModel):
     email: str
 
 class SchoolCreate(SchoolBase):
-    pass
+    subscription_start: Optional[datetime] = None
 
 class SchoolUpdate(BaseModel):
     name: Optional[str] = None

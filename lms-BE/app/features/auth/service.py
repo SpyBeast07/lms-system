@@ -146,6 +146,60 @@ class AuthService:
         }
 
     @staticmethod
+    async def switch_role(db: AsyncSession, user: User, target_role: str) -> TokenResponse:
+        """
+        Issue new tokens with a different role if the user has permission.
+        e.g., Principal switching to Teacher view.
+        """
+        # Define allowed role switches
+        allowed_switches = {
+            "super_admin": ["principal", "teacher", "student"],
+            "principal": ["teacher", "student"],
+            "teacher": ["student"]
+        }
+
+        if target_role not in allowed_switches.get(user.role, []):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Cannot switch from {user.role} to {target_role}"
+            )
+
+        # Re-fetch user to make sure we load relationships 
+        result = await db.execute(select(User).options(joinedload(User.school)).filter(User.id == user.id))
+        full_user = result.scalars().first()
+
+        # Update the token data to reflect the *new* target role
+        access_token = create_access_token(
+            data={
+                "sub": str(full_user.id),
+                "role": target_role,          # Note: Emitting the new role here
+                "name": full_user.name,
+                "school_id": full_user.school_id,
+                "school_name": full_user.school.name if full_user.school else None,
+                "subscription_end": full_user.school.subscription_end.isoformat() if full_user.school else None
+            }
+        )
+
+        # Issue a new refresh token for this session
+        raw_refresh_token = secrets.token_urlsafe(64)
+        await AuthService._create_refresh_token(db, full_user, raw_refresh_token)
+
+        # Log
+        await log_action(db, ActivityLogCreate(
+            user_id=full_user.id,
+            action="role_switched",
+            entity_type="user",
+            entity_id=full_user.id,
+            details=f"User {full_user.email} switched role to {target_role}"
+        ))
+
+        return {
+            "access_token": access_token,
+            "refresh_token": raw_refresh_token,
+            "token_type": "bearer",
+        }
+
+    @staticmethod
     async def logout(db: AsyncSession, data: LogoutRequest):
         """
         Revoke specific refresh token.

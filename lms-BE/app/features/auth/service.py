@@ -161,10 +161,11 @@ class AuthService:
         }
 
         # User is ALWAYS allowed to switch back to their authentic base role
-        if target_role != user.role and target_role not in allowed_switches.get(user.role, []):
+        base_role_from_token = getattr(user, 'base_role', getattr(user, 'token_base_role', user.role))
+        if target_role != base_role_from_token and target_role not in allowed_switches.get(base_role_from_token, []):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Cannot switch from {user.role} to {target_role}"
+                detail=f"Cannot switch from {base_role_from_token} to {target_role}"
             )
 
         # Re-fetch user to make sure we load relationships 

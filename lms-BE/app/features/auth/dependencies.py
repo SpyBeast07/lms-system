@@ -11,6 +11,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.attributes import set_committed_value
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -25,6 +26,7 @@ async def get_current_user(
 
     user_id = payload.get("sub")
     token_role = payload.get("role")
+    token_base_role = payload.get("base_role")
     token_school_id = payload.get("school_id")
     
     if not user_id:
@@ -41,8 +43,12 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
+    # We attach an explicit 'active_role' rather than hacking SQLAlchemy 'role' since autoflush resets it
+    user.active_role = token_role or user.role
+
     # Attach token payload properties to user context
     user.token_role = token_role
+    user.token_base_role = token_base_role
     user.token_school_id = token_school_id
 
     if user.role != "super_admin":
@@ -56,7 +62,8 @@ async def get_current_user(
 
 def require_role(*allowed_roles: str):
     async def role_guard(current_user: User = Depends(get_current_user)):
-        if current_user.role not in allowed_roles:
+        active_role = getattr(current_user, 'active_role', current_user.role)
+        if active_role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",

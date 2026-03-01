@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const PrincipalSchema = z.object({
+const PrincipalSchema = z.object({
     id: z.number(),
     name: z.string(),
     email: z.string(),
@@ -39,10 +39,3 @@ export type SchoolCreatePayload = z.infer<typeof SchoolCreateSchema>;
 export type SchoolUpdatePayload = z.infer<typeof SchoolUpdateSchema>;
 export type AssignPrincipalPayload = z.infer<typeof AssignPrincipalSchema>;
 
-export interface PaginatedSchools {
-    items: School[];
-    total: number;
-    page: number;
-    size: number;
-    pages: number;
-}

@@ -149,8 +149,9 @@ function AssignPrincipalModal({ schoolId, onClose }: { schoolId: number; onClose
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
+                        <label htmlFor="select-user" className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
                         <select
+                            id="select-user"
                             required
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
                             value={selectedUserId}
@@ -218,8 +219,9 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
+                        <label htmlFor="school-name" className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
                         <input
+                            id="school-name"
                             type="text"
                             required
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
@@ -228,8 +230,9 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Teachers</label>
+                        <label htmlFor="max-teachers" className="block text-sm font-medium text-gray-700 mb-1">Max Teachers</label>
                         <input
+                            id="max-teachers"
                             type="number"
                             required
                             min="1"
@@ -239,8 +242,9 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subscription Start Date</label>
+                        <label htmlFor="subscription-start" className="block text-sm font-medium text-gray-700 mb-1">Subscription Start Date</label>
                         <input
+                            id="subscription-start"
                             type="date"
                             required
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
@@ -249,8 +253,9 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subscription End Date</label>
+                        <label htmlFor="subscription-end" className="block text-sm font-medium text-gray-700 mb-1">Subscription End Date</label>
                         <input
+                            id="subscription-end"
                             type="date"
                             required
                             className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"

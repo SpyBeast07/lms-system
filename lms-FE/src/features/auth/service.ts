@@ -38,7 +38,7 @@ export const authService = {
             if (refreshToken) {
                 await authApi.logout(refreshToken);
             }
-        } catch (e) {
+        } catch {
             console.warn("Backend logout failed, killing local session anyway.");
         } finally {
             // ALWAYS purge the local tokens regardless of server response

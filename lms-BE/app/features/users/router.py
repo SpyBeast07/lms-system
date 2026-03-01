@@ -46,15 +46,16 @@ async def list_users_api(
     school_info = Depends(validate_school_subscription)
 ):
     target_roles = []
-    if current_user.role == "super_admin":
+    active_role = getattr(current_user, 'active_role', current_user.role)
+    if active_role == "super_admin":
         target_roles = ["super_admin", "principal"]
-    elif current_user.role == "principal":
-        target_roles = ["teacher"]
-    elif current_user.role == "teacher":
+    elif active_role == "principal":
+        target_roles = ["principal", "teacher"]
+    elif active_role == "teacher":
         target_roles = ["student"]
     
     # Pass school_id filter unless super_admin
-    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    school_id = current_user.school_id if active_role != "super_admin" else None
     return await user_crud.list_users(db, page, limit, is_deleted=deleted, allowed_roles=target_roles, school_id=school_id)
 
 
@@ -67,16 +68,17 @@ async def get_user_api(
     school_info = Depends(validate_school_subscription)
 ):
     # Pass school_id filter unless super_admin
-    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    active_role = getattr(current_user, 'active_role', current_user.role)
+    school_id = current_user.school_id if active_role != "super_admin" else None
     user = await user_crud.get_user(db, user_id, school_id=school_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    if current_user.role == "super_admin" and user.role not in ["super_admin", "principal"]:
+    if active_role == "super_admin" and user.role not in ["super_admin", "principal"]:
         raise HTTPException(status_code=403, detail="Super Admins can only view Super Admins and Principals")
-    elif current_user.role == "principal" and user.role != "teacher":
+    elif active_role == "principal" and user.role != "teacher":
         raise HTTPException(status_code=403, detail="Principals can only view Teachers")
-    elif current_user.role == "teacher" and user.role != "student":
+    elif active_role == "teacher" and user.role != "student":
         raise HTTPException(status_code=403, detail="Teachers can only view Students")
         
     return user

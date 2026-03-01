@@ -38,7 +38,9 @@ export const AssignTeacherForm: React.FC = () => {
     };
 
     const courseOptions = ((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name }));
-    const teacherOptions = ((users as any)?.items || []).filter((u: any) => u.role === 'teacher').map((t: any) => ({ value: t.id, label: `${t.name} (${t.email})` }));
+    const teacherOptions = ((users as any)?.items || [])
+        .filter((u: any) => u.role === 'teacher' || u.role === 'principal')
+        .map((t: any) => ({ value: t.id, label: `${t.name} (${t.email})` }));
 
     // ... rest of the component
 

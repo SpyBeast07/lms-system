@@ -12,6 +12,8 @@ export const EnrollmentsManagementPage: React.FC = () => {
 
     const isTeacher = userRole === 'teacher';
 
+    console.log("RENDER EnrollmentsManagementPage - teacherAssignments:", teacherAssignments);
+
     return (
         <div className="space-y-8">
             <h1 className="text-2xl font-bold text-slate-800">

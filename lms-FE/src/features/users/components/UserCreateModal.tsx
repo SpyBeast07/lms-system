@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { userCreateSchema, type UserCreateData } from '../schemas';
 import { Modal } from '../../../shared/components/ui/Modal';
@@ -27,13 +27,16 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
         register,
         handleSubmit,
         reset,
-        watch,
+        control,
         formState: { errors },
     } = useForm<UserCreateData>({
         resolver: zodResolver(userCreateSchema),
     });
 
-    const selectedRole = watch('role');
+    const selectedRole = useWatch({
+        control,
+        name: 'role'
+    });
     const showSchoolField = selectedRole === 'principal';
 
     const { data: schoolsData, isLoading: isLoadingSchools } = usePublicSchools();
@@ -78,7 +81,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 />
                 {roleOptions.length === 1 ? (
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
+                        <span className="block text-sm font-medium text-slate-700 mb-1">Role</span>
                         <div className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-600 bg-slate-50 cursor-not-allowed font-medium">
                             {roleOptions[0].label}
                         </div>
@@ -96,13 +99,14 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 {/* Conditional school selector — shown only when creating a principal */}
                 {showSchoolField && (
                     <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                        <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                        <label htmlFor="assign-school" className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
                             <span>Assign School</span>
                             {isLoadingSchools && (
                                 <span className="text-xs text-indigo-500 animate-pulse">Loading schools…</span>
                             )}
                         </label>
                         <select
+                            id="assign-school"
                             {...register('school_id', { valueAsNumber: true })}
                             disabled={isLoadingSchools}
                             className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:opacity-50"

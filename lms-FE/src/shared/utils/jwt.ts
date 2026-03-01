@@ -17,7 +17,7 @@ export const decodeToken = (token: string | null): DecodedJWT | null => {
         }
 
         return decoded;
-    } catch (e) {
+    } catch {
         console.error("Failed to decode standard JWT token format.");
         return null;
     }

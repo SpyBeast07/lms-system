@@ -46,17 +46,19 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
     query = select(Course)
     count_query = select(func.count(Course.id))
     
+    active_role = getattr(user, 'active_role', user.role)
+    
     # Super Admin bypasses school filter
-    if user.role != "super_admin":
+    if active_role != "super_admin":
         query = query.filter(Course.school_id == user.school_id)
         count_query = count_query.filter(Course.school_id == user.school_id)
 
-    if user.role in ("super_admin", "principal"):
+    if active_role in ("super_admin", "principal"):
         if is_deleted is not None:
             query = query.filter(Course.is_deleted == is_deleted)
             count_query = count_query.filter(Course.is_deleted == is_deleted)
             
-    elif user.role == "teacher":
+    elif active_role == "teacher":
         deleted_filter = is_deleted if is_deleted is not None else False
         query = (
             query
@@ -74,7 +76,7 @@ async def get_courses_for_user(db: AsyncSession, user: User, page: int = 1, limi
                 Course.is_deleted == deleted_filter,
             )
         )
-    elif user.role == "student":
+    elif active_role == "student":
         deleted_filter = is_deleted if is_deleted is not None else False
         query = (
             query

@@ -55,7 +55,7 @@ export const TeacherEvaluationPage: React.FC = () => {
             addToast('Grade successfully applied!', 'success');
             setGradingSubmission(null);
             reset();
-        } catch (error: any) {
+        } catch {
             addToast('Failed to apply grade', 'error');
         }
     };

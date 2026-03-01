@@ -2,7 +2,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { schoolsApi } from "./api";
 import {
     type SchoolCreatePayload,
-    type SchoolUpdatePayload,
     type AssignPrincipalPayload,
 } from "./schemas";
 
@@ -20,32 +19,12 @@ export const usePublicSchools = () => {
     });
 };
 
-export const useSchool = (id: number) => {
-    return useQuery({
-        queryKey: ["schools", id],
-        queryFn: () => schoolsApi.get(id),
-        enabled: !!id,
-    });
-};
-
 export const useCreateSchool = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (payload: SchoolCreatePayload) => schoolsApi.create(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["schools"] });
-        },
-    });
-};
-
-export const useUpdateSchool = (id: number) => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (payload: SchoolUpdatePayload) =>
-            schoolsApi.update(id, payload),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["schools"] });
-            queryClient.invalidateQueries({ queryKey: ["schools", id] });
         },
     });
 };

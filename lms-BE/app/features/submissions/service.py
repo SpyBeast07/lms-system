@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from .models import Submission
 from .schemas import SubmissionCreate, SubmissionGrade

@@ -3,6 +3,7 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from datetime import datetime, UTC
+from typing import Optional
 
 from app.features.courses.models_materials import LearningMaterial
 from app.features.courses.models_notes import Notes

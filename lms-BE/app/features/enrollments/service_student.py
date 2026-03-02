@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
+from typing import Optional
 
 from app.features.enrollments.models_student import StudentCourse
 from app.features.users.models import User

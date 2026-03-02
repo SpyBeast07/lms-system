@@ -15,12 +15,15 @@ async def enroll_student(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("principal", "teacher")),
 ):
-    await enroll_student_in_course(
-        db,
-        student_id=data.student_id,
-        course_id=data.course_id,
-        school_id=current_user.school_id,
-    )
+    try:
+        await enroll_student_in_course(
+            db,
+            student_id=data.student_id,
+            course_id=data.course_id,
+            school_id=current_user.school_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return {"message": "Student enrolled in course successfully"}
 
 @router.get("/")

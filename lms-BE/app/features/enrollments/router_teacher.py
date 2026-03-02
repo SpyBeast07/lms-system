@@ -15,12 +15,15 @@ async def assign_teacher(
     db: AsyncSession = Depends(get_db),
     current_user=Depends(require_role("principal")),
 ):
-    await assign_teacher_to_course(
-        db,
-        teacher_id=data.teacher_id,
-        course_id=data.course_id,
-        school_id=current_user.school_id,
-    )
+    try:
+        await assign_teacher_to_course(
+            db,
+            teacher_id=data.teacher_id,
+            course_id=data.course_id,
+            school_id=current_user.school_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return {"message": "Teacher assigned to course successfully"}
 
 @router.get("/")

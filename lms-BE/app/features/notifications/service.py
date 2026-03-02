@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from typing import List
+from typing import List, Optional
 import hashlib
 from datetime import datetime, timezone
 

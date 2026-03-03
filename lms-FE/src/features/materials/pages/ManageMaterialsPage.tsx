@@ -47,7 +47,7 @@ export const ManageMaterialsPage: React.FC = () => {
     const handleDeleteConfirm = () => {
         if (!deleteTarget) return;
         deleteMutation.mutate(deleteTarget, mutationToastHandlers(
-            'Material archived successfully',
+            'Material deleted successfully',
             undefined,
             () => setDeleteTarget(null),
             () => setDeleteTarget(null)
@@ -134,7 +134,7 @@ export const ManageMaterialsPage: React.FC = () => {
                                 onClick={() => setDeleteTarget(row.id.toString())}
                                 className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-2 py-1 rounded hover:bg-red-50"
                             >
-                                Archive
+                                Delete
                             </button>
                         </>
                     ) : (
@@ -225,9 +225,9 @@ export const ManageMaterialsPage: React.FC = () => {
 
             <ConfirmDialog
                 isOpen={deleteTarget !== null}
-                title="Archive Material"
-                message="Are you sure you want to logically archive this piece of curriculum? It will immediately disappear from the students' portals until restored."
-                confirmText="Archive Material"
+                title="Delete Material"
+                message="Are you sure you want to delete this curriculum item? It will be hidden from students until restored."
+                confirmText="Delete Material"
                 variant="danger"
                 isLoading={deleteMutation.isPending}
                 onConfirm={handleDeleteConfirm}

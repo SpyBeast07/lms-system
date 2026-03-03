@@ -41,7 +41,7 @@ export const CourseDetailPage: React.FC = () => {
                         {course.is_published ? 'Published' : 'Draft'}
                     </span>
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${course.is_deleted ? 'bg-red-100 text-red-800' : 'bg-slate-100 text-slate-800'}`}>
-                        {course.is_deleted ? 'Archived' : 'Active'}
+                        {course.is_deleted ? 'Deleted' : 'Active'}
                     </span>
                 </div>
             </div>

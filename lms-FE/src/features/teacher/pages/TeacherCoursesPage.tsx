@@ -247,7 +247,7 @@ export const TeacherCoursesPage: React.FC = () => {
             <ConfirmDialog
                 isOpen={courseToDelete !== null}
                 title="Confirm Deletion"
-                message="Are you sure you want to delete this course? It will be archived and hidden from students."
+                message="Are you sure you want to delete this course? It will be hidden from students."
                 confirmText="Delete Course"
                 variant="danger"
                 isLoading={deleteMutation.isPending}

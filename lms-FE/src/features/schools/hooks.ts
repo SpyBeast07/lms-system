@@ -5,10 +5,10 @@ import {
     type AssignPrincipalPayload,
 } from "./schemas";
 
-export const useSchools = (page = 1, size = 10) => {
+export const useSchools = (page = 1, limit = 10) => {
     return useQuery({
-        queryKey: ["schools", page, size],
-        queryFn: () => schoolsApi.list(page, size),
+        queryKey: ["schools", page, limit],
+        queryFn: () => schoolsApi.list(page, limit),
     });
 };
 

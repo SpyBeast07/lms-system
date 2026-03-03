@@ -21,9 +21,9 @@ async def get_school(db: AsyncSession, school_id: int) -> Optional[School]:
 async def list_schools(
     db: AsyncSession, 
     page: int = 1, 
-    size: int = 10
+    limit: int = 10
 ) -> dict:
-    skip = (page - 1) * size
+    skip = (page - 1) * limit
     
     # Count total
     count_stmt = select(func.count()).select_from(School)
@@ -35,7 +35,7 @@ async def list_schools(
         .outerjoin(User, (User.school_id == School.id) & (User.role == "principal") & (User.is_deleted == False))
         .order_by(desc(School.created_at))
         .offset(skip)
-        .limit(size)
+        .limit(limit)
     )
     result = await db.execute(stmt)
     
@@ -60,13 +60,13 @@ async def list_schools(
             }
         items.append(school_dict)
     
-    pages = (total + size - 1) // size
+    pages = (total + limit - 1) // limit
     
     return {
         "items": items,
         "total": total,
         "page": page,
-        "size": size,
+        "limit": limit,
         "pages": pages
     }
 

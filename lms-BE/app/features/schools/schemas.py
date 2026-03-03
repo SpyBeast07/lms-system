@@ -33,7 +33,7 @@ class SchoolPagination(BaseModel):
     items: list[SchoolRead]
     total: int
     page: int
-    size: int
+    limit: int
     pages: int
 
 class AssignPrincipal(BaseModel):

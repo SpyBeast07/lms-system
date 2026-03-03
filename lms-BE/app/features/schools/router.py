@@ -24,20 +24,20 @@ async def create_school(
 @router.get("/public", response_model=schemas.SchoolPagination)
 async def list_schools_public(
     page: int = Query(1, ge=1),
-    size: int = Query(100, ge=1, le=1000), 
+    limit: int = Query(100, ge=1, le=1000), 
     db: AsyncSession = Depends(get_db)
 ):
-    result = await service.list_schools(db, page, size)
+    result = await service.list_schools(db, page, limit)
     return result
 
 @router.get("/", response_model=schemas.SchoolPagination)
 async def list_schools(
     page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
+    limit: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(check_super_admin)
 ):
-    result = await service.list_schools(db, page, size)
+    result = await service.list_schools(db, page, limit)
     return result
 
 @router.get("/{school_id}", response_model=schemas.SchoolRead)

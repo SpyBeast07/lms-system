@@ -10,10 +10,10 @@ import type { PaginatedResponse } from '../../shared/types/pagination';
 const BASE_URL = "/schools";
 
 export const schoolsApi = {
-    list: async (page = 1, size = 10): Promise<PaginatedResponse<School>> => {
+    list: async (page = 1, limit = 10): Promise<PaginatedResponse<School>> => {
         const { data } = await axiosInstance.get<PaginatedResponse<School>>(
             `${BASE_URL}/`,
-            { params: { page, size } }
+            { params: { page, limit } }
         );
         return data;
     },

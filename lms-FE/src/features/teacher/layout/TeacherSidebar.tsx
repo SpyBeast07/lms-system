@@ -30,14 +30,12 @@ export const TeacherSidebar: React.FC = () => {
 
     return (
         <aside className="w-64 bg-slate-900 text-white h-screen flex flex-col fixed left-0 top-0 z-20 overflow-y-auto flex-shrink-0">
-            <div className="p-6">
-                <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                    👨‍🏫 Instructor Portal
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">Enterprise Education LMS</p>
+            <div className="p-6 border-b border-slate-700 font-bold text-white tracking-tight flex items-center gap-2">
+                <span className="text-xl">👨‍🏫</span>
+                <h2 className="text-xl">Instructor Portal</h2>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4">
+            <nav className="flex-1 px-2 py-4 space-y-1 mt-2">
                 {navItems.map((item) => (
                     <Link
                         key={item.path}
@@ -83,6 +81,9 @@ export const TeacherSidebar: React.FC = () => {
                     </svg>
                     Secure Logout
                 </Button>
+                <div className="text-xs text-slate-500 text-center pt-2">
+                    System v1.0.0
+                </div>
             </div>
 
             <ChangePasswordModal
@@ -92,4 +93,3 @@ export const TeacherSidebar: React.FC = () => {
         </aside>
     );
 };
-

@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Link, useRouter } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
 import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
-
+import { Button } from '../../../shared/components/Button';
 
 export const StudentSidebar: React.FC = () => {
     const { logout } = useAuthStore();
     const router = useRouter();
     const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
-
 
     const handleLogout = () => {
         logout();
@@ -24,14 +23,12 @@ export const StudentSidebar: React.FC = () => {
 
     return (
         <aside className="w-64 bg-emerald-900 text-white h-screen flex flex-col fixed left-0 top-0 z-20 overflow-y-auto flex-shrink-0">
-            <div className="p-6">
-                <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                    🧑‍🎓 Student Portal
-                </h2>
-                <p className="text-xs text-emerald-200 mt-1">Enterprise Education LMS</p>
+            <div className="p-6 border-b border-emerald-800 font-bold text-white tracking-tight flex items-center gap-2">
+                <span className="text-xl">🧑‍🎓</span>
+                <h2 className="text-xl">Student Portal</h2>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4">
+            <nav className="flex-1 px-2 py-4 space-y-1">
                 {navItems.map((item) => (
                     <Link
                         key={item.path}
@@ -46,22 +43,27 @@ export const StudentSidebar: React.FC = () => {
             </nav>
 
             <div className="p-4 mt-auto border-t border-emerald-800 space-y-2">
-                <button
+                <Button
+                    variant="ghost"
                     onClick={() => setPasswordModalOpen(true)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-200 rounded-xl hover:bg-emerald-800 hover:text-white transition-colors"
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-emerald-100 rounded-xl hover:bg-emerald-800 hover:text-white transition-colors"
                 >
                     <span className="text-lg">🔐</span>
                     Change Password
-                </button>
-                <button
+                </Button>
+                <Button
+                    variant="ghost"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-200 rounded-xl hover:bg-red-500/80 hover:text-white transition-colors"
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-red-300 rounded-xl hover:bg-red-500/10 hover:text-red-200 transition-colors"
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                     Secure Logout
-                </button>
+                </Button>
+                <div className="text-xs text-emerald-400/60 text-center pt-2">
+                    System v1.0.0
+                </div>
             </div>
 
             <ChangePasswordModal
@@ -71,4 +73,3 @@ export const StudentSidebar: React.FC = () => {
         </aside>
     );
 };
-

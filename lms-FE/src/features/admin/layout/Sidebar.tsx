@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
 import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
+import { Button } from '../../../shared/components/Button';
 
 export const Sidebar: React.FC = () => {
     const location = useLocation();
@@ -19,10 +20,11 @@ export const Sidebar: React.FC = () => {
 
     return (
         <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen overflow-y-auto flex-shrink-0">
-            <div className="p-6 border-b border-slate-700">
-                <h2 className="text-xl font-bold text-white tracking-tight">LMS Admin</h2>
+            <div className="p-6 border-b border-slate-700 font-bold text-white tracking-tight flex items-center gap-2">
+                <span className="text-xl">🛡️</span>
+                <h2 className="text-xl">LMS Admin</h2>
             </div>
-            <nav className="flex-1 py-4">
+            <nav className="flex-1 py-4 px-2">
                 <ul className="space-y-1">
                     {navItems.map((item) => {
                         const isActive = location.pathname.startsWith(item.path);
@@ -31,14 +33,14 @@ export const Sidebar: React.FC = () => {
                                 <Link
                                     to={item.path}
                                     className={`
-                                        flex items-center gap-3 px-6 py-3 text-sm font-medium transition-colors
+                                        flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200
                                         ${isActive
-                                            ? 'bg-indigo-600 text-white border-r-4 border-indigo-400'
+                                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-900/20'
                                             : 'hover:bg-slate-800 hover:text-white'
                                         }
                                     `}
                                 >
-                                    <span>{item.icon}</span>
+                                    <span className="text-lg">{item.icon}</span>
                                     {item.label}
                                 </Link>
                             </li>
@@ -46,26 +48,26 @@ export const Sidebar: React.FC = () => {
                     })}
                 </ul>
             </nav>
-            <div className="p-4 border-t border-slate-800 flex flex-col gap-4">
-                <div className="space-y-2">
-                    <button
-                        onClick={() => setPasswordModalOpen(true)}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-600"
-                    >
-                        <span className="text-lg leading-none">🔐</span>
-                        Change Password
-                    </button>
-                    <button
-                        onClick={logout}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-slate-600"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Logout
-                    </button>
-                </div>
-                <div className="text-xs text-slate-500 text-center">
+            <div className="p-4 border-t border-slate-800 space-y-2">
+                <Button
+                    variant="ghost"
+                    onClick={() => setPasswordModalOpen(true)}
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl hover:bg-slate-800 hover:text-white transition-colors"
+                >
+                    <span className="text-lg">🔐</span>
+                    Change Password
+                </Button>
+                <Button
+                    variant="ghost"
+                    onClick={logout}
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                >
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Secure Logout
+                </Button>
+                <div className="text-xs text-slate-500 text-center pt-2">
                     System v1.0.0
                 </div>
             </div>

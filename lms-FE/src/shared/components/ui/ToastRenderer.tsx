@@ -1,5 +1,6 @@
 import React from 'react';
 import { useToastStore, type Toast, type ToastType } from '../../../app/store/toastStore';
+import { Button } from '../Button';
 
 const toastStyles: Record<ToastType, string> = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
@@ -36,14 +37,16 @@ export const ToastRenderer: React.FC = () => {
                     <div className="flex-1 text-sm font-medium leading-relaxed">
                         {toast.message}
                     </div>
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={() => removeToast(toast.id)}
-                        className="p-1 hover:bg-black/5 rounded-lg transition-colors shrink-0"
+                        className="!p-1 hover:bg-black/5 rounded-lg shrink-0"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                    </button>
+                    </Button>
                 </div>
             ))}
         </div>

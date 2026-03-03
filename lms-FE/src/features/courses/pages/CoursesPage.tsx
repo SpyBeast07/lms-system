@@ -1,5 +1,4 @@
 import React, { useState, useReducer } from 'react';
-import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { courseCreateSchema, type CourseCreateData } from '../schemas';
@@ -12,6 +11,7 @@ import {
 } from '../hooks/useCourses';
 import { useAuthStore } from '../../../app/store/authStore';
 import { Button } from '../../../shared/components/Button';
+import { ButtonLink } from '../../../shared/components/ButtonLink';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
@@ -153,24 +153,25 @@ export const CoursesPage: React.FC = () => {
             header: 'Description', accessorKey: 'description' as keyof Course,
             cell: ({ row }: { row: Course }) => <div className="max-w-sm truncate">{row.description || '-'}</div>
         },
-
         {
             header: 'Actions',
             cell: ({ row }: { row: Course }) => (
                 <div className="flex justify-start gap-4">
-                    <Link
+                    <ButtonLink
                         to={'/principal/courses/$courseId'}
                         params={{ courseId: row.id }}
-                        className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
+                        variant="indigo-ghost"
+                        size="sm"
                     >
                         View
-                    </Link>
-                    <button
+                    </ButtonLink>
+                    <Button
                         onClick={() => dispatch({ type: 'SET_DELETE', id: row.id })}
-                        className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"
+                        variant="danger-outline"
+                        size="sm"
                     >
                         Delete
-                    </button>
+                    </Button>
                 </div>
             )
         }
@@ -189,19 +190,21 @@ export const CoursesPage: React.FC = () => {
             header: 'Actions',
             cell: ({ row }: { row: Course }) => (
                 <div className="flex justify-start gap-2">
-                    <button
+                    <Button
                         onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
-                        className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
+                        variant="indigo-ghost"
+                        size="sm"
                     >
                         Restore
-                    </button>
+                    </Button>
                     {(userRole === 'super_admin' || userRole === 'principal') && (
-                        <button
+                        <Button
                             onClick={() => dispatch({ type: 'SET_HARD_DELETE', id: row.id })}
-                            className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"
+                            variant="danger"
+                            size="sm"
                         >
                             Hard Delete
-                        </button>
+                        </Button>
                     )}
                 </div>
             )
@@ -317,3 +320,4 @@ export const CoursesPage: React.FC = () => {
         </div>
     );
 };
+

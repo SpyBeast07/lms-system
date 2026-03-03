@@ -3,6 +3,7 @@ import { Link, useRouter } from '@tanstack/react-router';
 import { useAuthStore } from '../../../app/store/authStore';
 import { ChangePasswordModal } from '../../auth/components/ChangePasswordModal';
 import { useSwitchRoleMutation } from '../../auth/hooks/useAuthMutations';
+import { Button } from '../../../shared/components/Button';
 
 export const TeacherSidebar: React.FC = () => {
     const { logout, baseRole } = useAuthStore();
@@ -51,34 +52,37 @@ export const TeacherSidebar: React.FC = () => {
             </nav>
 
             <div className="p-4 mt-auto border-t border-slate-800 space-y-2">
-                <button
+                <Button
+                    variant="ghost"
                     onClick={() => setPasswordModalOpen(true)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl hover:bg-slate-800 hover:text-white transition-colors"
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl hover:bg-slate-800 hover:text-white transition-colors"
                 >
                     <span className="text-lg">🔐</span>
                     Change Password
-                </button>
+                </Button>
 
                 {baseRole === 'principal' && (
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={() => switchRoleMutation.mutate('principal')}
                         disabled={switchRoleMutation.isPending}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-amber-300 rounded-xl hover:bg-amber-500/10 hover:text-amber-200 transition-colors disabled:opacity-50"
+                        className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-amber-300 rounded-xl hover:bg-amber-500/10 hover:text-amber-200 transition-colors disabled:opacity-50"
                     >
                         <span className="text-lg">🔙</span>
                         {switchRoleMutation.isPending ? 'Switching...' : 'Return to Principal'}
-                    </button>
+                    </Button>
                 )}
 
-                <button
+                <Button
+                    variant="ghost"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                    className="flex w-full !justify-start gap-3 px-4 py-3 text-sm font-medium text-red-400 rounded-xl hover:bg-red-500/10 hover:text-red-300 transition-colors"
                 >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                     Secure Logout
-                </button>
+                </Button>
             </div>
 
             <ChangePasswordModal
@@ -88,3 +92,4 @@ export const TeacherSidebar: React.FC = () => {
         </aside>
     );
 };
+

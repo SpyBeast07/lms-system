@@ -138,12 +138,13 @@ export const UsersPage: React.FC = () => {
             header: 'Actions',
             cell: ({ row }: { row: User }) => (
                 <div className="flex justify-start">
-                    <button
+                    <Button
+                        variant="danger-outline"
+                        size="sm"
                         onClick={() => dispatch({ type: 'SET_DELETE', id: row.id })}
-                        className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-red-50"
                     >
                         Delete
-                    </button>
+                    </Button>
                 </div>
             )
         }
@@ -170,19 +171,21 @@ export const UsersPage: React.FC = () => {
             header: 'Actions',
             cell: ({ row }: { row: User }) => (
                 <div className="flex justify-start gap-2">
-                    <button
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => dispatch({ type: 'SET_RESTORE', id: row.id })}
-                        className="text-indigo-500 hover:text-indigo-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-indigo-50"
                     >
                         Restore
-                    </button>
+                    </Button>
                     {(currentUserRole === 'super_admin' || currentUserRole === 'principal' || currentUserRole === 'teacher') && (
-                        <button
+                        <Button
+                            variant="danger-outline"
+                            size="sm"
                             onClick={() => dispatch({ type: 'SET_HARD_DELETE', id: row.id })}
-                            className="text-rose-500 hover:text-rose-700 font-medium text-sm transition-colors px-3 py-1 rounded-md hover:bg-rose-50"
                         >
                             Hard Delete
-                        </button>
+                        </Button>
                     )}
                 </div>
             )

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useSchools, useCreateSchool, useAssignPrincipal } from "../hooks";
 import type { SchoolCreatePayload } from "../schemas";
 import { useUsersQuery } from "../../users/hooks/useUsers";
+import { Button } from "../../../shared/components/Button";
+import { Pagination } from "../../../shared/components/ui/Pagination";
 
 export default function SchoolsPage() {
     const [page, setPage] = useState(1);
@@ -22,12 +24,12 @@ export default function SchoolsPage() {
                     </h1>
                     <p className="text-gray-500 mt-1">Manage tenant schools and principles.</p>
                 </div>
-                <button
+                <Button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    variant="primary"
                 >
                     + Add School
-                </button>
+                </Button>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -72,12 +74,13 @@ export default function SchoolsPage() {
                                     {new Date(school.subscription_end).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                                 </td>
                                 <td className="p-4 text-sm">
-                                    <button
+                                    <Button
                                         onClick={() => setAssignModalSchoolId(school.id)}
-                                        className="text-blue-600 hover:text-blue-800 font-medium"
+                                        variant="outline"
+                                        size="sm"
                                     >
                                         Assign Principal
-                                    </button>
+                                    </Button>
                                 </td>
                             </tr>
                         ))}
@@ -92,20 +95,14 @@ export default function SchoolsPage() {
                 </table>
             </div>
 
-            {/* Basic Pagination */}
-            {data && Math.ceil(data.total / data.limit) > 1 && (
-                <div className="flex justify-center flex-wrap gap-2 pt-4">
-                    {Array.from({ length: Math.ceil(data.total / data.limit) }, (_, i) => i + 1).map((p) => (
-                        <button
-                            key={p}
-                            onClick={() => setPage(p)}
-                            className={`px-3 py-1 rounded text-sm ${page === p ? "bg-blue-600 text-white" : "bg-gray-100 hover:bg-gray-200"
-                                }`}
-                        >
-                            {p}
-                        </button>
-                    ))}
-                </div>
+            {/* Shared Pagination component */}
+            {data && (
+                <Pagination
+                    currentPage={page}
+                    totalItems={data.total}
+                    pageSize={data.limit}
+                    onPageChange={setPage}
+                />
             )}
 
             {isCreateModalOpen && (
@@ -122,6 +119,8 @@ export default function SchoolsPage() {
     );
 }
 
+
+import { Modal } from "../../../shared/components/ui/Modal";
 
 function AssignPrincipalModal({ schoolId, onClose }: { schoolId: number; onClose: () => void }) {
     const { data: usersData, isLoading: isLoadingUsers } = useUsersQuery(1, 1000);
@@ -141,54 +140,47 @@ function AssignPrincipalModal({ schoolId, onClose }: { schoolId: number; onClose
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">Assign Principal</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+        <Modal isOpen={true} onClose={onClose} title="Assign Principal">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label htmlFor="select-user" className="block text-sm font-medium text-slate-700 mb-1">Select User</label>
+                    <select
+                        id="select-user"
+                        required
+                        className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border bg-slate-50 outline-none"
+                        value={selectedUserId}
+                        onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                        disabled={isLoadingUsers}
+                    >
+                        <option value="" disabled>-- Select a User --</option>
+                        {(usersData as any)?.items
+                            ?.filter((u: any) => !u.is_deleted && (u.role === "principal" || u.role === "teacher"))
+                            .map((user: any) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email}) - {user.role}
+                                </option>
+                            ))}
+                    </select>
+                    {isLoadingUsers && <p className="text-xs text-indigo-500 mt-1">Loading users...</p>}
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label htmlFor="select-user" className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
-                        <select
-                            id="select-user"
-                            required
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
-                            value={selectedUserId}
-                            onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                            disabled={isLoadingUsers}
-                        >
-                            <option value="" disabled>-- Select a User --</option>
-                            {(usersData as any)?.items
-                                ?.filter((u: any) => !u.is_deleted && (u.role === "principal" || u.role === "teacher"))
-                                .map((user: any) => (
-                                    <option key={user.id} value={user.id}>
-                                        {user.name} ({user.email}) - {user.role}
-                                    </option>
-                                ))}
-                        </select>
-                        {isLoadingUsers && <p className="text-xs text-blue-500 mt-1">Loading users...</p>}
-                    </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={assignPrincipal.isPending || !selectedUserId}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-                        >
-                            {assignPrincipal.isPending ? 'Assigning...' : 'Assign'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">
+                    <Button
+                        variant="ghost"
+                        onClick={onClose}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={assignPrincipal.isPending || !selectedUserId}
+                        isLoading={assignPrincipal.isPending}
+                    >
+                        Assign
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 }
 
@@ -211,77 +203,74 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">Create New School</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+        <Modal isOpen={true} onClose={onClose} title="Create New School">
+            <form onSubmit={handleSubmit} className="p-1 space-y-4">
+                <div>
+                    <label htmlFor="school-name" className="block text-sm font-medium text-slate-700 mb-1">School Name</label>
+                    <input
+                        id="school-name"
+                        type="text"
+                        required
+                        className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border outline-none bg-slate-50"
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    />
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <div className="grid grid-cols-1 gap-4">
                     <div>
-                        <label htmlFor="school-name" className="block text-sm font-medium text-gray-700 mb-1">School Name</label>
-                        <input
-                            id="school-name"
-                            type="text"
-                            required
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="max-teachers" className="block text-sm font-medium text-gray-700 mb-1">Max Teachers</label>
+                        <label htmlFor="max-teachers" className="block text-sm font-medium text-slate-700 mb-1">Max Teachers</label>
                         <input
                             id="max-teachers"
                             type="number"
                             required
                             min="1"
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
+                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border outline-none bg-slate-50"
                             value={formData.max_teachers}
                             onChange={e => setFormData({ ...formData, max_teachers: Number(e.target.value) })}
                         />
                     </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="subscription-start" className="block text-sm font-medium text-gray-700 mb-1">Subscription Start Date</label>
+                        <label htmlFor="subscription-start" className="block text-sm font-medium text-slate-700 mb-1 text-xs uppercase tracking-wider">Start Date</label>
                         <input
                             id="subscription-start"
                             type="date"
                             required
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
+                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border outline-none bg-slate-50"
                             value={formData.subscription_start}
                             onChange={e => setFormData({ ...formData, subscription_start: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label htmlFor="subscription-end" className="block text-sm font-medium text-gray-700 mb-1">Subscription End Date</label>
+                        <label htmlFor="subscription-end" className="block text-sm font-medium text-slate-700 mb-1 text-xs uppercase tracking-wider">End Date</label>
                         <input
                             id="subscription-end"
                             type="date"
                             required
-                            className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2 border"
+                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border outline-none bg-slate-50"
                             value={formData.subscription_end}
                             onChange={e => setFormData({ ...formData, subscription_end: e.target.value })}
                         />
                     </div>
+                </div>
 
-                    <div className="pt-4 flex justify-end gap-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={createSchool.isPending}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
-                        >
-                            {createSchool.isPending ? 'Creating...' : 'Create School'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">
+                    <Button
+                        variant="ghost"
+                        onClick={onClose}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        isLoading={createSchool.isPending}
+                    >
+                        Create School
+                    </Button>
+                </div>
+            </form>
+        </Modal>
     );
 }
+

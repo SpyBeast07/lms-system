@@ -3,7 +3,6 @@ import { useTeacherCourses } from '../hooks/useTeacherCourses';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
 import { Table } from '../../../shared/components/ui/Table';
 import { Pagination } from '../../../shared/components/ui/Pagination';
-import { Link } from '@tanstack/react-router';
 import { DashboardSummary } from '../../../shared/components/widgets/DashboardSummary';
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
 import { useTeacherStatsQuery } from '../../../shared/hooks/useStats';
@@ -17,6 +16,7 @@ import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
 import { useGenerateCourseContent } from '../../ai/hooks';
 import { useToastStore } from '../../../app/store/toastStore';
 import { Button } from '../../../shared/components/Button';
+import { ButtonLink } from '../../../shared/components/ButtonLink';
 import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import type { Course } from '../../courses/schemas';
 
@@ -144,31 +144,35 @@ export const TeacherCoursesPage: React.FC = () => {
             header: 'Quick Actions',
             cell: ({ row }: { row: Course }) => (
                 <div className="flex gap-2">
-                    <Link
+                    <ButtonLink
                         to="/teacher/upload-notes"
-                        className="text-xs font-medium px-2 py-1 bg-white border border-slate-200 shadow-sm rounded hover:bg-slate-50 text-slate-700 transition-colors"
+                        variant="outline"
+                        size="sm"
                     >
                         + Upload File
-                    </Link>
-                    <Link
+                    </ButtonLink>
+                    <ButtonLink
                         to="/teacher/create-assignment"
-                        className="text-xs font-medium px-2 py-1 bg-indigo-50 border border-indigo-100 shadow-sm rounded hover:bg-indigo-100 text-indigo-700 transition-colors"
+                        variant="indigo-ghost"
+                        size="sm"
                     >
                         + New Assignment
-                    </Link>
-                    <Link
+                    </ButtonLink>
+                    <ButtonLink
                         to={'/teacher/courses/$courseId'}
                         params={{ courseId: row.id.toString() }}
-                        className="text-xs font-medium px-2 py-1 bg-slate-100 border border-slate-200 shadow-sm rounded hover:bg-slate-200 text-slate-700 transition-colors"
+                        variant="ghost"
+                        size="sm"
                     >
                         View Details
-                    </Link>
-                    <button
+                    </ButtonLink>
+                    <Button
                         onClick={() => setCourseToDelete(row.id.toString())}
-                        className="text-xs font-medium px-2 py-1 bg-red-50 border border-red-100 shadow-sm rounded hover:bg-red-100 text-red-600 transition-colors"
+                        variant="danger-outline"
+                        size="sm"
                     >
                         Delete
-                    </button>
+                    </Button>
                 </div>
             )
         }
@@ -201,12 +205,13 @@ export const TeacherCoursesPage: React.FC = () => {
                     >
                         + Create Course
                     </Button>
-                    <Link
+                    <ButtonLink
                         to="/teacher/materials"
-                        className="px-4 py-2 bg-slate-900 text-white font-medium rounded-lg text-sm hover:bg-slate-800 transition-colors shadow-sm"
+                        variant="secondary"
+                        size="sm"
                     >
                         Manage All Materials
-                    </Link>
+                    </ButtonLink>
                 </div>
             </div>
 

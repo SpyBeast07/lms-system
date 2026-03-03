@@ -123,13 +123,12 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 )}
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                    <button
-                        type="button"
+                    <Button
+                        variant="ghost"
                         onClick={handleClose}
-                        className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
                     >
                         Cancel
-                    </button>
+                    </Button>
                     <Button type="submit" isLoading={isSubmitting}>
                         Create User
                     </Button>

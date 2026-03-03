@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal } from './Modal';
 import { Button } from '../Button';
+import { type ButtonVariant } from '../ButtonStyles';
 
 interface ConfirmDialogProps {
     isOpen: boolean;
@@ -26,31 +27,25 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     isLoading = false
 }) => {
 
-    const getConfirmButtonStyles = () => {
-        switch (variant) {
-            case 'danger': return 'bg-red-600 hover:bg-red-700 focus:ring-red-500 border-transparent text-white';
-            case 'warning': return 'bg-amber-500 hover:bg-amber-600 focus:ring-amber-500 border-transparent text-white';
-            case 'primary': default: return '';
-        }
-    };
+    const confirmVariant: ButtonVariant = variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'primary';
 
     return (
         <Modal isOpen={isOpen} onClose={onCancel} title={title}>
             <div className="mb-6">
-                <p className="text-slate-600">{message}</p>
+                <p className="text-slate-600 leading-relaxed">{message}</p>
             </div>
-            <div className="flex items-center justify-end gap-3 mt-8">
-                <button
+            <div className="flex items-center justify-end gap-3 mt-8 border-t border-slate-100 pt-5">
+                <Button
+                    variant="ghost"
                     onClick={onCancel}
                     disabled={isLoading}
-                    className="px-4 py-2 font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-200"
                 >
                     {cancelText}
-                </button>
+                </Button>
                 <Button
+                    variant={confirmVariant}
                     onClick={onConfirm}
                     isLoading={isLoading}
-                    className={getConfirmButtonStyles()}
                 >
                     {confirmText}
                 </Button>
@@ -58,3 +53,4 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </Modal>
     );
 };
+

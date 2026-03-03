@@ -113,37 +113,41 @@ export const ManageMaterialsPage: React.FC = () => {
             cell: ({ row }: { row: any }) => (
                 <div className="flex justify-start gap-2">
                     {row.file_url && !row.is_deleted && (
-                        <button
+                        <Button
+                            variant="success-outline"
+                            size="sm"
                             onClick={() => handleDownload(row.file_url)}
-                            disabled={presignedMutation.isPending}
-                            className="text-emerald-600 hover:text-emerald-800 font-medium text-sm transition-colors px-2 py-1 rounded hover:bg-emerald-50"
+                            isLoading={presignedMutation.isPending}
                         >
                             Download
-                        </button>
+                        </Button>
                     )}
 
                     {!row.is_deleted ? (
                         <>
-                            <button
+                            <Button
+                                variant="indigo-ghost"
+                                size="sm"
                                 onClick={() => openEditModal(row)}
-                                className="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors px-2 py-1 rounded hover:bg-indigo-50"
                             >
                                 Edit
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="danger-outline"
+                                size="sm"
                                 onClick={() => setDeleteTarget(row.id.toString())}
-                                className="text-red-500 hover:text-red-700 font-medium text-sm transition-colors px-2 py-1 rounded hover:bg-red-50"
                             >
                                 Delete
-                            </button>
+                            </Button>
                         </>
                     ) : (
-                        <button
+                        <Button
+                            variant="primary"
+                            size="sm"
                             onClick={() => setRestoreTarget(row.id.toString())}
-                            className="text-amber-600 hover:text-amber-800 font-medium text-sm transition-colors px-2 py-1 rounded hover:bg-amber-50"
                         >
                             Restore
-                        </button>
+                        </Button>
                     )}
                 </div>
             )
@@ -209,13 +213,13 @@ export const ManageMaterialsPage: React.FC = () => {
                         placeholder="e.g. Chapter 4 Lecture Notes"
                     />
                     <div className="pt-4 flex justify-end gap-3 border-t border-slate-200">
-                        <button
+                        <Button
                             type="button"
                             onClick={() => setEditTarget(null)}
-                            className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                            variant="ghost"
                         >
                             Cancel
-                        </button>
+                        </Button>
                         <Button type="submit" isLoading={updateMutation.isPending} variant="primary">
                             Save Changes
                         </Button>

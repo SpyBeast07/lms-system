@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNotificationsQuery, useMarkAllNotificationsReadMutation } from '../hooks/useNotifications';
 import { useNotificationStore } from '../../../app/store/notificationStore';
 import { NotificationDropdown } from './NotificationDropdown';
+import { Button } from '../../../shared/components/Button';
 
 export const NotificationBell: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -33,9 +34,11 @@ export const NotificationBell: React.FC = () => {
 
     return (
         <div className="relative" ref={dropdownRef}>
-            <button
+            <Button
+                variant="ghost"
+                size="sm"
                 onClick={toggleDropdown}
-                className="relative p-2 text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="relative !rounded-full !p-2 bg-slate-100 hover:bg-slate-200"
                 aria-label="Notifications"
             >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -46,7 +49,7 @@ export const NotificationBell: React.FC = () => {
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
-            </button>
+            </Button>
 
             {isOpen && (
                 <NotificationDropdown

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Notification } from '../schemas';
 import { useMarkNotificationReadMutation } from '../hooks/useNotifications';
+import { Button } from '../../../shared/components/Button';
 
 interface Props {
     notifications: Notification[];
@@ -16,20 +17,20 @@ export const NotificationDropdown: React.FC<Props> = ({ notifications, onClose, 
         if (!notification.is_read) {
             markReadMutation.mutate(notification.id);
         }
-        // In a real app, you might also route the user based on notification.type
     };
 
     return (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 overflow-hidden z-50 transform origin-top-right transition-all">
             <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 className="text-sm font-semibold text-slate-800">Notifications</h3>
-                <button
+                <Button
                     onClick={onMarkAllRead}
                     disabled={isMarkingAll || notifications.length === 0}
-                    className="text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors"
+                    variant="indigo-ghost"
+                    size="xs"
                 >
                     Mark all as read
-                </button>
+                </Button>
             </div>
 
             <div className="max-h-96 overflow-y-auto w-full custom-scrollbar">
@@ -75,14 +76,17 @@ export const NotificationDropdown: React.FC<Props> = ({ notifications, onClose, 
 
             {notifications.length > 0 && (
                 <div className="px-4 py-3 border-t border-slate-100 bg-slate-50 text-center">
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={onClose}
-                        className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                        className="text-slate-500 hover:text-slate-700"
                     >
                         Close
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>
     );
 };
+

@@ -5,6 +5,7 @@ export interface ActivityLogsFilters {
     page?: number;
     size?: number;
     user_id?: number | null;
+    course_id?: number | null;
     action?: string;
 }
 
@@ -15,6 +16,7 @@ export const activityLogsApi = {
             size: filters.size || 20,
         };
         if (filters.user_id) params.user_id = filters.user_id;
+        if (filters.course_id) params.course_id = filters.course_id;
         if (filters.action) params.action = filters.action;
 
         const response = await api.get('/activity-logs/', { params });

@@ -11,6 +11,7 @@ async def log_action(db: AsyncSession, schema: ActivityLogCreate, school_id: Opt
     log = ActivityLog(
         user_id=schema.user_id,
         school_id=school_id,
+        course_id=schema.course_id,
         action=schema.action,
         entity_type=schema.entity_type,
         entity_id=schema.entity_id,
@@ -26,13 +27,17 @@ async def get_activity_logs(
     page: int = 1, 
     size: int = 20, 
     user_id: Optional[int] = None,
+    course_id: Optional[int] = None,
     action: Optional[str] = None,
     exclude_actions: Optional[list] = None,
     user_role: Optional[str] = None,
     school_id: Optional[int] = None,
 ) -> PaginatedActivityLogs:
     
-    query = select(ActivityLog).options(selectinload(ActivityLog.user))
+    query = select(ActivityLog).options(
+        selectinload(ActivityLog.user),
+        selectinload(ActivityLog.course)
+    )
     count_query = select(func.count()).select_from(ActivityLog)
     
     if school_id is not None:
@@ -43,6 +48,10 @@ async def get_activity_logs(
         query = query.where(ActivityLog.user_id == user_id)
         count_query = count_query.where(ActivityLog.user_id == user_id)
         
+    if course_id is not None:
+        query = query.where(ActivityLog.course_id == course_id)
+        count_query = count_query.where(ActivityLog.course_id == course_id)
+
     if action is not None:
         query = query.where(ActivityLog.action == action)
         count_query = count_query.where(ActivityLog.action == action)

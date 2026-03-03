@@ -18,10 +18,12 @@ from app.core.storage import get_minio_client
 
 async def create_submission(db: AsyncSession, student_id: int, schema: SubmissionCreate, school_id: int) -> Submission:
     # 1. Fetch assignment and check deadline
-    assignment_result = await db.scalars(
-        select(Assignment).where(Assignment.material_id == schema.assignment_id)
+    assignment_result = await db.execute(
+        select(Assignment)
+        .options(selectinload(Assignment.material))
+        .where(Assignment.material_id == schema.assignment_id)
     )
-    assignment = assignment_result.first()
+    assignment = assignment_result.scalar_one_or_none()
     
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found.")
@@ -59,11 +61,12 @@ async def create_submission(db: AsyncSession, student_id: int, schema: Submissio
     
     await log_action(db, ActivityLogCreate(
         user_id=student_id,
+        course_id=assignment.material.course_id,
         action="submit_assignment",
         entity_type="submission",
         entity_id=submission.id,
         details=f"Student {student_id} submitted to assignment {schema.assignment_id} in school {school_id}"
-    ))
+    ), school_id=school_id)
     
     # Refetch with student loaded to match SubmissionRead schema
     result = await db.scalars(
@@ -152,12 +155,15 @@ async def get_assignment_submissions(db: AsyncSession, assignment_id: int, teach
     return {"total_count": count, "results": results}
 
 async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int, school_id: int, schema: SubmissionGrade) -> Submission:
-    result = await db.scalars(
+    result = await db.execute(
         select(Submission)
-        .options(selectinload(Submission.student))
+        .options(
+            selectinload(Submission.student),
+            selectinload(Submission.assignment).selectinload(Assignment.material)
+        )
         .where(Submission.id == submission_id, Submission.school_id == school_id)
     )
-    submission = result.first()
+    submission = result.scalar_one_or_none()
     if not submission:
         return None
         
@@ -180,6 +186,7 @@ async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int
     
     await log_action(db, ActivityLogCreate(
         user_id=teacher_id,
+        course_id=submission.assignment.material.course_id,
         action="assignment_graded",
         entity_type="submission",
         entity_id=submission.id,

@@ -11,8 +11,16 @@ class UserLogInfo(BaseModel):
     class Config:
         from_attributes = True
 
+class CourseLogInfo(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        from_attributes = True
+
 class ActivityLogCreate(BaseModel):
     user_id: Optional[int] = None
+    course_id: Optional[int] = None
     action: str
     entity_type: Optional[str] = None
     entity_id: Optional[int] = None
@@ -21,6 +29,7 @@ class ActivityLogCreate(BaseModel):
 class ActivityLogRead(BaseModel):
     id: int
     user_id: Optional[int] = None
+    course_id: Optional[int] = None
     action: str
     entity_type: Optional[str] = None
     entity_id: Optional[int] = None
@@ -28,6 +37,7 @@ class ActivityLogRead(BaseModel):
     created_at: datetime
     
     user: Optional[UserLogInfo] = None
+    course: Optional[CourseLogInfo] = None
 
     class Config:
         from_attributes = True

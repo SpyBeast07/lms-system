@@ -23,9 +23,10 @@ export const TeacherReviewPage: React.FC = () => {
     // 3. Fetch Materials for the selected Teacher + Course
     const { data: materials, isLoading: isLoadingMaterials } = useTeacherMaterialsQuery(selectedTeacherId, selectedCourseId);
 
-    // 4. Fetch Activity Logs for the selected Teacher
+    // 4. Fetch Activity Logs for the selected Teacher + Course
     const { data: logs, isLoading: isLoadingLogs } = useActivityLogsQuery({
         user_id: selectedTeacherId ? Number(selectedTeacherId) : undefined,
+        course_id: selectedCourseId ? Number(selectedCourseId) : undefined,
         size: 50
     });
 
@@ -86,6 +87,7 @@ export const TeacherReviewPage: React.FC = () => {
                             isLoading={isLoadingLogs}
                             columns={[
                                 { header: 'Action', accessorKey: 'action', cell: ({ row }: any) => <span className="capitalize font-medium text-indigo-600">{row.action.replace('_', ' ')}</span> },
+                                { header: 'Course', cell: ({ row }: any) => <span className="text-slate-700 font-medium">{row.course?.name || '---'}</span> },
                                 { header: 'Details', accessorKey: 'details', cell: ({ row }: any) => <span className="text-slate-600 text-sm">{row.details}</span> },
                                 { header: 'Date', accessorKey: 'created_at', cell: ({ row }: any) => <span className="text-slate-400 text-xs">{new Date(row.created_at).toLocaleString()}</span> }
                             ]}

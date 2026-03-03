@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from app.features.schools.models import School
+    from app.features.courses.models import Course
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
@@ -16,6 +17,9 @@ class ActivityLog(Base):
     
     school_id: Mapped[int | None] = mapped_column(
         ForeignKey("schools.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    course_id: Mapped[int | None] = mapped_column(
+        ForeignKey("course.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
     # E.g. 'login', 'create_course', 'submit_assignment', 'grade_submission'
@@ -34,3 +38,4 @@ class ActivityLog(Base):
 
     user = relationship("User")
     school = relationship("School")
+    course = relationship("Course")

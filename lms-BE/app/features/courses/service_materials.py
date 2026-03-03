@@ -45,6 +45,7 @@ async def create_notes(db: AsyncSession, teacher_id: int, data: NotesCreate, sch
 
     await log_action(db, ActivityLogCreate(
         user_id=teacher_id,
+        course_id=material.course_id,
         action="create_notes",
         entity_type="material",
         entity_id=material.id,
@@ -92,6 +93,7 @@ async def create_assignment(
 
     await log_action(db, ActivityLogCreate(
         user_id=teacher_id,
+        course_id=material.course_id,
         action="create_assignment",
         entity_type="material",
         entity_id=material.id,

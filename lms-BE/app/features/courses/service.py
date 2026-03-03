@@ -37,6 +37,7 @@ async def create_course(db: AsyncSession, course_in: CourseCreate, user: User) -
     
     await log_action(db, ActivityLogCreate(
         action="create_course",
+        course_id=course.id,
         entity_type="course",
         entity_id=course.id,
         details=f"Course '{course.name}' created by {user.role} {user.name} for school {school_id}"
@@ -159,6 +160,7 @@ async def soft_delete_course(db: AsyncSession, course: Course):
 
     await log_action(db, ActivityLogCreate(
         action="course_deleted",
+        course_id=cid,
         entity_type="course",
         entity_id=cid,
         details=f"Course '{cname}' soft-deleted"
@@ -173,6 +175,7 @@ async def restore_course(db: AsyncSession, course: Course):
 
     await log_action(db, ActivityLogCreate(
         action="course_restored",
+        course_id=cid,
         entity_type="course",
         entity_id=cid,
         details=f"Course '{cname}' restored"

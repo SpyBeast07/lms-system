@@ -36,6 +36,7 @@ async def get_logs(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     user_id: Optional[int] = Query(None),
+    course_id: Optional[int] = Query(None),
     action: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -53,6 +54,7 @@ async def get_logs(
         page=page, 
         size=size, 
         user_id=user_id, 
+        course_id=course_id,
         action=action,
         user_role=target_role,
         school_id=school_id

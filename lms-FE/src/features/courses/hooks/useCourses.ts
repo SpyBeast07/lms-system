@@ -25,6 +25,8 @@ export const useCreateCourseMutation = () => {
         mutationFn: (data: CourseCreateData) => coursesService.createCourse(data),
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: COURSES_KEY });
+            queryClient.invalidateQueries({ queryKey: [{ entity: 'teacher_courses' }] });
+            queryClient.invalidateQueries({ queryKey: [{ entity: 'stats' }] });
         }
     });
 };
@@ -35,6 +37,8 @@ export const useDeleteCourseMutation = () => {
         mutationFn: (id: string) => coursesService.deleteCourse(id),
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: COURSES_KEY });
+            queryClient.invalidateQueries({ queryKey: [{ entity: 'teacher_courses' }] });
+            queryClient.invalidateQueries({ queryKey: [{ entity: 'stats' }] });
         }
     });
 };

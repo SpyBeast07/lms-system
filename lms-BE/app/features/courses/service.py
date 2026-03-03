@@ -13,13 +13,25 @@ from app.features.users.models import User
 from app.features.activity_logs.service import log_action
 from app.features.activity_logs.schemas import ActivityLogCreate
 
-async def create_course(db: AsyncSession, course_in: CourseCreate, school_id: int) -> Course:
+async def create_course(db: AsyncSession, course_in: CourseCreate, user: User) -> Course:
+    school_id = user.school_id
     course = Course(
         name=course_in.name,
         description=course_in.description,
         school_id=school_id
     )
     db.add(course)
+    await db.flush() # Get course.id
+    
+    # If the creator is a teacher, automatically assign them to the course
+    if user.role == "teacher":
+        mapping = TeacherCourse(
+            teacher_id=user.id,
+            course_id=course.id,
+            school_id=school_id
+        )
+        db.add(mapping)
+
     await db.commit()
     await db.refresh(course)
     
@@ -27,7 +39,7 @@ async def create_course(db: AsyncSession, course_in: CourseCreate, school_id: in
         action="create_course",
         entity_type="course",
         entity_id=course.id,
-        details=f"Course '{course.name}' created for school {school_id}"
+        details=f"Course '{course.name}' created by {user.role} {user.name} for school {school_id}"
     ), school_id=school_id)
 
     return course

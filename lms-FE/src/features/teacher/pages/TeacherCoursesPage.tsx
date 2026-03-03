@@ -8,6 +8,16 @@ import { DashboardSummary } from '../../../shared/components/widgets/DashboardSu
 import { ActivityTimeline } from '../../../shared/components/widgets/ActivityTimeline';
 import { useTeacherStatsQuery } from '../../../shared/hooks/useStats';
 import { useMyActivityLogsQuery } from '../../activityLogs/hooks/useActivityLogs';
+import { useCreateCourseMutation, useDeleteCourseMutation } from '../../courses/hooks/useCourses';
+import { CreateCourseModal } from '../../courses/components/CreateCourseModal';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { courseCreateSchema, type CourseCreateData } from '../../courses/schemas';
+import { mutationToastHandlers } from '../../../shared/utils/queryToastHelpers';
+import { useGenerateCourseContent } from '../../ai/hooks';
+import { useToastStore } from '../../../app/store/toastStore';
+import { Button } from '../../../shared/components/Button';
+import { ConfirmDialog } from '../../../shared/components/ui/ConfirmDialog';
 import type { Course } from '../../courses/schemas';
 
 const CourseCountsCell = ({ courseId }: { courseId: string }) => {
@@ -38,6 +48,64 @@ export const TeacherCoursesPage: React.FC = () => {
     const { data, isLoading, isError, error } = useTeacherCourses(page, limit);
     const { data: stats, isLoading: isLoadingStats } = useTeacherStatsQuery();
     const { data: myLogs, isLoading: isLoadingLogs } = useMyActivityLogsQuery(8);
+
+    const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+    const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+    const createMutation = useCreateCourseMutation();
+    const deleteMutation = useDeleteCourseMutation();
+    const generateContentMutation = useGenerateCourseContent();
+    const { addToast } = useToastStore();
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<CourseCreateData>({
+        resolver: zodResolver(courseCreateSchema),
+    });
+
+    const onSubmit = (data: CourseCreateData) => {
+        createMutation.mutate(data, mutationToastHandlers(
+            'Course created successfully!',
+            undefined,
+            () => {
+                setCreateModalOpen(false);
+                reset();
+            }
+        ));
+    };
+
+    const handleDeleteConfirm = () => {
+        if (!courseToDelete) return;
+
+        deleteMutation.mutate(courseToDelete, mutationToastHandlers(
+            'Course deleted successfully.',
+            undefined,
+            () => setCourseToDelete(null),
+            () => setCourseToDelete(null)
+        ));
+    };
+
+    const handleGenerateFullAi = () => {
+        const currentDescription = watch('description');
+        const courseName = watch('name');
+        const contextToUse = currentDescription?.trim() || courseName?.trim();
+
+        if (!contextToUse) {
+            addToast('Please provide a course name or context for the AI', 'error');
+            return;
+        }
+
+        generateContentMutation.mutate(contextToUse, {
+            onSuccess: (generatedText) => {
+                setValue('description', generatedText);
+                addToast('AI course content generated successfully!', 'success');
+            }
+        });
+    };
 
     const activities = myLogs?.items?.slice(0, 8).map((log: any) => ({
         id: log.id.toString(),
@@ -74,7 +142,7 @@ export const TeacherCoursesPage: React.FC = () => {
         },
         {
             header: 'Quick Actions',
-            cell: () => (
+            cell: ({ row }: { row: Course }) => (
                 <div className="flex gap-2">
                     <Link
                         to="/teacher/upload-notes"
@@ -88,6 +156,19 @@ export const TeacherCoursesPage: React.FC = () => {
                     >
                         + New Assignment
                     </Link>
+                    <Link
+                        to={'/teacher/courses/$courseId'}
+                        params={{ courseId: row.id.toString() }}
+                        className="text-xs font-medium px-2 py-1 bg-slate-100 border border-slate-200 shadow-sm rounded hover:bg-slate-200 text-slate-700 transition-colors"
+                    >
+                        View Details
+                    </Link>
+                    <button
+                        onClick={() => setCourseToDelete(row.id.toString())}
+                        className="text-xs font-medium px-2 py-1 bg-red-50 border border-red-100 shadow-sm rounded hover:bg-red-100 text-red-600 transition-colors"
+                    >
+                        Delete
+                    </button>
                 </div>
             )
         }
@@ -112,12 +193,21 @@ export const TeacherCoursesPage: React.FC = () => {
                     <h1 className="text-2xl font-bold text-slate-800">My Assigned Courses</h1>
                     <p className="text-sm text-slate-500 mt-1">Manage modules you are actively instructing.</p>
                 </div>
-                <Link
-                    to="/teacher/materials"
-                    className="px-4 py-2 bg-slate-900 text-white font-medium rounded-lg text-sm hover:bg-slate-800 transition-colors shadow-sm"
-                >
-                    Manage All Materials
-                </Link>
+                <div className="flex gap-3">
+                    <Button
+                        onClick={() => setCreateModalOpen(true)}
+                        variant="primary"
+                        className="text-sm"
+                    >
+                        + Create Course
+                    </Button>
+                    <Link
+                        to="/teacher/materials"
+                        className="px-4 py-2 bg-slate-900 text-white font-medium rounded-lg text-sm hover:bg-slate-800 transition-colors shadow-sm"
+                    >
+                        Manage All Materials
+                    </Link>
+                </div>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -138,6 +228,32 @@ export const TeacherCoursesPage: React.FC = () => {
             <div className="pt-4">
                 <ActivityTimeline activities={activities} isLoading={isLoadingLogs} />
             </div>
+
+            <CreateCourseModal
+                isOpen={isCreateModalOpen}
+                onClose={() => {
+                    setCreateModalOpen(false);
+                    reset();
+                }}
+                onSubmit={handleSubmit(onSubmit)}
+                onGenerateFullAi={handleGenerateFullAi}
+                isGeneratingAi={generateContentMutation.isPending}
+                register={register}
+                errors={errors}
+                watch={watch}
+                setValue={setValue}
+            />
+
+            <ConfirmDialog
+                isOpen={courseToDelete !== null}
+                title="Confirm Deletion"
+                message="Are you sure you want to delete this course? It will be archived and hidden from students."
+                confirmText="Delete Course"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setCourseToDelete(null)}
+            />
         </div>
     );
 };

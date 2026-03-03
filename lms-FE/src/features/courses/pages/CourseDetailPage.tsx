@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, Link } from '@tanstack/react-router';
+import { useParams, Link, useLocation } from '@tanstack/react-router';
 import { useCourseQuery } from '../hooks/useCourses';
 import { useTeacherAssignmentsQuery, useStudentEnrollmentsQuery } from '../../enrollments/hooks/useEnrollments';
 import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
@@ -7,6 +7,10 @@ import { Table } from '../../../shared/components/ui/Table';
 
 export const CourseDetailPage: React.FC = () => {
     const { courseId } = useParams({ strict: false }) as { courseId: string };
+    const { pathname } = useLocation();
+
+    // Choose back link based on current path prefix
+    const backLink = pathname.startsWith('/teacher') ? '/teacher/courses' : '/principal/courses';
 
     const { data: course, isLoading: isLoadingCourse, isError, error } = useCourseQuery(courseId);
     const { data: teacherAssignments, isLoading: isLoadingTeachers } = useTeacherAssignmentsQuery();
@@ -25,7 +29,7 @@ export const CourseDetailPage: React.FC = () => {
             <div className="flex items-center justify-between pb-6 border-b border-slate-200">
                 <div>
                     <div className="flex items-center gap-3 mb-1">
-                        <Link to={'/principal/courses'} className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">
+                        <Link to={backLink} className="text-sm font-medium text-slate-500 hover:text-indigo-600 transition-colors">
                             ← Back to Courses
                         </Link>
                     </div>

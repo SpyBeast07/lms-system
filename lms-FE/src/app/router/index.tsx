@@ -334,6 +334,12 @@ const teacherCoursesRoute = createRoute({
     component: TeacherCoursesPage,
 });
 
+const teacherCourseDetailRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/courses/$courseId',
+    component: CourseDetailPage,
+});
+
 const teacherUploadRoute = createRoute({
     getParentRoute: () => teacherRoute,
     path: '/upload-notes',
@@ -483,6 +489,7 @@ const routeTree = rootRoute.addChildren([
     teacherRoute.addChildren([
         teacherIndexRoute,
         teacherCoursesRoute,
+        teacherCourseDetailRoute,
         teacherUsersRoute,
         teacherEnrollmentsRoute,
         teacherUploadRoute,

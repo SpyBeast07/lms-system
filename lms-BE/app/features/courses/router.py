@@ -13,15 +13,15 @@ router = APIRouter(prefix="/courses", tags=["Courses"])
 from app.core.school_guard import validate_school_subscription
 from app.features.users.models import User
 
-# CREATE → principal
+# CREATE → principal or teacher
 @router.post("/", response_model=CourseRead)
 async def create_course_api(
     course_in: CourseCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("principal")),
+    current_user: User = Depends(require_role("principal", "teacher")),
     school_info = Depends(validate_school_subscription)
 ):
-    return await course_crud.create_course(db, course_in, current_user.school_id)
+    return await course_crud.create_course(db, course_in, current_user)
 
 
 from app.core.pagination import PaginatedResponse
@@ -54,35 +54,59 @@ async def get_course_api(
     return course
 
 
-# UPDATE → principal
+# UPDATE → principal or teacher
 @router.put("/{course_id}", response_model=CourseRead)
 async def update_course_api(
     course_id: int,
     data: CourseUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("principal")),
+    current_user: User = Depends(require_role("principal", "teacher")),
     school_info = Depends(validate_school_subscription)
 ):
     school_id = current_user.school_id
     course = await course_crud.get_course(db, course_id, school_id=school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    # If teacher, verify they are assigned to this course
+    if current_user.role == "teacher":
+        from app.features.enrollments.models_teacher import TeacherCourse
+        mapping = await db.scalar(
+            select(TeacherCourse).where(
+                TeacherCourse.teacher_id == current_user.id,
+                TeacherCourse.course_id == course_id
+            )
+        )
+        if not mapping:
+            raise HTTPException(status_code=403, detail="You can only update courses you are assigned to")
 
     return await course_crud.update_course(db, course, data)
 
 
-# DELETE → principal
+# DELETE → principal or teacher
 @router.delete("/{course_id}")
 async def delete_course_api(
     course_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role("principal")),
+    current_user: User = Depends(require_role("principal", "teacher")),
     school_info = Depends(validate_school_subscription)
 ):
     school_id = current_user.school_id
     course = await course_crud.get_course(db, course_id, school_id=school_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
+
+    # If teacher, verify they are assigned to this course
+    if current_user.role == "teacher":
+        from app.features.enrollments.models_teacher import TeacherCourse
+        mapping = await db.scalar(
+            select(TeacherCourse).where(
+                TeacherCourse.teacher_id == current_user.id,
+                TeacherCourse.course_id == course_id
+            )
+        )
+        if not mapping:
+            raise HTTPException(status_code=403, detail="You can only delete courses you are assigned to")
 
     await course_crud.soft_delete_course(db, course)
     return {"status": "deleted"}

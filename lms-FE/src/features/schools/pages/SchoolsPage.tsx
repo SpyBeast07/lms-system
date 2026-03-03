@@ -185,18 +185,28 @@ function AssignPrincipalModal({ schoolId, onClose }: { schoolId: number; onClose
 }
 
 
+import { DatePicker } from "../../../shared/components/ui/DatePicker";
+
 function CreateSchoolModal({ onClose }: { onClose: () => void }) {
     const createSchool = useCreateSchool();
-    const [formData, setFormData] = useState<SchoolCreatePayload>({
+    const [formData, setFormData] = useState({
         name: "",
-        subscription_start: new Date().toISOString().split('T')[0],
-        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year from now
+        subscription_start: new Date(),
+        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
         max_teachers: 10
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        createSchool.mutate(formData, {
+
+        // Convert dates to ISO string for the API
+        const payload: SchoolCreatePayload = {
+            ...formData,
+            subscription_start: formData.subscription_start.toISOString().split('T')[0],
+            subscription_end: formData.subscription_end.toISOString().split('T')[0],
+        };
+
+        createSchool.mutate(payload, {
             onSuccess: () => onClose(),
             onError: (err: any) => alert(err?.response?.data?.detail || "Failed to create school")
         });
@@ -204,55 +214,46 @@ function CreateSchoolModal({ onClose }: { onClose: () => void }) {
 
     return (
         <Modal isOpen={true} onClose={onClose} title="Create New School">
-            <form onSubmit={handleSubmit} className="p-1 space-y-4">
+            <form onSubmit={handleSubmit} className="p-1 space-y-5">
                 <div>
-                    <label htmlFor="school-name" className="block text-sm font-medium text-slate-700 mb-1">School Name</label>
+                    <label htmlFor="school-name" className="block text-sm font-semibold text-slate-700 mb-1.5 ml-0.5">School Name</label>
                     <input
                         id="school-name"
                         type="text"
                         required
-                        className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border outline-none bg-slate-50"
+                        placeholder="e.g. International Academy of Excellence"
+                        className="w-full h-11 px-4 border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm border outline-none bg-white hover:border-slate-300 transition-all"
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                     />
                 </div>
-                <div className="grid grid-cols-1 gap-4">
-                    <div>
-                        <label htmlFor="max-teachers" className="block text-sm font-medium text-slate-700 mb-1">Max Teachers</label>
-                        <input
-                            id="max-teachers"
-                            type="number"
-                            required
-                            min="1"
-                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2.5 border outline-none bg-slate-50"
-                            value={formData.max_teachers}
-                            onChange={e => setFormData({ ...formData, max_teachers: Number(e.target.value) })}
-                        />
-                    </div>
+
+                <div>
+                    <label htmlFor="max-teachers" className="block text-sm font-semibold text-slate-700 mb-1.5 ml-0.5">Capacity (Max Teachers)</label>
+                    <input
+                        id="max-teachers"
+                        type="number"
+                        required
+                        min="1"
+                        className="w-full h-11 px-4 border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm border outline-none bg-white hover:border-slate-300 transition-all"
+                        value={formData.max_teachers}
+                        onChange={e => setFormData({ ...formData, max_teachers: Number(e.target.value) })}
+                    />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="subscription-start" className="block text-sm font-medium text-slate-700 mb-1 text-xs uppercase tracking-wider">Start Date</label>
-                        <input
-                            id="subscription-start"
-                            type="date"
-                            required
-                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border outline-none bg-slate-50"
-                            value={formData.subscription_start}
-                            onChange={e => setFormData({ ...formData, subscription_start: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="subscription-end" className="block text-sm font-medium text-slate-700 mb-1 text-xs uppercase tracking-wider">End Date</label>
-                        <input
-                            id="subscription-end"
-                            type="date"
-                            required
-                            className="w-full border-slate-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border outline-none bg-slate-50"
-                            value={formData.subscription_end}
-                            onChange={e => setFormData({ ...formData, subscription_end: e.target.value })}
-                        />
-                    </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                    <DatePicker
+                        label="Subscription Start"
+                        selected={formData.subscription_start}
+                        onChange={(date) => date && setFormData({ ...formData, subscription_start: date })}
+                        required
+                    />
+                    <DatePicker
+                        label="Subscription End"
+                        selected={formData.subscription_end}
+                        onChange={(date) => date && setFormData({ ...formData, subscription_end: date })}
+                        required
+                    />
                 </div>
 
                 <div className="pt-6 flex justify-end gap-3 border-t border-slate-100 mt-6">

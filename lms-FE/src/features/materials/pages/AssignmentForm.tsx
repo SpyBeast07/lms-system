@@ -6,6 +6,7 @@ import { useCreateAssignmentMutation } from '../hooks/useMaterials';
 import { useTeacherCourses } from '../../teacher/hooks/useTeacherCourses';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { FormSelect } from '../../../shared/components/form/FormSelect';
+import { FormDatePicker } from '../../../shared/components/form/FormDatePicker';
 import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
 import { getErrorMessage } from '../../../shared/utils/error';
@@ -26,6 +27,7 @@ export const AssignmentForm: React.FC = () => {
         handleSubmit,
         reset,
         setValue,
+        control,
         formState: { errors },
     } = useForm<AssignmentFormData & { description?: string }>({
         resolver: zodResolver(assignmentFormSchema),
@@ -134,11 +136,12 @@ export const AssignmentForm: React.FC = () => {
                         />
                     </div>
 
-                    <FormInput
+                    <FormDatePicker
                         label="Due Date"
-                        type="date"
-                        register={register('due_date')}
+                        name="due_date"
+                        control={control}
                         error={errors.due_date?.message}
+                        required
                     />
 
                     <div className="pt-4 flex justify-end">

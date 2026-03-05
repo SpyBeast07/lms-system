@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, Enum, TIMESTAMP, Numeric, ForeignKey, UniqueConstraint, Boolean, DateTime
+from sqlalchemy import Integer, Enum, TIMESTAMP, Numeric, ForeignKey, UniqueConstraint, Boolean, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime, UTC
@@ -33,6 +33,8 @@ class StudentAssignment(Base):
     )
 
     total_score: Mapped[float | None] = mapped_column(Numeric)
+    
+    teacher_feedback: Mapped[str | None] = mapped_column(Text)
 
     status: Mapped[str] = mapped_column(
         Enum("submitted", "evaluated", name="assignment_status"),

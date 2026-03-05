@@ -61,7 +61,7 @@ async def get_submissions_by_assignment(
     school_id = current_user.school_id if current_user.role != "super_admin" else None
     return await service.get_assignment_submissions(db, assignment_id, current_user.id, school_id=school_id, limit=limit, offset=offset)
 
-@router.patch("/{submission_id}/grade", response_model=schemas.SubmissionRead)
+@router.patch("/{submission_id}/grade", response_model=schemas.UnifiedSubmissionRead)
 async def grade_submission(
     submission_id: int,
     schema: schemas.SubmissionGrade,

@@ -8,6 +8,7 @@ from app.features.courses.schemas_materials import (
     LearningMaterialUpdate,
 )
 from app.features.courses import service_materials as material_crud
+from app.features.courses.service_assignment import create_advanced_assignment
 from app.features.auth.dependencies import require_role
 
 router = APIRouter(prefix="/materials", tags=["Learning Material"])
@@ -64,7 +65,7 @@ async def create_assignment_api(
     current_user: User = Depends(require_role("teacher")),
     school_info = Depends(validate_school_subscription)
 ):
-    material = await material_crud.create_assignment(db, teacher_id, data, school_id=current_user.school_id)
+    material = await create_advanced_assignment(db, teacher_id, data, school_id=current_user.school_id)
     return {
         "id": material.id,
         "title": material.title,

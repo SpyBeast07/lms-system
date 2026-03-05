@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { assignmentSubmissionSchema, type AssignmentSubmissionData } from '../schemas';
+import { assignmentSubmissionSchema } from '../schemas';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
 import { useStudentCourses } from '../hooks/useStudentCourses';
-import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
+import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materials/hooks/useMaterials';
 import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
 import { materialsApi } from '../../materials/api';
+import { api } from '../../../shared/api/axios';
 
 export const AssignmentSubmissionPage: React.FC = () => {
     const { addToast } = useToastStore();
@@ -17,6 +19,7 @@ export const AssignmentSubmissionPage: React.FC = () => {
     const [selectedCourse, setSelectedCourse] = useState<string>('');
     const { data: materials, isLoading: isMaterialsLoading } = useCourseMaterialsQuery(selectedCourse);
 
+    const queryClient = useQueryClient();
     const assignments = materials?.filter((m: any) => m.type === 'assignment') || [];
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -29,12 +32,16 @@ export const AssignmentSubmissionPage: React.FC = () => {
         watch,
         setValue,
         formState: { errors, isSubmitting },
-    } = useForm<AssignmentSubmissionData>({
+    } = useForm<any>({
         resolver: zodResolver(assignmentSubmissionSchema),
     });
 
     const selectedAssignmentId = watch('assignment_id');
-    const selectedAssignment = assignments.find((a: any) => a.id.toString() === selectedAssignmentId);
+    const { data: assignmentDetails, isLoading: isDetailsLoading } = useAssignmentDetailsQuery(selectedAssignmentId);
+
+    // Find the summarized version from materials list to check status/attempts
+    const assignmentSummary = assignments.find((a: any) => a.id.toString() === selectedAssignmentId);
+
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -42,24 +49,19 @@ export const AssignmentSubmissionPage: React.FC = () => {
         }
     };
 
-    const onSubmit = async (data: AssignmentSubmissionData) => {
-        if (!selectedFile) {
-            addToast('Please attach your assignment file', 'error');
-            return;
-        }
-
-        if (!selectedAssignment) return;
+    const onSubmit = async (data: any) => {
+        if (!assignmentDetails) return;
 
         // Check attempts left
-        const attemptsMade = selectedAssignment.attempts_made || 0;
-        const maxAttempts = selectedAssignment.max_attempts || 1;
+        const attemptsMade = assignmentSummary?.attempts_made || 0;
+        const maxAttempts = assignmentSummary?.max_attempts || 1;
         if (attemptsMade >= maxAttempts) {
             addToast('No attempts left for this assignment', 'error');
             return;
         }
 
         // Check deadline
-        const dueDate = new Date(selectedAssignment.due_date);
+        const dueDate = new Date(assignmentSummary?.due_date || assignmentDetails.due_date);
         if (new Date() > dueDate) {
             addToast('Submission deadline has passed', 'error');
             return;
@@ -68,20 +70,46 @@ export const AssignmentSubmissionPage: React.FC = () => {
         try {
             setIsUploading(true);
 
-            // 1. Upload to MinIO
-            const uploadRes = await materialsApi.uploadFile(selectedFile);
+            if (assignmentDetails.assignment_type === 'FILE_UPLOAD') {
+                if (!selectedFile) {
+                    addToast('Please attach your assignment file', 'error');
+                    return;
+                }
+                const uploadRes = await materialsApi.uploadFile(selectedFile);
 
-            // 2. Submit to backend
-            await createSubmission.mutateAsync({
-                assignment_id: Number(data.assignment_id),
-                file_url: uploadRes.file_url,
-                comments: data.comments,
-            });
+                // 2. Submit to backend
+                await createSubmission.mutateAsync({
+                    assignment_id: Number(data.assignment_id),
+                    file_url: uploadRes.file_url,
+                    object_name: uploadRes.object_name,
+                    comments: data.comments,
+                });
+            } else {
+                // MCQ or TEXT submission
+                // We use the new attempt endpoint
+                await api.post('/assignments/submit', {
+                    assignment_id: Number(data.assignment_id),
+                    answers: data.answers,
+                });
+
+                // Manually invalidate materials to update submission count/status
+                queryClient.invalidateQueries({ queryKey: [{ entity: 'materials' }] });
+            }
 
             addToast('Assignment submitted successfully!', 'success');
-            reset({ assignment_id: '', comments: '' });
+
+            // Clear only the answers and comments, keep the assignment selected
+            // This allows the user to see the "Attempts Used" update and the "Submitted" status
+            reset({
+                assignment_id: data.assignment_id,
+                comments: '',
+                answers: assignmentDetails.questions.map((q: any) => ({
+                    question_id: q.id,
+                    selected_option_id: undefined,
+                    answer_text: '',
+                }))
+            });
             setSelectedFile(null);
-            setSelectedCourse('');
 
         } catch (error: any) {
             console.error('Submission error:', error);
@@ -91,31 +119,58 @@ export const AssignmentSubmissionPage: React.FC = () => {
         }
     };
 
-    const isPastDue = selectedAssignment ? new Date() > new Date(selectedAssignment.due_date) : false;
-    const noAttemptsLeft = selectedAssignment ? (selectedAssignment.attempts_made || 0) >= (selectedAssignment.max_attempts || 1) : false;
+    const onInvalid = (errors: any) => {
+        console.error('Form validation errors:', errors);
+        const firstErrorPath = Object.keys(errors)[0];
+        const errorDetail = firstErrorPath ? errors[firstErrorPath]?.message : 'Check form fields';
+        let detailMsg = errorDetail;
+        if (firstErrorPath === 'answers' && Array.isArray(errors.answers)) {
+            const firstAnsErr = errors.answers.find((e: any) => e);
+            if (firstAnsErr) {
+                detailMsg = (Object.values(firstAnsErr)[0] as any)?.message || 'Invalid assessment answers';
+            }
+        }
+        addToast(`Validation failed: ${detailMsg || 'Invalid field format'}`, 'error');
+    };
+
+    const isPastDue = assignmentSummary ? new Date() > new Date(assignmentSummary.due_date) : false;
+    const noAttemptsLeft = assignmentSummary ? (assignmentSummary.attempts_made || 0) >= (assignmentSummary.max_attempts || 1) : false;
+
+    // Determine type from summary first, then details
+    const currentAssignmentType = (assignmentDetails?.assignment_type || assignmentSummary?.assignment_type || 'FILE_UPLOAD').toString().toUpperCase();
+
+    // Initialize answers when assignment changes
+    useEffect(() => {
+        if (assignmentDetails && assignmentDetails.questions) {
+            const initialAnswers = assignmentDetails.questions.map((q: any) => ({
+                question_id: q.id,
+                selected_option_id: undefined,
+                answer_text: '',
+            }));
+            setValue('answers', initialAnswers);
+        }
+    }, [assignmentDetails, setValue]);
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 pb-12">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Assignment Submission Portal</h1>
-                    <p className="text-slate-500 mt-2">Manage your coursework, track attempts, and upload your final submissions.</p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Assignment Portal</h1>
+                    <p className="text-slate-500 mt-2">Manage your coursework and complete assessments.</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Selection & Details Sidebar */}
-                <div className="lg:col-span-5 space-y-6">
+                <div className="lg:col-span-4 space-y-6">
                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                            <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">1</span>
                             Selection Context
                         </h2>
 
                         <div>
-                            <label htmlFor="submission-course" className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Course</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Course</label>
                             <select
-                                id="submission-course"
                                 value={selectedCourse}
                                 onChange={(e) => {
                                     setSelectedCourse(e.target.value);
@@ -131,10 +186,9 @@ export const AssignmentSubmissionPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <label htmlFor="submission-assignment" className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Assignment</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Select Assignment</label>
                             <select
                                 {...register('assignment_id')}
-                                id="submission-assignment"
                                 disabled={!selectedCourse || isMaterialsLoading}
                                 className="w-full rounded-xl border-slate-200 shadow-sm focus:ring-indigo-500 py-3 px-4 bg-slate-50 text-slate-700 font-medium disabled:opacity-50"
                             >
@@ -143,44 +197,27 @@ export const AssignmentSubmissionPage: React.FC = () => {
                                     <option key={a.id} value={a.id}>{a.title}</option>
                                 ))}
                             </select>
-                            {errors.assignment_id && <p className="text-rose-500 text-xs mt-1 ml-1">{errors.assignment_id.message}</p>}
+                            {errors.assignment_id && <p className="text-rose-500 text-xs mt-1 ml-1">{errors.assignment_id.message as string}</p>}
                         </div>
                     </div>
 
-                    {selectedAssignment && (
-                        <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-
-                            <h3 className="text-xl font-bold mb-6 relative z-10">{selectedAssignment.title}</h3>
-
-                            <div className="space-y-6 relative z-10">
-                                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                                    <span className="text-slate-400 text-sm">Status</span>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${selectedAssignment.submission_status === 'submitted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                                        }`}>
-                                        {selectedAssignment.submission_status || 'Pending'}
-                                    </span>
+                    {assignmentSummary && (
+                        <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-xl relative overflow-hidden">
+                            <h3 className="text-xl font-bold mb-4">{assignmentSummary.title}</h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                                    <span className="text-slate-400">Type</span>
+                                    <span className="font-medium text-indigo-400">{assignmentSummary.assignment_type}</span>
                                 </div>
-
-                                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                                    <span className="text-slate-400 text-sm">Attempts Left</span>
-                                    <span className="font-mono text-lg font-bold">
-                                        {(selectedAssignment.max_attempts || 1) - (selectedAssignment.attempts_made || 0)} / {selectedAssignment.max_attempts || 1}
-                                    </span>
+                                <div className="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                                    <span className="text-slate-400">Attempts</span>
+                                    <span>{(assignmentSummary.max_attempts || 1) - (assignmentSummary.attempts_made || 0)} left</span>
                                 </div>
-
-                                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                                    <span className="text-slate-400 text-sm">Due Date</span>
-                                    <span className={`font-medium ${isPastDue ? 'text-rose-400' : 'text-slate-200'}`}>
-                                        {new Date(selectedAssignment.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-400">Due</span>
+                                    <span className={isPastDue ? 'text-rose-400' : ''}>
+                                        {new Date(assignmentSummary.due_date).toLocaleDateString()}
                                     </span>
-                                </div>
-
-                                <div>
-                                    <span className="text-slate-400 text-sm block mb-2">Instructions</span>
-                                    <p className="text-sm text-slate-300 leading-relaxed italic">
-                                        {selectedAssignment.description || "No specific instructions provided for this assignment payload."}
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -188,87 +225,116 @@ export const AssignmentSubmissionPage: React.FC = () => {
                 </div>
 
                 {/* Submission Form Area */}
-                <div className="lg:col-span-7">
-                    {!selectedAssignment ? (
+                <div className="lg:col-span-8">
+                    {!selectedAssignmentId ? (
                         <div className="h-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-12 text-center">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm mb-4">📍</div>
-                            <h3 className="text-lg font-bold text-slate-700">Ready to Submit?</h3>
-                            <p className="text-slate-500 text-sm max-w-xs mt-2">Please select a course and assignment from the selection panel to begin your submission process.</p>
+                            <h3 className="text-lg font-bold text-slate-700">Select an Assignment</h3>
+                            <p className="text-slate-500 text-sm mt-2">Choose a course and assignment from the sidebar to begin.</p>
+                        </div>
+                    ) : (isDetailsLoading || !assignmentDetails) ? (
+                        <div className="h-full flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                         </div>
                     ) : noAttemptsLeft || isPastDue ? (
-                        <div className="h-full bg-rose-50 border border-rose-100 rounded-2xl p-12 flex flex-col items-center justify-center text-center">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm mb-4 border border-rose-100">🚫</div>
+                        <div className="h-full bg-rose-50 border border-rose-100 rounded-2xl p-12 text-center">
                             <h3 className="text-xl font-bold text-rose-900">Submission Blocked</h3>
-                            <p className="text-rose-700 text-sm max-w-sm mt-3">
-                                {noAttemptsLeft
-                                    ? "You have reached the maximum allowed attempts for this assignment. Please contact your instructor for a reset if necessary."
-                                    : "The submission window for this assignment has closed as of the designated due date."}
+                            <p className="text-rose-700 text-sm mt-3">
+                                {noAttemptsLeft ? "Maximum attempts reached." : "The deadline has passed."}
                             </p>
                         </div>
                     ) : (
                         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="border-b border-slate-100 pb-6">
-                                <h2 className="text-xl font-bold text-slate-800">Final Submission</h2>
-                                <p className="text-sm text-slate-500 mt-1">Please ensure your work is final before clicking submit.</p>
+                            <div className="border-b border-slate-100 pb-4">
+                                <h2 className="text-xl font-bold text-slate-800">
+                                    {currentAssignmentType === 'FILE_UPLOAD' ? 'File Submission' : 'Assessment Form'}
+                                </h2>
+                                <p className="text-sm text-slate-500 mt-1">{assignmentDetails.description || 'Follow the instructions below.'}</p>
                             </div>
 
-                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                                <FormInput
-                                    label="Submission Comments"
-                                    type="text"
-                                    placeholder="Optional: Provide extra context or notes regarding your work..."
-                                    register={register('comments')}
-                                    error={errors.comments?.message}
-                                />
-
-                                <div>
-                                    <label htmlFor="submission-file" className="block text-sm font-bold text-slate-700 mb-2">Attached File Payload</label>
-                                    <div className={`relative group border-2 border-dashed rounded-2xl p-8 transition-all ${selectedFile ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30'
-                                        }`}>
-                                        <input
-                                            type="file"
-                                            onChange={handleFileChange}
-                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            id="submission-file"
+                            <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-8">
+                                {currentAssignmentType === 'FILE_UPLOAD' ? (
+                                    <div className="space-y-6">
+                                        <FormInput
+                                            label="Comments (Optional)"
+                                            register={register('comments')}
+                                            placeholder="Notes for your teacher..."
                                         />
-                                        <div className="flex flex-col items-center justify-center py-4">
+                                        <div className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all ${selectedFile ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 hover:border-indigo-300'}`}>
+                                            <input type="file" onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                             {selectedFile ? (
-                                                <>
-                                                    <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-2xl mb-4">📎</div>
+                                                <div>
                                                     <p className="text-emerald-800 font-bold">{selectedFile.name}</p>
-                                                    <p className="text-emerald-600 text-xs mt-1">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB · Ready for upload</p>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSelectedFile(null)}
-                                                        className="mt-4 text-xs font-bold text-rose-500 hover:text-rose-600 underline"
-                                                    >
-                                                        Remove and Replace File
-                                                    </button>
-                                                </>
+                                                    <button type="button" onClick={() => setSelectedFile(null)} className="text-xs text-rose-500 font-bold underline mt-2">Replace File</button>
+                                                </div>
                                             ) : (
-                                                <>
-                                                    <div className="w-14 h-14 bg-slate-100 text-slate-400 group-hover:bg-indigo-100 group-hover:text-indigo-600 rounded-xl flex items-center justify-center text-2xl mb-4 transition-colors">📄</div>
-                                                    <p className="text-slate-700 font-bold">Upload Your Final Work</p>
-                                                    <p className="text-slate-500 text-xs mt-1">Tap to browse or drag and drop your file here</p>
-                                                    <p className="text-[10px] text-slate-400 mt-6 font-medium">MAX 10MB · PDF, ZIP, DOCX SUPPORTED</p>
-                                                </>
+                                                <div>
+                                                    <p className="text-slate-700 font-bold">Drag & drop or click to upload</p>
+                                                    <p className="text-slate-400 text-xs mt-1">PDF, ZIP, DOCX (Max 10MB)</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="space-y-10">
+                                        {assignmentDetails.questions?.map((q: any, idx: number) => (
+                                            <div key={q.id} className="space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                                <div className="flex justify-between items-start gap-4">
+                                                    <h3 className="font-bold text-slate-800 flex gap-2">
+                                                        <span className="text-indigo-600">Q{idx + 1}.</span>
+                                                        {q.question_text}
+                                                    </h3>
+                                                    <span className="text-[10px] font-bold bg-white px-2 py-1 rounded-lg border border-slate-200 text-slate-400 uppercase tracking-tight whitespace-nowrap">
+                                                        {q.marks} Marks
+                                                    </span>
+                                                </div>
 
-                                <div className="pt-6 flex flex-col items-center">
+                                                {q.question_type === 'MCQ' ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {q.options?.map((opt: any) => (
+                                                            <label
+                                                                key={opt.id}
+                                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${watch(`answers.${idx}.selected_option_id`) === opt.id
+                                                                    ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10'
+                                                                    : 'border-white bg-white hover:border-slate-200'
+                                                                    }`}
+                                                            >
+                                                                <input
+                                                                    type="radio"
+                                                                    value={opt.id}
+                                                                    {...register(`answers.${idx}.selected_option_id` as any)}
+                                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                                />
+                                                                <span className="text-sm font-medium text-slate-700">{opt.option_text}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <textarea
+                                                        {...register(`answers.${idx}.answer_text` as any)}
+                                                        rows={4}
+                                                        className="w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-4 text-sm"
+                                                        placeholder="Type your answer here..."
+                                                    />
+                                                )}
+                                            </div>
+                                        ))}
+                                        {(!assignmentDetails.questions || assignmentDetails.questions.length === 0) && (
+                                            <div className="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                                <p className="text-slate-500 font-medium">No questions found for this assessment.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                <div className="pt-6">
                                     <Button
                                         type="submit"
                                         className="w-full py-4 rounded-xl text-lg font-bold shadow-indigo-100 shadow-xl"
                                         isLoading={isSubmitting || isUploading || createSubmission.isPending}
                                         disabled={isSubmitting || isUploading || createSubmission.isPending}
                                     >
-                                        {(isSubmitting || isUploading || createSubmission.isPending) ? 'Processing Submission...' : 'Securely Submit Assignment'}
+                                        Submit Assessment
                                     </Button>
-                                    <p className="text-[10px] text-slate-400 text-center mt-4 uppercase tracking-widest font-bold">
-                                        Your IP and timestamp will be logged for academic integrity
-                                    </p>
                                 </div>
                             </form>
                         </div>

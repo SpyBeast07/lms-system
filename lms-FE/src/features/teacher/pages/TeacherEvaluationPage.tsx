@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTeacherCourses } from '../hooks/useTeacherCourses';
-import { useCourseMaterialsQuery } from '../../materials/hooks/useMaterials';
+import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materials/hooks/useMaterials';
 import { useAssignmentSubmissionsQuery, useGradeSubmissionMutation } from '../../submissions/hooks/useSubmissions';
 import { Table } from '../../../shared/components/ui/Table';
 import { Modal } from '../../../shared/components/ui/Modal';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
-import { submissionGradeSchema, type SubmissionGradeData, type Submission } from '../../submissions/schemas';
+import { type Submission } from '../../submissions/schemas';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { DownloadButton } from '../../student/components/DownloadButton';
+import { AssessmentAnswersModal } from '../components/AssessmentAnswersModal';
 
 export const TeacherEvaluationPage: React.FC = () => {
     const { addToast } = useToastStore();
@@ -20,18 +23,29 @@ export const TeacherEvaluationPage: React.FC = () => {
     const [selectedCourse, setSelectedCourse] = useState<string>('');
     const [selectedAssignment, setSelectedAssignment] = useState<string>('');
     const [gradingSubmission, setGradingSubmission] = useState<Submission | null>(null);
+    const [reviewingAttempt, setReviewingAttempt] = useState<{ id: number; name: string } | null>(null);
 
     // Queries
+    const queryClient = useQueryClient();
     const { data: courses } = useTeacherCourses();
     const { data: materials, isLoading: isMaterialsLoading } = useCourseMaterialsQuery(selectedCourse);
     const { data: submissions, isLoading: isSubmissionsLoading } = useAssignmentSubmissionsQuery(
         selectedAssignment ? parseInt(selectedAssignment, 10) : undefined
     );
+    const { data: selectedAssignmentData } = useAssignmentDetailsQuery(selectedAssignment);
     const gradeMutation = useGradeSubmissionMutation();
 
-    // Form
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<SubmissionGradeData>({
-        resolver: zodResolver(submissionGradeSchema)
+    // Form with dynamic validation
+    const maxGrade = selectedAssignmentData ? (selectedAssignmentData.total_marks || 100) : 100;
+    const dynamicGradeSchema = z.object({
+        grade: z.number()
+            .min(0, 'Grade cannot be negative')
+            .max(maxGrade, `Grade cannot exceed max marks (${maxGrade})`),
+        feedback: z.string().optional().nullable(),
+    });
+
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<any>({
+        resolver: zodResolver(dynamicGradeSchema)
     });
 
     const assignments = materials?.filter((m: any) => !m.file_url) || [];
@@ -39,21 +53,28 @@ export const TeacherEvaluationPage: React.FC = () => {
     const handleGradeClick = (submission: Submission) => {
         setGradingSubmission(submission);
         reset({
-            grade: submission.grade ?? undefined,
-            feedback: submission.feedback || ''
+            grade: submission.grade ?? submission.total_score ?? undefined,
+            feedback: submission.feedback || submission.teacher_feedback || ''
         });
     };
 
-    const onSubmitGrade = async (data: SubmissionGradeData) => {
+    const onSubmitGrade = async (formData: any) => {
         if (!gradingSubmission) return;
 
         try {
             await gradeMutation.mutateAsync({
                 submissionId: gradingSubmission.id,
-                data
+                data: {
+                    grade: formData.grade,
+                    feedback: formData.feedback,
+                    submission_type: gradingSubmission.submission_type
+                }
             });
             addToast('Grade successfully applied!', 'success');
             setGradingSubmission(null);
+
+            // Revalidate submissions query to instantly reflect status change
+            queryClient.invalidateQueries({ queryKey: ['submissions'] });
             reset();
         } catch {
             addToast('Failed to apply grade', 'error');
@@ -66,14 +87,25 @@ export const TeacherEvaluationPage: React.FC = () => {
             cell: ({ row }: { row: Submission }) => (
                 <div>
                     <div className="font-medium text-slate-800">{row.student?.name || `Student #${row.student_id}`}</div>
-                    <div className="text-sm text-slate-500">{row.student?.email}</div>
+                    <div className="text-sm text-slate-500">{row.student?.email || ''}</div>
                 </div>
             )
         },
         {
             header: 'Submission',
             cell: ({ row }: { row: Submission }) => (
-                <DownloadButton label="Download File" objectName={row.file_url} />
+                row.submission_type === 'FILE_UPLOAD' ? (
+                    <DownloadButton label="Download File" objectName={row.file_url || ''} />
+                ) : (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-indigo-600 hover:text-indigo-700 font-semibold p-0 h-auto"
+                        onClick={() => setReviewingAttempt({ id: row.id, name: row.student?.name || 'Student' })}
+                    >
+                        Review Answers
+                    </Button>
+                )
             )
         },
         {
@@ -86,23 +118,32 @@ export const TeacherEvaluationPage: React.FC = () => {
         },
         {
             header: 'Status',
-            cell: ({ row }: { row: Submission }) => (
-                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${row.graded_at ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                    {row.graded_at ? `Graded: ${row.grade}/100` : 'Needs Grading'}
-                </span>
-            )
+            cell: ({ row }: { row: Submission }) => {
+                const isGraded = !!row.grade || row.graded_at || row.status === 'evaluated' || row.status === 'graded';
+                const score = row.grade ?? row.total_score;
+                const max = row.total_marks ?? 100;
+
+                return (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${isGraded ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                        {isGraded ? `Graded: ${score}/${max}` : 'Needs Grading'}
+                    </span>
+                );
+            }
         },
         {
             header: 'Actions',
-            cell: ({ row }: { row: Submission }) => (
-                <Button
-                    variant="secondary"
-                    onClick={() => handleGradeClick(row)}
-                >
-                    {row.graded_at ? 'Update Grade' : 'Grade Submission'}
-                </Button>
-            )
+            cell: ({ row }: { row: Submission }) => {
+                const isGraded = !!row.grade || row.graded_at || row.status === 'evaluated' || row.status === 'graded';
+                return (
+                    <Button
+                        variant="secondary"
+                        onClick={() => handleGradeClick(row)}
+                    >
+                        {isGraded ? 'Update Grade' : 'Grade Submission'}
+                    </Button>
+                );
+            }
         }
     ];
 
@@ -180,11 +221,11 @@ export const TeacherEvaluationPage: React.FC = () => {
                     </div>
 
                     <FormInput
-                        label="numericGradeOptionally/100"
+                        label={`numericGradeOptionally/${maxGrade}`}
                         type="number"
-                        placeholder="e.g. 85"
+                        placeholder={`e.g. ${Math.min(85, maxGrade)}`}
                         register={register('grade', { valueAsNumber: true })}
-                        error={errors.grade?.message}
+                        error={errors.grade?.message as string}
                     />
 
                     <div>
@@ -214,6 +255,12 @@ export const TeacherEvaluationPage: React.FC = () => {
                     </div>
                 </form>
             </Modal>
+
+            <AssessmentAnswersModal
+                attemptId={reviewingAttempt?.id || null}
+                studentName={reviewingAttempt?.name || ''}
+                onClose={() => setReviewingAttempt(null)}
+            />
         </div>
     );
 };

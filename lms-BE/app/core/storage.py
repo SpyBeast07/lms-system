@@ -206,11 +206,11 @@ class MinIOClient:
             url = self.client.presigned_get_object(
                 bucket_name=bucket,
                 object_name=object_name,
-                expires=timedelta(seconds=expiry_seconds)
+                expires=timedelta(seconds=int(expiry_seconds))
             )
             logger.info(f"Generated presigned URL for {object_name} (expires in {expiry_seconds}s)")
             return url
-        except S3Error as e:
+        except Exception as e:
             logger.error(f"Error generating presigned URL: {e}")
             raise
     

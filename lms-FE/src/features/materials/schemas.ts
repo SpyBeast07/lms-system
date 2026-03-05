@@ -28,9 +28,21 @@ export const materialUploadFormSchema = z.object({
 export const assignmentFormSchema = z.object({
     title: z.string().min(3, 'Title must be at least 3 characters'),
     course_id: z.string().min(1, 'Course is required'),
-    total_marks: z.number().min(1),
-    due_date: z.string(),
-    max_attempts: z.number().min(1)
+    total_marks: z.number().min(0),
+    due_date: z.coerce.date(),
+    max_attempts: z.number().min(1),
+    assignment_type: z.enum(['FILE_UPLOAD', 'MCQ', 'TEXT']),
+    description: z.string().optional(),
+    questions: z.array(z.object({
+        question_text: z.string().min(1, 'Question text is required'),
+        question_type: z.enum(['MCQ', 'TEXT']),
+        marks: z.number().min(0),
+        order_index: z.number().int(),
+        options: z.array(z.object({
+            option_text: z.string().min(1, 'Option text is required'),
+            is_correct: z.boolean()
+        })).optional()
+    })).optional()
 });
 
 export type MaterialNote = z.infer<typeof materialNoteSchema>;

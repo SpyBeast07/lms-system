@@ -20,5 +20,10 @@ export const submissionsApi = {
     gradeSubmission: async (submissionId: number, data: SubmissionGradeData): Promise<Submission> => {
         const response = await api.patch(`/submissions/${submissionId}/grade`, data);
         return response.data;
+    },
+
+    getAttemptDetails: async (attemptId: number) => {
+        const response = await api.get(`/assignments/attempts/${attemptId}`);
+        return response.data;
     }
 };

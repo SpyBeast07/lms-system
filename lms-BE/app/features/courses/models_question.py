@@ -19,11 +19,12 @@ class Question(Base):
     question_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     question_type: Mapped[str] = mapped_column(
-        Enum("mcq", "long", name="question_type"),
+        Enum("MCQ", "TEXT", name="question_type"),
         nullable=False
     )
 
     marks: Mapped[float] = mapped_column(Numeric, nullable=False)
+    order_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     
     assignment = relationship("Assignment", back_populates="questions")
     options = relationship("MCQOption", back_populates="question")

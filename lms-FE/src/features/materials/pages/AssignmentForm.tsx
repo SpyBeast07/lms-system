@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray, type Control, type UseFormRegister, type FieldErrors, type UseFormWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { assignmentFormSchema, type AssignmentFormData } from '../schemas';
 import { useCreateAssignmentMutation } from '../hooks/useMaterials';
@@ -12,6 +12,113 @@ import { useToastStore } from '../../../app/store/toastStore';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { useGenerateAssignmentInst } from '../../ai/hooks';
 import { Modal } from '../../../shared/components/ui/Modal';
+
+// --- Question Builder Components ---
+
+interface QuestionRowProps {
+    control: Control<AssignmentFormData>;
+    register: UseFormRegister<AssignmentFormData>;
+    index: number;
+    remove: (index: number) => void;
+    watch: UseFormWatch<AssignmentFormData>;
+    errors: FieldErrors<AssignmentFormData>;
+}
+
+const QuestionRow: React.FC<QuestionRowProps> = ({ control, register, index, remove, watch, errors }) => {
+    const questionType = watch(`questions.${index}.question_type`);
+    const { fields: options, append: appendOption, remove: removeOption } = useFieldArray({
+        control,
+        name: `questions.${index}.options` as any
+    });
+
+    return (
+        <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4 relative group">
+            <button
+                type="button"
+                onClick={() => remove(index)}
+                className="absolute top-2 right-2 text-slate-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+
+            <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-8">
+                    <FormInput
+                        label={`Question ${index + 1}`}
+                        register={register(`questions.${index}.question_text` as any)}
+                        placeholder="Enter question text..."
+                        error={(errors as any).questions?.[index]?.question_text?.message}
+                    />
+                </div>
+                <div className="col-span-4">
+                    <FormSelect
+                        label="Type"
+                        register={register(`questions.${index}.question_type` as any)}
+                        options={[
+                            { value: 'MCQ', label: 'Multiple Choice' },
+                            { value: 'TEXT', label: 'Short Text' }
+                        ]}
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+                <div className="col-span-1">
+                    <FormInput
+                        label="Marks"
+                        type="number"
+                        register={register(`questions.${index}.marks` as any, { valueAsNumber: true })}
+                        placeholder="5"
+                    />
+                </div>
+                {/* order_index removed from UI as it's handled by index + 1 for simplicity here, but kept in schema */}
+            </div>
+
+            {questionType === 'MCQ' && (
+                <div className="pl-4 border-l-2 border-slate-200 space-y-3">
+                    <div className="flex justify-between items-center">
+                        <label className="text-sm font-medium text-slate-700">Options</label>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => appendOption({ option_text: '', is_correct: false })}
+                            className="text-xs h-7 px-2"
+                        >
+                            + Add Option
+                        </Button>
+                    </div>
+                    {options.map((opt, optIndex) => (
+                        <div key={opt.id} className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                {...register(`questions.${index}.options.${optIndex}.is_correct` as any)}
+                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
+                            />
+                            <div className="flex-1">
+                                <input
+                                    {...register(`questions.${index}.options.${optIndex}.option_text` as any)}
+                                    placeholder={`Option ${optIndex + 1}`}
+                                    className="block w-full text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => removeOption(optIndex)}
+                                className="text-slate-400 hover:text-red-500"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export const AssignmentForm: React.FC = () => {
     const { data: courses, isLoading: isCoursesLoading } = useTeacherCourses();
@@ -28,13 +135,34 @@ export const AssignmentForm: React.FC = () => {
         reset,
         setValue,
         control,
+        watch,
         formState: { errors },
-    } = useForm<AssignmentFormData & { description?: string }>({
+    } = useForm<AssignmentFormData>({
         resolver: zodResolver(assignmentFormSchema),
-        defaultValues: { max_attempts: 1 }
+        defaultValues: {
+            max_attempts: 1,
+            assignment_type: 'FILE_UPLOAD',
+            total_marks: 0,
+            questions: []
+        }
     });
 
-    const onSubmit = (data: AssignmentFormData & { description?: string }) => {
+    const { fields: questions, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+        control,
+        name: "questions"
+    });
+
+    const assignmentType = watch('assignment_type');
+
+    const onSubmit = (data: AssignmentFormData) => {
+        // Validation: Ensure MCQ/TEXT assignments have at least one question
+        if (data.assignment_type === 'MCQ' || data.assignment_type === 'TEXT') {
+            if (!data.questions || data.questions.length === 0) {
+                addToast('Please add at least one question', 'error');
+                return;
+            }
+        }
+
         createMutation.mutate(data, {
             onSuccess: () => {
                 addToast('Assignment published successfully!', 'success');
@@ -62,7 +190,7 @@ export const AssignmentForm: React.FC = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="max-w-3xl mx-auto space-y-6">
             <div className="flex justify-between items-end">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800">Create New Assignment</h1>
@@ -82,15 +210,30 @@ export const AssignmentForm: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-
-                    <FormInput
-                        label="Assignment Title"
-                        type="text"
-                        placeholder="Midterm Essay Submission"
-                        register={register('title')}
-                        error={errors.title?.message}
-                    />
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="grid grid-cols-12 gap-6">
+                        <div className="col-span-8">
+                            <FormInput
+                                label="Assignment Title"
+                                type="text"
+                                placeholder="Midterm Essay Submission"
+                                register={register('title')}
+                                error={errors.title?.message}
+                            />
+                        </div>
+                        <div className="col-span-4">
+                            <FormSelect
+                                label="Assignment Type"
+                                register={register('assignment_type')}
+                                options={[
+                                    { value: 'FILE_UPLOAD', label: 'File Upload' },
+                                    { value: 'MCQ', label: 'Multiple Choice' },
+                                    { value: 'TEXT', label: 'Text Questions' }
+                                ]}
+                                error={errors.assignment_type?.message}
+                            />
+                        </div>
+                    </div>
 
                     <div>
                         <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
@@ -108,17 +251,27 @@ export const AssignmentForm: React.FC = () => {
                         )}
                     </div>
 
-                    <FormSelect
-                        label="Assign to Course"
-                        register={register('course_id')}
-                        options={[
-                            { value: '', label: 'Select a course...' },
-                            ...(((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name })) || [])
-                        ]}
-                        error={errors.course_id?.message}
-                    />
+                    <div className="grid grid-cols-2 gap-6">
+                        <FormSelect
+                            label="Assign to Course"
+                            register={register('course_id')}
+                            options={[
+                                { value: '', label: 'Select a course...' },
+                                ...(((courses as any)?.items || []).map((c: any) => ({ value: c.id, label: c.name })) || [])
+                            ]}
+                            error={errors.course_id?.message}
+                        />
 
-                    <div className="grid grid-cols-2 gap-4">
+                        <FormDatePicker
+                            label="Due Date"
+                            name="due_date"
+                            control={control}
+                            error={errors.due_date?.message}
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
                         <FormInput
                             label="Total Marks"
                             type="number"
@@ -136,19 +289,54 @@ export const AssignmentForm: React.FC = () => {
                         />
                     </div>
 
-                    <FormDatePicker
-                        label="Due Date"
-                        name="due_date"
-                        control={control}
-                        error={errors.due_date?.message}
-                        required
-                    />
+                    {assignmentType !== 'FILE_UPLOAD' && (
+                        <div className="space-y-4 pt-4 border-t border-slate-100">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-slate-800">Questionnaire</h3>
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => appendQuestion({
+                                        question_text: '',
+                                        question_type: assignmentType === 'MCQ' ? 'MCQ' : 'TEXT',
+                                        marks: 5,
+                                        order_index: questions.length
+                                    })}
+                                    className="flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add Question
+                                </Button>
+                            </div>
 
-                    <div className="pt-4 flex justify-end">
+                            {questions.map((field, index) => (
+                                <QuestionRow
+                                    key={field.id}
+                                    index={index}
+                                    control={control}
+                                    register={register}
+                                    remove={removeQuestion}
+                                    watch={watch}
+                                    errors={errors}
+                                />
+                            ))}
+
+                            {questions.length === 0 && (
+                                <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">
+                                    <p className="text-slate-500">No questions added yet. Click "Add Question" to start.</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="pt-6 flex justify-end">
                         <Button
                             type="submit"
                             isLoading={createMutation.isPending || isCoursesLoading}
                             disabled={createMutation.isPending || isCoursesLoading}
+                            className="px-8"
                         >
                             {createMutation.isPending ? 'Publishing...' : 'Publish Assignment'}
                         </Button>

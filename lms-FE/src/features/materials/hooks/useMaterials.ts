@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { materialsService } from '../services/materialsService';
 import { useAuthStore } from '../../../app/store/authStore';
 import { decodeToken } from '../../../shared/utils/jwt';
-import type { MaterialAssignment } from '../schemas';
+import type { AssignmentFormData } from '../schemas';
 
 const MATERIALS_KEY = [{ entity: 'materials' }] as const;
 
@@ -14,6 +14,14 @@ export const useCourseMaterialsQuery = (courseId: string) => {
     });
 };
 
+export const useAssignmentDetailsQuery = (assignmentId: string) => {
+    return useQuery({
+        queryKey: [...MATERIALS_KEY, 'details', assignmentId],
+        queryFn: () => materialsService.getAssignmentDetails(assignmentId),
+        enabled: !!assignmentId,
+    });
+};
+
 export const useCreateAssignmentMutation = () => {
     const queryClient = useQueryClient();
     const { accessToken } = useAuthStore();
@@ -21,7 +29,7 @@ export const useCreateAssignmentMutation = () => {
     const teacherId = tokenData?.sub;
 
     return useMutation({
-        mutationFn: async (data: Omit<MaterialAssignment, 'id' | 'teacher_id' | 'created_at'>) => {
+        mutationFn: async (data: AssignmentFormData) => {
             if (!teacherId) throw new Error('Not authenticated as teacher');
             return await materialsService.createAssignment(teacherId, data);
         },

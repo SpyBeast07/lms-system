@@ -1,8 +1,8 @@
 import { materialsApi } from '../api';
-import type { MaterialAssignment } from '../schemas';
+import type { AssignmentFormData } from '../schemas';
 
 export const materialsService = {
-    createAssignment: async (teacherId: string, data: Omit<MaterialAssignment, 'id' | 'teacher_id' | 'created_at'>) => {
+    createAssignment: async (teacherId: string, data: AssignmentFormData) => {
         return await materialsApi.createAssignment(teacherId, data);
     },
     getCourseMaterials: async (courseId: string) => {
@@ -17,7 +17,10 @@ export const materialsService = {
     restoreMaterial: async (id: string) => {
         return await materialsApi.restoreMaterial(id);
     },
-    getTeacherCourseMaterials: async (teacherId: string, courseId: string) => {
-        return await materialsApi.getTeacherCourseMaterials(teacherId, courseId);
+    getTeacherCourseMaterials: async (teacher_id: string, course_id: string) => {
+        return await materialsApi.getTeacherCourseMaterials(teacher_id, course_id);
+    },
+    getAssignmentDetails: async (assignment_id: string) => {
+        return await materialsApi.getAssignmentDetails(assignment_id);
     }
 };

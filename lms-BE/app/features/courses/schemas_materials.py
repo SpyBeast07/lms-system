@@ -14,12 +14,7 @@ class BaseMaterialCreate(BaseModel):
 class NotesCreate(BaseMaterialCreate):
     content_url: str
 
-class AssignmentCreate(BaseMaterialCreate):
-    assignment_type: str  # mcq | long
-    total_marks: float
-    due_date: date
-    max_attempts: int = 1
-    description: Optional[str] = None
+from app.features.courses.schemas_assignment import AssignmentCreate
 
 class LearningMaterialRead(BaseModel):
     id: int

@@ -14,6 +14,14 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ objectName, labe
 
     const handleDownload = async () => {
         try {
+            // If the backend already provided a fully generated MinIO presigned URL,
+            // we should not try to strip it and re-sign it.
+            if (objectName.includes('X-Amz-Signature')) {
+                window.open(objectName, '_blank');
+                addToast('Download started securely', 'success');
+                return;
+            }
+
             let cleanObjectName = '';
 
             if (objectName.startsWith('http')) {

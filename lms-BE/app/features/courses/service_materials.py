@@ -130,15 +130,52 @@ async def get_course_materials(db: AsyncSession, course_id: int, school_id: int,
     materials = result.scalars().all()
     
     # If student_id is provided, get their submissions for these materials
+    # We need to check both the legacy Submission table and the new StudentAssignment table
     submission_map = {}
     if student_id:
-        sub_stmt = select(Submission.assignment_id, func.count(Submission.id)).where(
+        from app.features.courses.models_student_assignment import StudentAssignment
+        
+        # Legacy File Submissions - get latest grade
+        sub_stmt = select(
+            Submission.assignment_id, 
+            func.count(Submission.id),
+            func.max(Submission.grade) # Simplified: taking max grade
+        ).where(
             Submission.student_id == student_id,
             Submission.school_id == school_id,
             Submission.assignment_id.in_([m.id for m in materials if m.type == "assignment"])
         ).group_by(Submission.assignment_id)
+        
         sub_result = await db.execute(sub_stmt)
-        submission_map = {row[0]: row[1] for row in sub_result.all()}
+        for row in sub_result.all():
+            submission_map[row[0]] = {
+                "attempts": row[1],
+                "score": float(row[2]) if row[2] is not None else None
+            }
+
+        # New Assessment Attempts - get best total_score
+        adv_stmt = select(
+            StudentAssignment.assignment_id, 
+            func.count(StudentAssignment.id),
+            func.max(StudentAssignment.total_score)
+        ).where(
+            StudentAssignment.student_id == student_id,
+            StudentAssignment.assignment_id.in_([m.id for m in materials if m.type == "assignment"])
+        ).group_by(StudentAssignment.assignment_id)
+        
+        adv_result = await db.execute(adv_stmt)
+        for row in adv_result.all():
+            if row[0] in submission_map:
+                submission_map[row[0]]["attempts"] += row[1]
+                # Keep the best score if it exists
+                if row[2] is not None:
+                    current_score = submission_map[row[0]]["score"]
+                    submission_map[row[0]]["score"] = max(current_score, float(row[2])) if current_score is not None else float(row[2])
+            else:
+                submission_map[row[0]] = {
+                    "attempts": row[1],
+                    "score": float(row[2]) if row[2] is not None else None
+                }
     
     response = []
     for m in materials:
@@ -161,9 +198,10 @@ async def get_course_materials(db: AsyncSession, course_id: int, school_id: int,
             item["description"] = m.assignment.description
             
             if student_id:
-                attempts_made = submission_map.get(m.id, 0)
-                item["submission_status"] = "submitted" if attempts_made > 0 else "pending"
-                item["attempts_made"] = attempts_made
+                sub_data = submission_map.get(m.id, {"attempts": 0, "score": None})
+                item["submission_status"] = "submitted" if sub_data["attempts"] > 0 else "pending"
+                item["attempts_made"] = sub_data["attempts"]
+                item["score"] = sub_data["score"]
             
         response.append(item)
         

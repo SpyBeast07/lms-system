@@ -93,14 +93,14 @@ export const CourseMaterialsPage: React.FC = () => {
                                         <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                         </svg>
-                                        Pending Assignments
+                                        Assignments & Assessments
                                     </h3>
                                 </div>
                                 <div className="divide-y divide-slate-100">
-                                    {assignments.filter((a: any) => a.submission_status !== 'submitted').length === 0 ? (
-                                        <div className="p-6 text-slate-500 text-sm italic">No assignments are due right now.</div>
+                                    {assignments.length === 0 ? (
+                                        <div className="p-6 text-slate-500 text-sm italic">No assignments are published for this course yet.</div>
                                     ) : (
-                                        assignments.filter((a: any) => a.submission_status !== 'submitted').map((assignment: any) => (
+                                        assignments.map((assignment: any) => (
                                             <Link
                                                 key={assignment.id}
                                                 to="/student/courses/$courseId"
@@ -111,15 +111,22 @@ export const CourseMaterialsPage: React.FC = () => {
                                                 <div className="flex justify-between items-start">
                                                     <div>
                                                         <p className="font-medium text-slate-800 text-sm group-hover:text-emerald-600 transition-colors">{assignment.title}</p>
-                                                        <p className="text-xs text-emerald-600 font-bold mt-1">
+                                                        <p className={`text-xs font-bold mt-1 ${assignment.submission_status === 'submitted' ? 'text-emerald-600' : 'text-amber-600'}`}>
                                                             {assignment.submission_status === 'submitted' ? '✓ Submitted' : '○ Pending'} · {assignment.attempts_made || 0}/{assignment.max_attempts || 1} Attempts · {assignment.total_marks || 100} Marks
                                                         </p>
+                                                        {assignment.score !== null && assignment.score !== undefined && (
+                                                            <div className="mt-2 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-black uppercase ring-1 ring-indigo-200">
+                                                                <span className="text-indigo-400">Score:</span> {assignment.score} / {assignment.total_marks || 100}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2 text-right">
-                                                        <span className="text-xs font-mono text-red-500 border border-red-200 bg-red-50 px-2 py-1 rounded">
+                                                        <span className={`text-xs font-mono border px-2 py-1 rounded ${new Date() > new Date(assignment.due_date) ? 'text-rose-500 border-rose-200 bg-rose-50' : 'text-slate-500 border-slate-200 bg-slate-50'}`}>
                                                             Due: {new Date(assignment.due_date).toLocaleDateString()}
                                                         </span>
-                                                        <span className="text-[10px] font-bold text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wider">Start Assignment →</span>
+                                                        <span className="text-[10px] font-bold text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity uppercase tracking-wider">
+                                                            {assignment.submission_status === 'submitted' ? 'View Details →' : 'Start Assignment →'}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </Link>

@@ -2,7 +2,7 @@ import { api } from '../../shared/api/axios';
 
 export const materialsApi = {
     // 1. Upload File (MinIO)
-    uploadFile: async (file: File): Promise<{ file_url: string; size: number }> => {
+    uploadFile: async (file: File): Promise<{ file_url: string; size: number; object_name?: string }> => {
         const formData = new FormData();
         formData.append('file', file);
 
@@ -11,7 +11,7 @@ export const materialsApi = {
                 'Content-Type': 'multipart/form-data',
             }
         });
-        return response.data; // Expecting { file_url: ..., size: ... }
+        return response.data; // Expecting { file_url: ..., size: ..., object_name: ... }
     },
 
     // 2. Create Note Record
@@ -28,11 +28,9 @@ export const materialsApi = {
 
     // 3. Create Assignment Record
     createAssignment: async (teacherId: string, data: any): Promise<any> => {
-        // Backend schema requires assignment_type, and course_id as int
         const payload = {
             ...data,
             course_id: Number(data.course_id),
-            assignment_type: 'long' // Default injection since UI lacks this field
         };
         const response = await api.post(`/materials/assignments/${teacherId}`, payload);
         return response.data;
@@ -65,6 +63,12 @@ export const materialsApi = {
     // 7. Get Teacher Specific Course Materials
     getTeacherCourseMaterials: async (teacherId: string, courseId: string) => {
         const response = await api.get(`/materials/teacher/${teacherId}/course/${courseId}`);
+        return response.data;
+    },
+
+    // 8. Get Full Assignment Details (with questions)
+    getAssignmentDetails: async (assignmentId: string) => {
+        const response = await api.get(`/assignments/${assignmentId}`);
         return response.data;
     }
 };

@@ -13,12 +13,13 @@ class Assignment(Base):
     )
 
     assignment_type: Mapped[str] = mapped_column(
-        Enum("mcq", "long", name="assignment_type"),
-        nullable=False
+        Enum("FILE_UPLOAD", "MCQ", "TEXT", name="assignment_type"),
+        nullable=False,
+        default="FILE_UPLOAD"
     )
 
     total_marks: Mapped[float] = mapped_column(
-        Numeric, nullable=False
+        Numeric, nullable=False, default=0
     )
 
     due_date: Mapped[str] = mapped_column(Date, nullable=False)

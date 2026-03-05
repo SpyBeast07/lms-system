@@ -16,10 +16,23 @@ export const StudentSubmissionsPage: React.FC = () => {
 
     const columns = [
         {
-            header: 'Assignment File',
+            header: 'Assignment',
+            cell: ({ row }: { row: Submission }) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-slate-800">{row.title || 'Assignment'}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">{row.submission_type.replace('_', ' ')}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Submission Content',
             cell: ({ row }: { row: Submission }) => (
                 <div className="flex items-center">
-                    <DownloadButton label="View Submission" objectName={row.file_url} />
+                    {row.submission_type === 'FILE_UPLOAD' ? (
+                        <DownloadButton label="View File" objectName={row.file_url || ''} />
+                    ) : (
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase">Assessment Attempt</span>
+                    )}
                 </div>
             )
         },
@@ -33,31 +46,44 @@ export const StudentSubmissionsPage: React.FC = () => {
         },
         {
             header: 'Status',
-            cell: ({ row }: { row: Submission }) => (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.graded_at
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                    {row.graded_at ? 'Graded' : 'Pending Review'}
-                </span>
-            )
+            cell: ({ row }: { row: Submission }) => {
+                const isEvaluated = row.status === 'evaluated' || !!row.grade;
+                return (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isEvaluated
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {isEvaluated ? (row.status === 'evaluated' ? 'Evaluated' : 'Graded') : 'Pending'}
+                    </span>
+                );
+            }
         },
         {
-            header: 'Grade',
+            header: 'Result / Score',
             cell: ({ row }: { row: Submission }) => {
-                if (!row.graded_at) return <span className="text-slate-400 italic">Not graded</span>;
-                return <span className="font-bold text-slate-800">{row.grade}</span>;
+                if (row.submission_type === 'FILE_UPLOAD') {
+                    if (row.grade === null || row.grade === undefined) return <span className="text-slate-400 italic">Not graded</span>;
+                    return <span className="font-bold text-slate-800">{row.grade}/{row.total_marks || 100}</span>;
+                } else {
+                    if (row.total_score === null || row.total_score === undefined) return <span className="text-slate-400 italic">Processing...</span>;
+                    return (
+                        <div className="flex flex-col">
+                            <span className="font-black text-indigo-600 text-lg">{row.total_score}<span className="text-slate-400 text-xs font-bold"> / {row.total_marks || 100}</span></span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Attempt #{row.attempt_number}</span>
+                        </div>
+                    );
+                }
             }
         },
         {
             header: 'Feedback',
             cell: ({ row }: { row: Submission }) => {
-                if (!row.feedback) return <span className="text-slate-400">-</span>;
-                return <p className="text-sm text-slate-600 max-w-xs break-words">{row.feedback}</p>;
+                const feedbackText = row.submission_type === 'FILE_UPLOAD' ? row.feedback : row.teacher_feedback;
+                if (!feedbackText) return <span className="text-slate-400">-</span>;
+                return <p className="text-sm text-slate-600 max-w-xs break-words">{feedbackText}</p>;
             }
         }
     ];
-
     if (isLoading) {
         return (
             <div className="space-y-6">

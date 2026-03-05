@@ -3,35 +3,46 @@ import { usePresignedUrlMutation } from '../../files/hooks/useFiles';
 import { useToastStore } from '../../../app/store/toastStore';
 
 interface DownloadButtonProps {
-    objectName: string;
+    objectName?: string;
+    fileUrl?: string; // Alias for objectName
     label?: string;
+    variant?: 'primary' | 'indigo' | 'secondary' | 'ghost';
+    className?: string;
 }
 
-export const DownloadButton: React.FC<DownloadButtonProps> = ({ objectName, label = 'Download' }) => {
+export const DownloadButton: React.FC<DownloadButtonProps> = ({
+    objectName,
+    fileUrl,
+    label = 'Download',
+    variant = 'primary',
+    className = ''
+}) => {
+    const targetFile = fileUrl || objectName || '';
     const presignMutation = usePresignedUrlMutation();
     const { addToast } = useToastStore();
     const [isDownloading, setIsDownloading] = useState(false);
 
     const handleDownload = async () => {
         try {
+            if (!targetFile) {
+                addToast('No file specified', 'error');
+                return;
+            }
+
             // If the backend already provided a fully generated MinIO presigned URL,
-            // we should not try to strip it and re-sign it.
-            if (objectName.includes('X-Amz-Signature')) {
-                window.open(objectName, '_blank');
+            if (targetFile.includes('X-Amz-Signature')) {
+                window.open(targetFile, '_blank');
                 addToast('Download started securely', 'success');
                 return;
             }
 
             let cleanObjectName = '';
 
-            if (objectName.startsWith('http')) {
-                // If full URL, extract object key (everything after bucket)
-                const parts = objectName.split('/');
+            if (targetFile.startsWith('http')) {
+                const parts = targetFile.split('/');
                 cleanObjectName = parts.slice(4).join('/');
             } else {
-                // Already an object name or relative path
-                // But handle case where it might lead with a slash
-                cleanObjectName = objectName.startsWith('/') ? objectName.substring(1) : objectName;
+                cleanObjectName = targetFile.startsWith('/') ? targetFile.substring(1) : targetFile;
             }
 
             if (!cleanObjectName) {
@@ -41,8 +52,6 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ objectName, labe
 
             setIsDownloading(true);
             const response = await presignMutation.mutateAsync({ object_name: cleanObjectName });
-
-            // Open the secure MinIO S3 presigned URL implicitly natively
             window.open(response.url, '_blank');
             addToast('Download started securely', 'success');
         } catch (error) {
@@ -53,11 +62,18 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ objectName, labe
         }
     };
 
+    const variantClasses = {
+        primary: 'text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 focus:ring-indigo-500',
+        indigo: 'text-indigo-300 bg-indigo-500/20 border-indigo-500/30 hover:bg-indigo-500/30 focus:ring-indigo-500',
+        secondary: 'text-slate-700 bg-slate-50 border-slate-200 hover:bg-slate-100 focus:ring-slate-500',
+        ghost: 'text-slate-500 hover:bg-slate-100 border-transparent focus:ring-slate-500'
+    };
+
     return (
         <button
             onClick={handleDownload}
             disabled={isDownloading || presignMutation.isPending}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${variantClasses[variant]} ${className}`}
         >
             {isDownloading ? (
                 <>

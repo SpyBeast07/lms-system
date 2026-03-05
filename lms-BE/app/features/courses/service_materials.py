@@ -196,6 +196,8 @@ async def get_course_materials(db: AsyncSession, course_id: int, school_id: int,
             item["max_attempts"] = m.assignment.max_attempts
             item["assignment_type"] = m.assignment.assignment_type
             item["description"] = m.assignment.description
+            item["reference_material_url"] = m.assignment.reference_material_url
+            item["reference_material_name"] = m.assignment.reference_material_name
             
             if student_id:
                 sub_data = submission_map.get(m.id, {"attempts": 0, "score": None})
@@ -240,6 +242,8 @@ async def get_teacher_course_materials(db: AsyncSession, teacher_id: int, course
             item["max_attempts"] = m.assignment.max_attempts
             item["assignment_type"] = m.assignment.assignment_type
             item["description"] = m.assignment.description
+            item["reference_material_url"] = m.assignment.reference_material_url
+            item["reference_material_name"] = m.assignment.reference_material_name
             
         response.append(item)
         

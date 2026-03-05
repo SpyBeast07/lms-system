@@ -40,6 +40,8 @@ async def create_advanced_assignment(
         due_date=data.due_date,
         max_attempts=data.max_attempts,
         description=data.description,
+        reference_material_url=data.reference_material_url,
+        reference_material_name=data.reference_material_name,
     )
     db.add(assignment)
 

@@ -9,6 +9,7 @@ import { useToastStore } from '../../../app/store/toastStore';
 import { useStudentCourses } from '../hooks/useStudentCourses';
 import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materials/hooks/useMaterials';
 import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
+import { DownloadButton } from '../components/DownloadButton';
 import { materialsApi } from '../../materials/api';
 import { api } from '../../../shared/api/axios';
 
@@ -219,6 +220,17 @@ export const AssignmentSubmissionPage: React.FC = () => {
                                         {new Date(assignmentSummary.due_date).toLocaleDateString()}
                                     </span>
                                 </div>
+                                {(assignmentSummary.reference_material_url || assignmentDetails?.reference_material_url) && (
+                                    <div className="pt-4 mt-4 border-t border-white/10 space-y-3">
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Reference Material</p>
+                                        <DownloadButton
+                                            fileUrl={assignmentSummary.reference_material_url || assignmentDetails?.reference_material_url || ''}
+                                            label={assignmentSummary.reference_material_name || assignmentDetails?.reference_material_name || 'Download Reference'}
+                                            variant="indigo"
+                                            className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-500/30 text-indigo-300"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -341,6 +353,6 @@ export const AssignmentSubmissionPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

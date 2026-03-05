@@ -11,6 +11,7 @@ import { Button } from '../../../shared/components/Button';
 import { useToastStore } from '../../../app/store/toastStore';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { useGenerateAssignmentInst } from '../../ai/hooks';
+import { materialsApi } from '../api';
 import { Modal } from '../../../shared/components/ui/Modal';
 
 // --- Question Builder Components ---
@@ -129,6 +130,8 @@ export const AssignmentForm: React.FC = () => {
     const [isAiModalOpen, setIsAiModalOpen] = React.useState(false);
     const [aiContext, setAiContext] = React.useState('');
 
+    const [referenceFile, setReferenceFile] = React.useState<File | null>(null);
+
     const {
         register,
         handleSubmit,
@@ -138,7 +141,7 @@ export const AssignmentForm: React.FC = () => {
         watch,
         formState: { errors },
     } = useForm<AssignmentFormData>({
-        resolver: zodResolver(assignmentFormSchema),
+        resolver: zodResolver(assignmentFormSchema) as any,
         defaultValues: {
             max_attempts: 1,
             assignment_type: 'FILE_UPLOAD',
@@ -148,13 +151,13 @@ export const AssignmentForm: React.FC = () => {
     });
 
     const { fields: questions, append: appendQuestion, remove: removeQuestion } = useFieldArray({
-        control,
+        control: control as any,
         name: "questions"
     });
 
     const assignmentType = watch('assignment_type');
 
-    const onSubmit = (data: AssignmentFormData) => {
+    const onSubmit = async (data: AssignmentFormData) => {
         // Validation: Ensure MCQ/TEXT assignments have at least one question
         if (data.assignment_type === 'MCQ' || data.assignment_type === 'TEXT') {
             if (!data.questions || data.questions.length === 0) {
@@ -163,15 +166,30 @@ export const AssignmentForm: React.FC = () => {
             }
         }
 
-        createMutation.mutate(data, {
-            onSuccess: () => {
-                addToast('Assignment published successfully!', 'success');
-                reset();
-            },
-            onError: (err: any) => {
-                addToast(getErrorMessage(err, 'Failed to publish assignment'), 'error');
+        try {
+            let finalData = { ...data };
+
+            // Handle Reference Material Upload
+            if (referenceFile) {
+                const uploadRes = await materialsApi.uploadFile(referenceFile);
+                finalData.reference_material_url = uploadRes.file_url;
+                finalData.reference_material_name = referenceFile.name;
             }
-        });
+
+            createMutation.mutate(finalData, {
+                onSuccess: () => {
+                    addToast('Assignment published successfully!', 'success');
+                    reset();
+                    setReferenceFile(null);
+                },
+                onError: (err: any) => {
+                    addToast(getErrorMessage(err, 'Failed to publish assignment'), 'error');
+                }
+            });
+        } catch (error) {
+            console.error('Reference material upload failed:', error);
+            addToast('Failed to upload reference material', 'error');
+        }
     };
 
     const handleGenerateAi = () => {
@@ -210,7 +228,7 @@ export const AssignmentForm: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
                     <div className="grid grid-cols-12 gap-6">
                         <div className="col-span-8">
                             <FormInput
@@ -249,6 +267,51 @@ export const AssignmentForm: React.FC = () => {
                         {errors.description && (
                             <p className="mt-1 text-sm text-red-600">{errors.description.message as string}</p>
                         )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-slate-700">
+                            Reference Material (Optional)
+                        </label>
+                        <div className={`border-2 border-dashed rounded-lg p-4 transition-colors ${referenceFile ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400'}`}>
+                            <input
+                                type="file"
+                                id="reference-material"
+                                className="hidden"
+                                onChange={(e) => {
+                                    if (e.target.files && e.target.files.length > 0) {
+                                        setReferenceFile(e.target.files[0]);
+                                    }
+                                }}
+                            />
+                            <div className="flex items-center justify-between">
+                                {referenceFile ? (
+                                    <div className="flex items-center gap-2 text-sm text-indigo-700 font-medium">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span>{referenceFile.name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReferenceFile(null)}
+                                            className="text-rose-500 hover:text-rose-700 ml-2"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label
+                                        htmlFor="reference-material"
+                                        className="flex items-center gap-2 text-sm text-slate-500 cursor-pointer w-full"
+                                    >
+                                        <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        <span>Click to upload reference material (PDF, docx, etc.)</span>
+                                    </label>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">

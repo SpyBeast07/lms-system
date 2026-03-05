@@ -9,6 +9,7 @@ import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materi
 import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
 import { useToastStore } from '../../../app/store/toastStore';
 import { materialsApi } from '../../materials/api';
+import { DownloadButton } from '../components/DownloadButton';
 import { Button } from '../../../shared/components/Button';
 import { FormInput } from '../../../shared/components/form/FormInput';
 import { api } from '../../../shared/api/axios';
@@ -219,6 +220,18 @@ export const AssignmentDetailPage: React.FC = () => {
                                     </p>
                                 </div>
                             </div>
+
+                            {(assignment?.reference_material_url || assignmentDetails?.reference_material_url) && (
+                                <div className="space-y-4 pt-4 border-t border-white/10">
+                                    <h3 className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em]">Reference Material</h3>
+                                    <DownloadButton
+                                        fileUrl={assignment?.reference_material_url || assignmentDetails?.reference_material_url || ''}
+                                        label={assignment?.reference_material_name || assignmentDetails?.reference_material_name || 'Download Reference Material'}
+                                        variant="indigo"
+                                        className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-500/30 text-indigo-300"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 

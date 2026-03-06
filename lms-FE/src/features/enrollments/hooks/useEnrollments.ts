@@ -24,16 +24,18 @@ export const useEnrollStudentMutation = () => {
     });
 };
 
-export const useTeacherAssignmentsQuery = () => {
+export const useTeacherAssignmentsQuery = (userRole?: string) => {
     return useQuery({
         queryKey: [{ entity: 'teacher_assignments' }],
         queryFn: () => enrollmentsService.getTeacherAssignments(),
+        enabled: userRole ? userRole === 'principal' || userRole === 'super_admin' : true,
     });
 };
 
-export const useStudentEnrollmentsQuery = () => {
+export const useStudentEnrollmentsQuery = (userRole?: string) => {
     return useQuery({
         queryKey: [{ entity: 'student_enrollments' }],
         queryFn: () => enrollmentsService.getStudentEnrollments(),
+        enabled: userRole ? userRole === 'principal' || userRole === 'super_admin' || userRole === 'teacher' : true,
     });
 };

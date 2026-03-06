@@ -49,7 +49,8 @@ lms-BE/
 │   │   ├── activity_logs/    # System-wide audit logging
 │   │   ├── signup_requests/  # Public registration + approval workflow
 │   │   ├── ai/               # AI course content generation (Ollama/OpenAI)
-│   │   └── stats/            # Aggregate dashboard statistics
+│   │   ├── stats/            # Aggregate dashboard statistics
+│   │   └── discussion/       # Course-based community & discussion system
 │   │
 │   └── main.py               # App factory, middleware, router registration
 ```
@@ -173,6 +174,8 @@ When a super_admin creates a principal, they can pass `school_id` in the request
 | `/signup-requests/` | Signup | public (create), principal/super_admin (approve) |
 | `/ai/` | AI | teacher |
 | `/stats/` | Stats | principal, super_admin |
+| `/courses/{id}/posts` | Community | teacher, student |
+| `/posts/{id}/reply` | Community | teacher, student |
 
 ---
 
@@ -215,3 +218,5 @@ Swagger UI: http://127.0.0.1:8000/docs
 4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.
 5. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
 6. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.
+7. **Discussion Eager Loading** — Implemented `selectinload` for author profiles to ensure community posts and replies are returned with full identity context in a single query.
+8. **School-Isolated Community** — Discussion threads are strictly scoped to course enrollments and school IDs, preventing cross-tenant information leaks.

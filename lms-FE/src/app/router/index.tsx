@@ -30,6 +30,7 @@ import { UploadNotesPage } from '../../features/materials/pages/UploadNotesPage'
 import { AssignmentForm } from '../../features/materials/pages/AssignmentForm';
 import { ManageMaterialsPage } from '../../features/materials/pages/ManageMaterialsPage';
 import { TeacherEvaluationPage } from '../../features/teacher/pages/TeacherEvaluationPage';
+import { TeacherCommunityPage } from '../../features/courses/pages/TeacherCommunityPage';
 
 // Student Imports
 import { StudentLayout } from '../../features/student/layout/StudentLayout';
@@ -39,6 +40,7 @@ import { StudentCoursePage } from '../../features/student/pages/StudentCoursePag
 import { AssignmentDetailPage } from '../../features/student/pages/AssignmentDetailPage';
 import { AssignmentSubmissionPage } from '../../features/student/pages/AssignmentSubmissionPage';
 import { StudentSubmissionsPage } from '../../features/submissions/pages/StudentSubmissionsPage';
+import { StudentCommunityPage } from '../../features/courses/pages/StudentCommunityPage';
 
 import { ErrorComponent } from '../../shared/components/ui/ErrorComponent';
 
@@ -261,6 +263,11 @@ const principalCoursesRoute = createRoute({
 const principalCourseDetailRoute = createRoute({
     getParentRoute: () => principalRoute,
     path: '/courses/$courseId',
+    validateSearch: (search: Record<string, unknown>): { tab?: 'materials' | 'assignments' } => {
+        return {
+            tab: (search.tab as any) || 'materials',
+        }
+    },
     component: CourseDetailPage,
 });
 
@@ -337,6 +344,11 @@ const teacherCoursesRoute = createRoute({
 const teacherCourseDetailRoute = createRoute({
     getParentRoute: () => teacherRoute,
     path: '/courses/$courseId',
+    validateSearch: (search: Record<string, unknown>): { tab?: 'materials' | 'assignments' } => {
+        return {
+            tab: (search.tab as any) || 'materials',
+        }
+    },
     component: CourseDetailPage,
 });
 
@@ -386,6 +398,12 @@ const teacherEnrollmentsRoute = createRoute({
     getParentRoute: () => teacherRoute,
     path: '/enrollments',
     component: EnrollmentsManagementPage,
+});
+
+const teacherCommunityRoute = createRoute({
+    getParentRoute: () => teacherRoute,
+    path: '/community',
+    component: TeacherCommunityPage,
 });
 
 // 6. Student Routing Tree
@@ -457,6 +475,11 @@ const studentSubmissionsListRoute = createRoute({
     component: StudentSubmissionsPage,
 });
 
+const studentCommunityRoute = createRoute({
+    getParentRoute: () => studentRoute,
+    path: '/community',
+    component: StudentCommunityPage,
+});
 
 // 7. Build Tree
 const routeTree = rootRoute.addChildren([
@@ -498,6 +521,7 @@ const routeTree = rootRoute.addChildren([
         teacherEvaluationRoute,
         teacherSignupRequestsRoute,
         teacherPasswordRequestsRoute,
+        teacherCommunityRoute,
     ]),
     studentRoute.addChildren([
         studentIndexRoute,
@@ -506,7 +530,8 @@ const routeTree = rootRoute.addChildren([
         studentAssignmentDetailRoute,
         studentMaterialsRoute,
         studentSubmissionNewRoute,
-        studentSubmissionsListRoute
+        studentSubmissionsListRoute,
+        studentCommunityRoute
     ])
 
 ]);

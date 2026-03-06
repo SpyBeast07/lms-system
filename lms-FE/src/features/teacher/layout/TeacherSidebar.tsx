@@ -18,6 +18,7 @@ export const TeacherSidebar: React.FC = () => {
 
     const navItems = [
         { path: '/teacher/courses', label: 'My Courses', icon: '📚' },
+        { path: '/teacher/community', label: 'Community', icon: '💬' },
         { path: '/teacher/users', label: 'User Management', icon: '👥' },
         { path: '/teacher/enrollments', label: 'Enrollments', icon: '🤝' },
         { path: '/teacher/upload-notes', label: 'Publish Notes', icon: '📤' },

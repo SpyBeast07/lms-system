@@ -14,7 +14,8 @@ from app.features.courses import (
     models_notes,
     models_question,
     models_answer,
-    models_student_assignment
+    models_student_assignment,
+    models_discussion
 )
 from app.features.auth import models as auth_models
 from app.features.enrollments import models_student as enrollment_student, models_teacher as enrollment_teacher, models_consent

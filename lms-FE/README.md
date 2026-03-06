@@ -48,7 +48,7 @@ lms-FE/src/
     ├── files/                 # File storage page (principal-only, school-scoped)
     ├── auth/                  # Login, password change requests, password modal
     ├── signup/                # Public signup form + admin/principal approval page
-    ├── courses/               # Course CRUD, soft/hard delete
+    ├── courses/               # Course CRUD, soft/hard delete, Community Portal
     ├── enrollments/           # Teacher & student course assignment
     ├── materials/             # Upload notes, create assignments, manage materials (teacher)
     ├── submissions/           # Student submissions + teacher grading
@@ -102,8 +102,10 @@ Accessible only to `principal`. School-scoped to the principal's assigned school
 - **Assignment Creator**: Dynamic, drag-and-drop questionnaire builder with support for multiple reference materials (files/links).
 - **Submissions & Grading**: Evaluate student assessments directly in the browser with feedback and auto-calculated scores.
 - **Course Materials**: Upload notes and manage assignment settings.
+- **Community Portal**: Engage with students via course-specific feeds, pin announcements, and answer technical questions.
 
 ### `/student/*` — Student Dashboard
+- **Community Hub**: Access course discussions to collaborate with peers and teachers.
 - Browse enrolled courses, view learning materials
 - Submit assignments and track submission history
 
@@ -186,3 +188,6 @@ npx react-doctor@latest .   # must score 100/100
 - **Event Integrity**: Interactive elements (like Download buttons) implement strict event propagation control to ensure zero accidental parent-triggering.
 - **Interactive Reordering**: Sortable lists use `@dnd-kit` with optimized collision detection and smooth animations.
 - **Automated Flow**: Students are automatically redirected to the course dashboard upon completing their final assignment attempt, reducing friction.
+- **Standardized UI Components**: Enforced a project-wide `Button` component with pre-defined variants (`primary`, `success`, `warning`, `ghost`, etc.) to ensure color consistency and predictable interaction feedback.
+- **State-Aware Navigation**: Implemented automatic clearing of active discussion threads and form states when transitioning between course contexts in the community portal.
+- **Role-Aware Fetching**: Optimized enrollment hooks to bypass redundant/unauthorized metadata requests for teacher roles, eliminating console spam.

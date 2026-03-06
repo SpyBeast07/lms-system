@@ -55,6 +55,7 @@ from app.features.ai.router import router as ai_router
 from app.features.stats.router import router as stats_router
 from app.features.signup_requests.router import router as signup_requests_router
 from app.features.schools.router import router as schools_router
+from app.features.courses.router_discussion import router as discussion_router
 
 app.include_router(users_router)
 app.include_router(courses_router)
@@ -71,6 +72,7 @@ app.include_router(ai_router)
 app.include_router(stats_router)
 app.include_router(signup_requests_router)
 app.include_router(schools_router)
+app.include_router(discussion_router)
 
 
 @app.get("/hello_world") # decorator - A function that wraps another function and adds behavior to it.

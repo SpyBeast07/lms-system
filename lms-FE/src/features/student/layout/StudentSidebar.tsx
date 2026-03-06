@@ -16,6 +16,7 @@ export const StudentSidebar: React.FC = () => {
 
     const navItems = [
         { path: '/student/courses', label: 'My Enrolled Courses', icon: '🎓' },
+        { path: '/student/community', label: 'Community Hub', icon: '💬' },
         { path: '/student/materials', label: 'Learning Materials', icon: '📖' },
         { path: '/student/submissions', label: 'My Submissions', icon: '📝' },
         { path: '/student/submissions/new', label: 'Submit Assignment', icon: '📤' },

@@ -122,7 +122,8 @@ lms-system/
 │   │   │   ├── activity_logs/
 │   │   │   ├── signup_requests/
 │   │   │   ├── ai/           # AI course content generation
-│   │   │   └── stats/
+│   │   │   ├── stats/
+│   │   │   └── discussion/   # Course-based community & discussion system
 │   │   └── main.py
 │   └── .env.example
 │
@@ -138,7 +139,7 @@ lms-system/
 │   │       ├── files/        # File storage (principal-only)
 │   │       ├── auth/         # Login, password management
 │   │       ├── signup/       # Public registration + approval flow
-│   │       ├── courses/      # Course management
+│   │       ├── courses/      # Course management & Community Portal
 │   │       ├── enrollments/
 │   │       ├── materials/
 │   │       ├── submissions/
@@ -194,7 +195,9 @@ App: http://localhost:5173
 3. Follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, etc.
 ## ✨ Recent Highlights
 
+- **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards, supporting threaded replies, post pinning, and type-based filtering (Announcements, Discussions, Questions).
+- **UI Standardization**: Refactored the internal component library to enforce consistent button variants and loading states across all new features.
+- **Enhanced Data Integrity**: Optimized backend eager loading and query normalization to ensure author identities and resource relationships are populated with zero additional roundtrips.
 - **Teacher Evaluation Dashboard**: A centralized, paginated interface for grading File, MCQ, and TEXT submissions across all assigned courses.
 - **Drag-and-Drop Questionnaire**: Interactive assignment creator allowing teachers to reorder questions and MCQ options via a premium DND interface.
 - **Unified Submissions**: Standardized API and Frontend components for handling diverse assessment types (MCQ, TEXT, FILE) with consistent feedback loops.
-- **Enhanced Student Portal**: Improved submission parameters, automated redirection after final attempts, and optimized navigation highlighting.

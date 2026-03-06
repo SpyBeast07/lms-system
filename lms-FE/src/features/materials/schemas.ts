@@ -33,8 +33,12 @@ export const assignmentFormSchema = z.object({
     max_attempts: z.number().min(1),
     assignment_type: z.enum(['FILE_UPLOAD', 'MCQ', 'TEXT']),
     description: z.string().optional(),
-    reference_material_url: z.string().optional(),
-    reference_material_name: z.string().optional(),
+    reference_materials: z.array(z.object({
+        type: z.enum(['file', 'link']),
+        name: z.string().min(1, 'Name is required'),
+        url: z.string(),
+        file: z.any().optional()
+    })).default([]),
     questions: z.array(z.object({
         question_text: z.string().min(1, 'Question text is required'),
         question_type: z.enum(['MCQ', 'TEXT']),

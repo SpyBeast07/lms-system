@@ -1,5 +1,6 @@
 from sqlalchemy import Integer, Enum, Date, Numeric, ForeignKey, Text, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.core.db_base import Base
 
@@ -30,8 +31,7 @@ class Assignment(Base):
 
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    reference_material_url: Mapped[str | None] = mapped_column(String, nullable=True)
-    reference_material_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    reference_materials: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True, default=list)
     
     material = relationship("LearningMaterial", back_populates="assignment")
     questions = relationship("Question", back_populates="assignment")

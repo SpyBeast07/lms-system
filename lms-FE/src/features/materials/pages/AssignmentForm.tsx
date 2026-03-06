@@ -130,8 +130,6 @@ export const AssignmentForm: React.FC = () => {
     const [isAiModalOpen, setIsAiModalOpen] = React.useState(false);
     const [aiContext, setAiContext] = React.useState('');
 
-    const [referenceFile, setReferenceFile] = React.useState<File | null>(null);
-
     const {
         register,
         handleSubmit,
@@ -155,6 +153,11 @@ export const AssignmentForm: React.FC = () => {
         name: "questions"
     });
 
+    const { fields: referenceMaterials, append: appendReference, remove: removeReference } = useFieldArray({
+        control: control as any,
+        name: "reference_materials"
+    });
+
     const assignmentType = watch('assignment_type');
 
     const onSubmit = async (data: AssignmentFormData) => {
@@ -169,26 +172,39 @@ export const AssignmentForm: React.FC = () => {
         try {
             let finalData = { ...data };
 
-            // Handle Reference Material Upload
-            if (referenceFile) {
-                const uploadRes = await materialsApi.uploadFile(referenceFile);
-                finalData.reference_material_url = uploadRes.file_url;
-                finalData.reference_material_name = referenceFile.name;
+            // Handle Reference Material Uploads for files
+            const processedReferences: { type: 'file' | 'link', name: string, url: string }[] = [];
+            for (const ref of finalData.reference_materials || []) {
+                if (ref.type === 'file' && ref.file && ref.file.length > 0) {
+                    const fileObj = ref.file[0];
+                    const uploadRes = await materialsApi.uploadFile(fileObj);
+                    processedReferences.push({
+                        type: 'file',
+                        name: ref.name,
+                        url: uploadRes.file_url
+                    });
+                } else if (ref.type === 'link' && ref.url) {
+                    processedReferences.push({
+                        type: 'link',
+                        name: ref.name,
+                        url: ref.url
+                    });
+                }
             }
+            finalData.reference_materials = processedReferences;
 
             createMutation.mutate(finalData, {
                 onSuccess: () => {
                     addToast('Assignment published successfully!', 'success');
                     reset();
-                    setReferenceFile(null);
                 },
                 onError: (err: any) => {
                     addToast(getErrorMessage(err, 'Failed to publish assignment'), 'error');
                 }
             });
         } catch (error) {
-            console.error('Reference material upload failed:', error);
-            addToast('Failed to upload reference material', 'error');
+            console.error('Reference material processing failed:', error);
+            addToast('Failed to process reference materials', 'error');
         }
     };
 
@@ -269,48 +285,86 @@ export const AssignmentForm: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">
-                            Reference Material (Optional)
-                        </label>
-                        <div className={`border-2 border-dashed rounded-lg p-4 transition-colors ${referenceFile ? 'border-indigo-500 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400'}`}>
-                            <input
-                                type="file"
-                                id="reference-material"
-                                className="hidden"
-                                onChange={(e) => {
-                                    if (e.target.files && e.target.files.length > 0) {
-                                        setReferenceFile(e.target.files[0]);
-                                    }
-                                }}
-                            />
-                            <div className="flex items-center justify-between">
-                                {referenceFile ? (
-                                    <div className="flex items-center gap-2 text-sm text-indigo-700 font-medium">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <span>{referenceFile.name}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setReferenceFile(null)}
-                                            className="text-rose-500 hover:text-rose-700 ml-2"
-                                        >
-                                            Remove
-                                        </button>
+                    <div className="space-y-4 pt-4 border-t border-slate-100">
+                        <div className="flex justify-between items-center">
+                            <label className="block text-sm font-medium text-slate-700">
+                                Reference Materials (Optional)
+                            </label>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => appendReference({ type: 'file', name: '', url: '' })}
+                                className="flex items-center gap-2 text-xs py-1 px-3"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Material
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {referenceMaterials.map((field, idx) => (
+                                <div key={field.id} className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-start gap-4">
+                                    <div className="flex-1 space-y-4">
+                                        <div className="flex gap-4">
+                                            <div className="w-1/3">
+                                                <FormSelect
+                                                    label="Type"
+                                                    register={register(`reference_materials.${idx}.type` as any)}
+                                                    options={[
+                                                        { value: 'file', label: 'File Upload' },
+                                                        { value: 'link', label: 'External Link' }
+                                                    ]}
+                                                />
+                                            </div>
+                                            <div className="w-2/3">
+                                                <FormInput
+                                                    label="Display Name"
+                                                    type="text"
+                                                    placeholder="E.g., Formula Sheet"
+                                                    register={register(`reference_materials.${idx}.name` as any)}
+                                                    error={(errors.reference_materials?.[idx] as any)?.name?.message}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {watch(`reference_materials.${idx}.type` as any) === 'link' ? (
+                                            <FormInput
+                                                label="URL"
+                                                type="url"
+                                                placeholder="https://example.com/resource"
+                                                register={register(`reference_materials.${idx}.url` as any)}
+                                                error={(errors.reference_materials?.[idx] as any)?.url?.message}
+                                            />
+                                        ) : (
+                                            <div className="pt-2">
+                                                <label className="block text-sm font-medium text-slate-700 mb-1">Upload File</label>
+                                                <input
+                                                    type="file"
+                                                    {...register(`reference_materials.${idx}.file` as any)}
+                                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <label
-                                        htmlFor="reference-material"
-                                        className="flex items-center gap-2 text-sm text-slate-500 cursor-pointer w-full"
+                                    <button
+                                        type="button"
+                                        onClick={() => removeReference(idx)}
+                                        className="text-slate-400 hover:text-rose-500 transition-colors p-2 mt-6"
+                                        title="Remove Material"
                                     >
-                                        <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                        <span>Click to upload reference material (PDF, docx, etc.)</span>
-                                    </label>
-                                )}
-                            </div>
+                                    </button>
+                                </div>
+                            ))}
+                            {referenceMaterials.length === 0 && (
+                                <div className="text-center py-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg">
+                                    <p className="text-sm text-slate-500">No reference materials added.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 

@@ -220,15 +220,35 @@ export const AssignmentSubmissionPage: React.FC = () => {
                                         {new Date(assignmentSummary.due_date).toLocaleDateString()}
                                     </span>
                                 </div>
-                                {(assignmentSummary.reference_material_url || assignmentDetails?.reference_material_url) && (
+                                {(assignmentSummary?.reference_materials?.length > 0 || assignmentDetails?.reference_materials?.length > 0) && (
                                     <div className="pt-4 mt-4 border-t border-white/10 space-y-3">
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Reference Material</p>
-                                        <DownloadButton
-                                            fileUrl={assignmentSummary.reference_material_url || assignmentDetails?.reference_material_url || ''}
-                                            label={assignmentSummary.reference_material_name || assignmentDetails?.reference_material_name || 'Download Reference'}
-                                            variant="indigo"
-                                            className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-500/30 text-indigo-300"
-                                        />
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Reference Materials</p>
+                                        <div className="space-y-2">
+                                            {(assignmentDetails?.reference_materials || assignmentSummary?.reference_materials || []).map((ref: any, idx: number) => (
+                                                ref.type === 'link' ? (
+                                                    <a
+                                                        key={idx}
+                                                        href={ref.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 p-3 rounded-lg w-full bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-300 text-sm font-medium transition-colors"
+                                                    >
+                                                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                                        </svg>
+                                                        <span className="truncate">{ref.name}</span>
+                                                    </a>
+                                                ) : (
+                                                    <DownloadButton
+                                                        key={idx}
+                                                        fileUrl={ref.url}
+                                                        label={ref.name}
+                                                        variant="indigo"
+                                                        className="w-full bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-500/30 text-indigo-300"
+                                                    />
+                                                )
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>

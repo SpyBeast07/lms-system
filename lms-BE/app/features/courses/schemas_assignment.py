@@ -1,7 +1,7 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import date, datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 class AssignmentType(str, Enum):
     FILE_UPLOAD = "FILE_UPLOAD"
@@ -49,6 +49,12 @@ class QuestionTeacherRead(QuestionBase):
     options: List[MCQOptionTeacherRead] = []
     model_config = ConfigDict(from_attributes=True)
 
+class ReferenceMaterial(BaseModel):
+    id: Optional[str] = None
+    type: Literal["file", "link"]
+    name: str
+    url: str
+
 class AssignmentCreate(BaseModel):
     course_id: int
     title: str
@@ -58,8 +64,7 @@ class AssignmentCreate(BaseModel):
     due_date: date
     max_attempts: int = 1
     questions: Optional[List[QuestionCreate]] = None
-    reference_material_url: Optional[str] = None
-    reference_material_name: Optional[str] = None
+    reference_materials: List[ReferenceMaterial] = Field(default_factory=list)
 
 class AssignmentRead(BaseModel):
     material_id: int
@@ -68,8 +73,7 @@ class AssignmentRead(BaseModel):
     due_date: date
     max_attempts: int
     description: Optional[str] = None
-    reference_material_url: Optional[str] = None
-    reference_material_name: Optional[str] = None
+    reference_materials: List[ReferenceMaterial] = Field(default_factory=list)
     questions: List[QuestionRead] = []
 
     model_config = ConfigDict(from_attributes=True)

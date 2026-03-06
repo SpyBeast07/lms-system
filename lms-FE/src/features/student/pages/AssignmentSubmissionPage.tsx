@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { assignmentSubmissionSchema } from '../schemas';
@@ -16,6 +17,7 @@ import { api } from '../../../shared/api/axios';
 export const AssignmentSubmissionPage: React.FC = () => {
     const { addToast } = useToastStore();
     const { data: courses } = useStudentCourses();
+    const navigate = useNavigate();
 
     const [selectedCourse, setSelectedCourse] = useState<string>('');
     const { data: materials, isLoading: isMaterialsLoading } = useCourseMaterialsQuery(selectedCourse);
@@ -100,7 +102,6 @@ export const AssignmentSubmissionPage: React.FC = () => {
             addToast('Assignment submitted successfully!', 'success');
 
             // Clear only the answers and comments, keep the assignment selected
-            // This allows the user to see the "Attempts Used" update and the "Submitted" status
             reset({
                 assignment_id: data.assignment_id,
                 comments: '',
@@ -111,6 +112,15 @@ export const AssignmentSubmissionPage: React.FC = () => {
                 }))
             });
             setSelectedFile(null);
+
+            // check if no attempts left to redirect
+            const finalAttemptsMade = (assignmentSummary?.attempts_made || 0) + 1;
+            const finalMaxAttempts = assignmentSummary?.max_attempts || assignmentDetails?.max_attempts || 1;
+            if (finalAttemptsMade >= finalMaxAttempts) {
+                setTimeout(() => {
+                    navigate({ to: '/student/courses' });
+                }, 1500);
+            }
 
         } catch (error: any) {
             console.error('Submission error:', error);
@@ -254,6 +264,20 @@ export const AssignmentSubmissionPage: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {assignmentSummary && (
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200">
+                            <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                System Parameters
+                            </h4>
+                            <ul className="text-xs text-slate-500 space-y-3">
+                                <li className="flex justify-between"><span>Format</span> <span className="font-bold text-slate-700 uppercase">{currentAssignmentType}</span></li>
+                                <li className="flex justify-between"><span>Auto-Grading</span> <span className="font-bold text-slate-700">{currentAssignmentType === 'MCQ' ? 'Supported' : 'Not Supported'}</span></li>
+                                <li className="flex justify-between"><span>Integrity Check</span> <span className="font-bold text-slate-700">Enabled</span></li>
+                            </ul>
+                        </div>
+                    )}
                 </div>
 
                 {/* Submission Form Area */}
@@ -373,6 +397,6 @@ export const AssignmentSubmissionPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     );
 };

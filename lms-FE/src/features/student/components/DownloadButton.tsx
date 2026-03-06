@@ -22,7 +22,9 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
     const { addToast } = useToastStore();
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const handleDownload = async () => {
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         try {
             if (!targetFile) {
                 addToast('No file specified', 'error');

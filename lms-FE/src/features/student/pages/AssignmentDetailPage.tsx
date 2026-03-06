@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useParams, Link } from '@tanstack/react-router';
+import { useParams, Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { assignmentSubmissionSchema } from '../schemas';
@@ -17,6 +17,7 @@ import { api } from '../../../shared/api/axios';
 export const AssignmentDetailPage: React.FC = () => {
     const { courseId, assignmentId } = useParams({ strict: false }) as { courseId: string, assignmentId: string };
     const { addToast } = useToastStore();
+    const navigate = useNavigate();
 
     const { data: course, isLoading: isLoadingCourse } = useCourseQuery(courseId);
     const { data: materials, isLoading: isLoadingMaterials } = useCourseMaterialsQuery(courseId);
@@ -136,6 +137,15 @@ export const AssignmentDetailPage: React.FC = () => {
                     comments: '',
                     answers: []
                 });
+            }
+
+            // check if no attempts left to redirect
+            const attemptsMade = (assignment?.attempts_made || 0) + 1;
+            const maxAttempts = assignment?.max_attempts || assignmentDetails?.max_attempts || 1;
+            if (attemptsMade >= maxAttempts) {
+                setTimeout(() => {
+                    navigate({ to: '/student/courses/$courseId', params: { courseId } });
+                }, 1500); // Small delay to let user see toast
             }
 
         } catch (error: any) {
@@ -262,7 +272,7 @@ export const AssignmentDetailPage: React.FC = () => {
                         </h4>
                         <ul className="text-xs text-slate-500 space-y-3">
                             <li className="flex justify-between"><span>Format</span> <span className="font-bold text-slate-700 uppercase">{currentAssignmentType}</span></li>
-                            <li className="flex justify-between"><span>Auto-Grading</span> <span className="font-bold text-slate-700">Supported</span></li>
+                            <li className="flex justify-between"><span>Auto-Grading</span> <span className="font-bold text-slate-700">{currentAssignmentType === 'MCQ' ? 'Supported' : 'Not Supported'}</span></li>
                             <li className="flex justify-between"><span>Integrity Check</span> <span className="font-bold text-slate-700">Enabled</span></li>
                         </ul>
                     </div>

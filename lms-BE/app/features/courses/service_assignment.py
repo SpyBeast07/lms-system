@@ -165,12 +165,8 @@ async def create_student_attempt(
 
     await db.flush()
 
-    # 4. Auto-evaluate if needed
-    assignment_stmt = select(Assignment).filter(Assignment.material_id == data.assignment_id)
-    assign_res = await db.execute(assignment_stmt)
-    assignment = assign_res.scalars().first()
-
-    if assignment and str(assignment.assignment_type).upper() == "MCQ":
+    # 4. Auto-evaluate MCQ components
+    if assignment and assignment.assignment_type in ["MCQ", "TEXT"]:
         await evaluate_mcq_submission(db, attempt.id)
     
     await db.commit()
@@ -216,16 +212,28 @@ async def evaluate_mcq_submission(db: AsyncSession, student_assignment_id: int):
         return None
 
     total_score = 0
+    all_mcq = True
     for answer in attempt.answers:
-        if answer.question.question_type == "MCQ" and answer.selected_option_id:
-            # Find correct option
-            correct_opt = next((o for o in answer.question.options if o.is_correct), None)
-            if correct_opt and answer.selected_option_id == correct_opt.id:
-                answer.marks_obtained = answer.question.marks
-                total_score += answer.question.marks
+        if answer.question.question_type == "MCQ":
+            if answer.selected_option_id:
+                # Find correct option
+                correct_opt = next((o for o in answer.question.options if o.is_correct), None)
+                if correct_opt and answer.selected_option_id == correct_opt.id:
+                    answer.marks_obtained = answer.question.marks
+                    total_score += answer.question.marks
+                else:
+                    answer.marks_obtained = 0
             else:
+                answer.marks_obtained = 0
+        else:
+            all_mcq = False
+            # For non-MCQ, we don't auto-grade, but we ensure marks_obtained is None/0 until teacher grades
+            if answer.marks_obtained is None:
                 answer.marks_obtained = 0
         
     attempt.total_score = total_score
-    attempt.status = "evaluated"
+    if all_mcq and attempt.answers:
+        attempt.status = "evaluated"
+    else:
+        attempt.status = "submitted"
     return attempt

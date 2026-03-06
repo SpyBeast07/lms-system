@@ -34,7 +34,7 @@ export const AssessmentAnswersModal: React.FC<AssessmentAnswersModalProps> = ({
                         <div>
                             <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Total Score</p>
                             <p className="text-2xl font-black text-indigo-700">
-                                {attemptDetails.total_score} <span className="text-sm font-medium text-indigo-400">/ 100</span>
+                                {attemptDetails.total_score} <span className="text-sm font-medium text-indigo-400">/ {attemptDetails.total_marks ?? 100}</span>
                             </p>
                         </div>
                         <div className="text-right">

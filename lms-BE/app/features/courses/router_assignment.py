@@ -75,7 +75,8 @@ async def get_attempt_details_api(
         .options(
             selectinload(StudentAssignment.answers)
             .selectinload(StudentAnswer.question)
-            .selectinload(Question.options)
+            .selectinload(Question.options),
+            selectinload(StudentAssignment.assignment)
         )
         .filter(StudentAssignment.id == attempt_id)
     )
@@ -84,6 +85,10 @@ async def get_attempt_details_api(
     
     if not attempt:
         raise HTTPException(status_code=404, detail="Attempt not found")
+    
+    # Manually attach total_marks for Pydantic schema
+    if attempt.assignment:
+        attempt.total_marks = attempt.assignment.total_marks
         
     if current_user.role in ["teacher", "admin", "principal"]:
         from app.features.courses.schemas_assignment import StudentAssignmentTeacherRead

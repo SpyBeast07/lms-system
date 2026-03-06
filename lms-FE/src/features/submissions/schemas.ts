@@ -69,6 +69,7 @@ export interface StudentAttemptDetails {
     attempt_number: number;
     submitted_at: string;
     total_score: number;
+    total_marks?: number;
     status: string;
     answers: AttemptAnswer[];
 }

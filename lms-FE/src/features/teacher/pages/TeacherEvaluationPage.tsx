@@ -48,7 +48,7 @@ export const TeacherEvaluationPage: React.FC = () => {
     const gradeMutation = useGradeSubmissionMutation();
 
     // Form with dynamic validation
-    const maxGrade = selectedAssignmentData ? (selectedAssignmentData.total_marks || 100) : 100;
+    const maxGrade = selectedAssignmentData ? (selectedAssignmentData.total_marks || 100) : (gradingSubmission?.total_marks || 100);
     const dynamicGradeSchema = z.object({
         grade: z.number()
             .min(0, 'Grade cannot be negative')

@@ -111,6 +111,7 @@ class StudentAssignmentRead(BaseModel):
     student_id: int
     attempt_number: int
     submitted_at: datetime
+    total_marks: Optional[float] = None
     total_score: Optional[float] = None
     status: str
     answers: List[StudentAnswerRead] = []

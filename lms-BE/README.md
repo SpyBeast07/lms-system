@@ -81,7 +81,7 @@ class School(Base):
 ```
 
 ### Relationships
-`School` has one-to-many relationships with: `User`, `Course`, `LearningMaterial`, `Submission`, `TeacherCourse`, `StudentCourse`.
+`School` has one-to-many relationships with: `User`, `Course`, `LearningMaterial`, `Submission`, `StudentAssignment` (for MCQ/TEXT), `TeacherCourse`, `StudentCourse`.
 
 ### School Isolation in Queries
 All service functions accept an optional `school_id` parameter. When provided (for principal/teacher/student roles), queries automatically filter by that column:
@@ -167,6 +167,7 @@ When a super_admin creates a principal, they can pass `school_id` in the request
 | `/courses/` | Courses | principal, teacher |
 | `/api/v1/files/` | Files | principal (school-scoped), super_admin |
 | `/submissions/` | Submissions | teacher, student |
+| `/submissions/teacher` | Evaluations | teacher |
 | `/notifications/` | Notifications | all roles |
 | `/activity-logs/` | Logs | all roles (filtered by role) |
 | `/signup-requests/` | Signup | public (create), principal/super_admin (approve) |
@@ -212,3 +213,5 @@ Swagger UI: http://127.0.0.1:8000/docs
 2. **Background Cleanup** — APScheduler prunes expired refresh tokens and orphaned MinIO files every 12 hours.
 3. **Response Standardization** — Global exception handlers wrap all responses in `{ success, data, message, meta }`.
 4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.
+5. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
+6. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.

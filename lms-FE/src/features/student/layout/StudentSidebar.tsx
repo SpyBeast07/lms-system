@@ -33,6 +33,7 @@ export const StudentSidebar: React.FC = () => {
                     <Link
                         key={item.path}
                         to={item.path}
+                        activeOptions={{ exact: true }}
                         className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 text-emerald-100 hover:bg-emerald-800 hover:text-white"
                         activeProps={{ className: 'bg-emerald-600 text-white shadow-md shadow-emerald-900/20 hover:bg-emerald-500' }}
                     >

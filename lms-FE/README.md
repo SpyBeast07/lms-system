@@ -14,6 +14,7 @@ The frontend layer of the LMS System. A type-safe, feature-driven React applicat
 | Data Fetching | TanStack Query (React Query) |
 | Global State | Zustand (auth session + UI flags only) |
 | Forms | React Hook Form + Zod |
+| Drag & Drop | @dnd-kit |
 | Styling | TailwindCSS |
 
 ---
@@ -97,9 +98,10 @@ Accessible only to `principal`. School-scoped to the principal's assigned school
 - **Activity Logs**
 
 ### `/teacher/*` — Teacher Dashboard
-- Upload notes and create assignments per course
-- Manage course materials and evaluate student submissions
-- View enrolled courses and student roster
+- **Evaluations Dashboard**: A centralized table for grading File, MCQ, and TEXT submissions across all courses.
+- **Assignment Creator**: Dynamic, drag-and-drop questionnaire builder with support for multiple reference materials (files/links).
+- **Submissions & Grading**: Evaluate student assessments directly in the browser with feedback and auto-calculated scores.
+- **Course Materials**: Upload notes and manage assignment settings.
 
 ### `/student/*` — Student Dashboard
 - Browse enrolled courses, view learning materials
@@ -178,3 +180,9 @@ npx react-doctor@latest .   # must score 100/100
 - Global Zustand stores are for **auth session and UI flags only** — not for server data.
 - Zod schemas must precisely mirror backend Pydantic models to prevent runtime type mismatches.
 - Avoid modifying `/shared/components/` unless the change is genuinely reusable across ≥3 features.
+## 💎 UI/UX Standards
+
+- **Exact Route Matching**: Sidebar active states utilize exact path matching to prevent overlapping highlights during nested navigation.
+- **Event Integrity**: Interactive elements (like Download buttons) implement strict event propagation control to ensure zero accidental parent-triggering.
+- **Interactive Reordering**: Sortable lists use `@dnd-kit` with optimized collision detection and smooth animations.
+- **Automated Flow**: Students are automatically redirected to the course dashboard upon completing their final assignment attempt, reducing friction.

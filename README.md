@@ -67,6 +67,8 @@ student    (scoped to one school)
 | Upload learning materials | ❌ | ❌ | ✅ | ❌ |
 | Grade submissions | ❌ | ❌ | ✅ | ❌ |
 | View & submit assignments | ❌ | ❌ | ❌ | ✅ |
+| Evaluate & Grade Assessments | ❌ | ❌ | ✅ | ❌ |
+| Manage Reference Materials | ❌ | ❌ | ✅ | ❌ |
 | Access file storage | ❌ | ✅ (school-scoped) | ❌ | ❌ |
 
 ---
@@ -145,6 +147,7 @@ lms-system/
 │   │       ├── ai/
 │   │       └── health/
 │   └── .env.example
+├── .gitignore
 └── README.md
 ```
 
@@ -189,3 +192,9 @@ App: http://localhost:5173
 1. Run `npm run build` and `npx react-doctor@latest .` — both must pass with zero errors before opening a PR.
 2. All SQLAlchemy model changes require an Alembic migration: `uv run alembic revision --autogenerate -m "description"`.
 3. Follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, etc.
+## ✨ Recent Highlights
+
+- **Teacher Evaluation Dashboard**: A centralized, paginated interface for grading File, MCQ, and TEXT submissions across all assigned courses.
+- **Drag-and-Drop Questionnaire**: Interactive assignment creator allowing teachers to reorder questions and MCQ options via a premium DND interface.
+- **Unified Submissions**: Standardized API and Frontend components for handling diverse assessment types (MCQ, TEXT, FILE) with consistent feedback loops.
+- **Enhanced Student Portal**: Improved submission parameters, automated redirection after final attempts, and optimized navigation highlighting.

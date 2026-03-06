@@ -13,6 +13,21 @@ import { getErrorMessage } from '../../../shared/utils/error';
 import { useGenerateAssignmentInst } from '../../ai/hooks';
 import { materialsApi } from '../api';
 import { Modal } from '../../../shared/components/ui/Modal';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableItem } from '../components/SortableItem';
 
 // --- Question Builder Components ---
 
@@ -27,10 +42,30 @@ interface QuestionRowProps {
 
 const QuestionRow: React.FC<QuestionRowProps> = ({ control, register, index, remove, watch, errors }) => {
     const questionType = watch(`questions.${index}.question_type`);
-    const { fields: options, append: appendOption, remove: removeOption } = useFieldArray({
+    const { fields: options, append: appendOption, remove: removeOption, move: moveOption } = useFieldArray({
         control,
         name: `questions.${index}.options` as any
     });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEndOptions = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = options.findIndex((opt) => opt.id === active.id);
+            const newIndex = options.findIndex((opt) => opt.id === over.id);
+            moveOption(oldIndex, newIndex);
+        }
+    };
 
     return (
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4 relative group">
@@ -90,31 +125,46 @@ const QuestionRow: React.FC<QuestionRowProps> = ({ control, register, index, rem
                             + Add Option
                         </Button>
                     </div>
-                    {options.map((opt, optIndex) => (
-                        <div key={opt.id} className="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                {...register(`questions.${index}.options.${optIndex}.is_correct` as any)}
-                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
-                            />
-                            <div className="flex-1">
-                                <input
-                                    {...register(`questions.${index}.options.${optIndex}.option_text` as any)}
-                                    placeholder={`Option ${optIndex + 1}`}
-                                    className="block w-full text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                                />
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEndOptions}
+                    >
+                        <SortableContext
+                            items={options.map(o => o.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className="space-y-3">
+                                {options.map((opt, optIndex) => (
+                                    <SortableItem key={opt.id} id={opt.id} className="bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                                        <div className="flex items-center gap-3 w-full">
+                                            <input
+                                                type="checkbox"
+                                                {...register(`questions.${index}.options.${optIndex}.is_correct` as any)}
+                                                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300"
+                                            />
+                                            <div className="flex-1">
+                                                <input
+                                                    {...register(`questions.${index}.options.${optIndex}.option_text` as any)}
+                                                    placeholder={`Option ${optIndex + 1}`}
+                                                    className="block w-full text-sm border-slate-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeOption(optIndex)}
+                                                className="text-slate-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </SortableItem>
+                                ))}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => removeOption(optIndex)}
-                                className="text-slate-400 hover:text-red-500"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    ))}
+                        </SortableContext>
+                    </DndContext>
                 </div>
             )}
         </div>
@@ -148,10 +198,30 @@ export const AssignmentForm: React.FC = () => {
         }
     });
 
-    const { fields: questions, append: appendQuestion, remove: removeQuestion } = useFieldArray({
+    const { fields: questions, append: appendQuestion, remove: removeQuestion, move: moveQuestion } = useFieldArray({
         control: control as any,
         name: "questions"
     });
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEndQuestions = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = questions.findIndex((q) => q.id === active.id);
+            const newIndex = questions.findIndex((q) => q.id === over.id);
+            moveQuestion(oldIndex, newIndex);
+        }
+    };
 
     const { fields: referenceMaterials, append: appendReference, remove: removeReference } = useFieldArray({
         control: control as any,
@@ -192,6 +262,18 @@ export const AssignmentForm: React.FC = () => {
                 }
             }
             finalData.reference_materials = processedReferences;
+
+            // Map order_index for questions and options
+            if (finalData.questions) {
+                finalData.questions = finalData.questions.map((q, qIdx) => ({
+                    ...q,
+                    order_index: qIdx,
+                    options: q.options?.map((opt, oIdx) => ({
+                        ...opt,
+                        order_index: oIdx
+                    }))
+                }));
+            }
 
             createMutation.mutate(finalData, {
                 onSuccess: () => {
@@ -428,17 +510,31 @@ export const AssignmentForm: React.FC = () => {
                                 </Button>
                             </div>
 
-                            {questions.map((field, index) => (
-                                <QuestionRow
-                                    key={field.id}
-                                    index={index}
-                                    control={control}
-                                    register={register}
-                                    remove={removeQuestion}
-                                    watch={watch}
-                                    errors={errors}
-                                />
-                            ))}
+                            <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEndQuestions}
+                            >
+                                <SortableContext
+                                    items={questions.map(q => q.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="space-y-4">
+                                        {questions.map((field, index) => (
+                                            <SortableItem key={field.id} id={field.id}>
+                                                <QuestionRow
+                                                    index={index}
+                                                    control={control}
+                                                    register={register}
+                                                    remove={removeQuestion}
+                                                    watch={watch}
+                                                    errors={errors}
+                                                />
+                                            </SortableItem>
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
 
                             {questions.length === 0 && (
                                 <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">

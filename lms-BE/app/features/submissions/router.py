@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from app.core.rate_limiter import limiter
 
@@ -60,6 +60,31 @@ async def get_submissions_by_assignment(
         
     school_id = current_user.school_id if current_user.role != "super_admin" else None
     return await service.get_assignment_submissions(db, assignment_id, current_user.id, school_id=school_id, limit=limit, offset=offset)
+
+@router.get("/teacher", response_model=schemas.PaginatedSubmissions)
+async def get_teacher_global_submissions(
+    course_id: Optional[int] = None,
+    student_name: Optional[str] = None,
+    limit: int = 10,
+    offset: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    school_info = Depends(validate_school_subscription)
+):
+    """Teachers view all submissions across their courses with filtering."""
+    if current_user.role not in ["teacher", "super_admin"]:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    school_id = current_user.school_id if current_user.role != "super_admin" else None
+    return await service.get_all_teacher_submissions(
+        db, 
+        current_user.id, 
+        school_id=school_id, 
+        course_id=course_id, 
+        student_name=student_name,
+        limit=limit, 
+        offset=offset
+    )
 
 @router.patch("/{submission_id}/grade", response_model=schemas.UnifiedSubmissionRead)
 async def grade_submission(

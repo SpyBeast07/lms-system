@@ -22,6 +22,13 @@ export const useAssignmentSubmissionsQuery = (assignmentId: number | undefined) 
     });
 };
 
+export const useAllTeacherSubmissionsQuery = (params: { course_id?: string, student_name?: string, limit?: number, offset?: number }) => {
+    return useQuery({
+        queryKey: [...SUBMISSIONS_KEY, 'teacher-global', params],
+        queryFn: () => submissionsService.getTeacherSubmissions(params),
+    });
+};
+
 export const useAttemptDetailsQuery = (attemptId: number | undefined) => {
     return useQuery({
         queryKey: [...SUBMISSIONS_KEY, 'attempt', attemptId],

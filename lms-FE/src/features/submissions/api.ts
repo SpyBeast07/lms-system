@@ -1,5 +1,5 @@
 import { api } from '../../shared/api/axios';
-import type { Submission, SubmissionCreateData, SubmissionGradeData } from './schemas';
+import type { Submission, SubmissionCreateData, SubmissionGradeData, PaginatedSubmissions } from './schemas';
 
 export const submissionsApi = {
     createSubmission: async (data: SubmissionCreateData): Promise<Submission> => {
@@ -24,6 +24,11 @@ export const submissionsApi = {
 
     getAttemptDetails: async (attemptId: number) => {
         const response = await api.get(`/assignments/attempts/${attemptId}`);
+        return response.data;
+    },
+
+    getTeacherSubmissions: async (params: { course_id?: string, student_name?: string, limit?: number, offset?: number }): Promise<PaginatedSubmissions> => {
+        const response = await api.get('/submissions/teacher', { params });
         return response.data;
     }
 };

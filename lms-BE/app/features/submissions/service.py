@@ -16,6 +16,7 @@ from app.features.courses.models_materials import LearningMaterial
 from app.features.enrollments.models_teacher import TeacherCourse
 from app.features.enrollments.models_student import StudentCourse
 from app.features.courses.models_student_assignment import StudentAssignment
+from app.features.users.models import User
 from app.core.storage import get_minio_client
 
 async def create_submission(db: AsyncSession, student_id: int, schema: SubmissionCreate, school_id: int) -> Submission:
@@ -390,4 +391,105 @@ async def grade_submission(db: AsyncSession, submission_id: int, teacher_id: int
             "feedback": attempt.teacher_feedback,
             "student": attempt.student
         }
+
+async def get_all_teacher_submissions(
+    db: AsyncSession, 
+    teacher_id: int, 
+    school_id: int, 
+    course_id: Optional[int] = None,
+    student_name: Optional[str] = None,
+    limit: int = 10, 
+    offset: int = 0
+) -> dict:
+    # 1. Get Teacher's assigned Courses
+    teacher_courses_stmt = select(TeacherCourse.course_id).where(TeacherCourse.teacher_id == teacher_id)
+    teacher_course_ids = (await db.scalars(teacher_courses_stmt)).all()
+    
+    if not teacher_course_ids:
+        return {"total_count": 0, "results": []}
+
+    # If course_id filter is provided, ensure it's one of the teacher's courses
+    target_course_ids = [course_id] if course_id and course_id in teacher_course_ids else teacher_course_ids
+
+    # 2. Fetch File Submissions
+    sub_stmt = select(Submission).join(Assignment, Submission.assignment_id == Assignment.material_id).join(LearningMaterial, Assignment.material_id == LearningMaterial.id).join(User, Submission.student_id == User.id).options(
+        selectinload(Submission.student),
+        selectinload(Submission.assignment).selectinload(Assignment.material)
+    ).where(
+        LearningMaterial.course_id.in_(target_course_ids),
+        Submission.school_id == school_id
+    )
+    
+    if student_name:
+        sub_stmt = sub_stmt.where(User.name.ilike(f"%{student_name}%"))
+        
+    file_submissions = (await db.scalars(sub_stmt)).all()
+
+    # 3. Fetch Assessment Attempts
+    adv_stmt = select(StudentAssignment).join(Assignment, StudentAssignment.assignment_id == Assignment.material_id).join(LearningMaterial, Assignment.material_id == LearningMaterial.id).join(User, StudentAssignment.student_id == User.id).options(
+        selectinload(StudentAssignment.student),
+        selectinload(StudentAssignment.assignment).selectinload(Assignment.material)
+    ).where(
+        LearningMaterial.course_id.in_(target_course_ids)
+    )
+    
+    if student_name:
+        adv_stmt = adv_stmt.where(User.name.ilike(f"%{student_name}%"))
+        
+    assessment_attempts = (await db.scalars(adv_stmt)).all()
+
+    # 4. Standardize and Unified Format
+    unified_results = []
+    minio_client = get_minio_client()
+
+    for sub in file_submissions:
+        file_url = sub.file_url
+        obj_name = sub.object_name
+        if not obj_name and file_url and '/lms-files/' in file_url:
+            obj_name = file_url.split('/lms-files/')[-1]
+            
+        if obj_name:
+            try:
+                file_url = minio_client.generate_presigned_url(obj_name, expiry=3600)
+            except Exception:
+                pass
+        
+        unified_results.append({
+            "id": sub.id,
+            "assignment_id": sub.assignment_id,
+            "student_id": sub.student_id,
+            "submission_type": "FILE_UPLOAD",
+            "title": sub.assignment.material.title if sub.assignment and sub.assignment.material else "File Submission",
+            "submitted_at": sub.submitted_at,
+            "status": "graded" if sub.graded_at else "submitted",
+            "file_url": file_url,
+            "grade": sub.grade,
+            "total_marks": sub.assignment.total_marks if sub.assignment else None,
+            "feedback": sub.feedback,
+            "student": sub.student
+        })
+
+    for att in assessment_attempts:
+        unified_results.append({
+            "id": att.id,
+            "assignment_id": att.assignment_id,
+            "student_id": att.student_id,
+            "submission_type": att.assignment.assignment_type if att.assignment else "MCQ",
+            "title": att.assignment.material.title if att.assignment and att.assignment.material else "Assessment Attempt",
+            "submitted_at": att.submitted_at,
+            "status": att.status,
+            "total_score": float(att.total_score) if att.total_score is not None else None,
+            "total_marks": att.assignment.total_marks if att.assignment else None,
+            "attempt_number": att.attempt_number,
+            "feedback": att.teacher_feedback,
+            "student": att.student
+        })
+
+    # Sort combined list by submitted_at desc
+    unified_results.sort(key=lambda x: x["submitted_at"], reverse=True)
+    
+    total_count = len(unified_results)
+    paged_results = unified_results[offset : offset + limit]
+    
+    return {"total_count": total_count, "results": paged_results}
 

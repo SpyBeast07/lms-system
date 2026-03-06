@@ -72,3 +72,8 @@ export interface StudentAttemptDetails {
     status: string;
     answers: AttemptAnswer[];
 }
+
+export interface PaginatedSubmissions {
+    total_count: number;
+    results: Submission[];
+}

@@ -35,8 +35,8 @@ services:
 
   backend:
     build: ./lms-BE
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,11 +49,27 @@ services:
 
   frontend:
     build: ./lms-FE
-    ports:
-      - "5173:4173"
+    expose:
+      - "4173"
     depends_on:
       - backend
+
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
   postgres_data:
   minio_data:
+  caddy_data:
+  caddy_config:

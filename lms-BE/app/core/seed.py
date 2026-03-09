@@ -27,7 +27,7 @@ async def seed_super_admin():
                 email="admin@example.com",
                 password_hash=password_hash,
                 role="super_admin",
-                school_id=0 # 0 for super admin, though we might need to handle the FK constraint if schools table is required
+                school_id=None # Super admin doesn't belong to any specific school
             )
             
             session.add(new_admin)

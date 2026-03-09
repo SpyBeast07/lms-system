@@ -36,8 +36,7 @@ def upgrade() -> None:
     CREATE UNIQUE INDEX IF NOT EXISTS ix_schools_name ON schools (name)
     ''')
     
-    # 1. Populate basic school
-    op.execute("INSERT INTO schools (id, name, subscription_end) VALUES (0, 'System Admin', now() + interval '100 years') ON CONFLICT DO NOTHING")
+    # 1. Populate basic school (Only Default School)
     op.execute("INSERT INTO schools (id, name, subscription_end) VALUES (1, 'Default School', now() + interval '1 year') ON CONFLICT DO NOTHING")
 
     # 2. Add school_id to all relevant tables first as nullable using raw SQL
@@ -49,11 +48,19 @@ def upgrade() -> None:
     
     for table in tables_to_update:
         op.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS school_id INTEGER")
-        op.execute(f"UPDATE {table} SET school_id = 1 WHERE school_id IS NULL")
         
-        if table not in ['signup_requests', 'notifications', 'activity_logs']:
+        # Default existing rows to school_id = 1
+        # For tables that MUST belong to a school (courses, materials, students, etc.)
+        if table in ['student_course', 'teacher_course', 'course', 'learning_material', 'submissions']:
+            op.execute(f"UPDATE {table} SET school_id = 1 WHERE school_id IS NULL")
             op.execute(f"ALTER TABLE {table} ALTER COLUMN school_id SET NOT NULL")
-            
+        elif table == 'users':
+            # For users, only set school_id=1 for non-super_admins
+            op.execute(f"UPDATE {table} SET school_id = 1 WHERE school_id IS NULL AND role != 'super_admin'")
+        else:
+            # For activity_logs, notifications, signup_requests, keep it nullable
+            pass
+        
         op.execute(f"CREATE INDEX IF NOT EXISTS ix_{table}_school_id ON {table} (school_id)")
         
         if table not in ['activity_logs', 'notifications', 'signup_requests']:

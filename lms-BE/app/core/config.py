@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173", "http://localhost", "https://localhost"]
 
     # AI Configuration
     AI_PROVIDER: str = "ollama"  # or openai, gemini

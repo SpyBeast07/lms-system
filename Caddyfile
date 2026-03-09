@@ -1,4 +1,5 @@
-:80 {
+# HTTPS on localhost (Caddy auto-generates local TLS cert)
+https://localhost {
     # Reverse proxy for backend API
     handle_path /api/* {
         reverse_proxy backend:8000

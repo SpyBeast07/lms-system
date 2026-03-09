@@ -33,7 +33,7 @@ lms-FE/src/
 │
 ├── shared/
 │   ├── api/
-│   │   ├── axios.ts           # Axios base instance (baseURL = localhost:8000)
+│   │   ├── axios.ts           # Axios base instance (baseURL = '/api' via Caddy proxy, or localhost:8000 for local dev)
 │   │   └── interceptors.ts    # Auto-attach Bearer token, refresh on 401
 │   ├── components/            # Reusable UI: Button, Table, Modal, Pagination, Skeleton
 │   ├── types/                 # Shared TypeScript types (PaginatedResponse, etc.)
@@ -68,6 +68,35 @@ feature/
 ├── components/   # Feature-specific components
 └── pages/        # Full-page route views
 ```
+
+---
+
+## 🐳 Running with Docker (Recommended)
+
+The frontend is part of the full Docker Compose stack. From the repository root:
+
+```bash
+docker compose up -d
+```
+
+The frontend is built as a production bundle (`npm run build`) and served via `vite preview` inside the container. It is accessible through the Caddy reverse proxy at `https://localhost`.
+
+---
+
+## 🌐 API Configuration (Caddy Proxy)
+
+When running with Docker, the frontend uses **relative API paths** (no hardcoded backend URL):
+
+```typescript
+// src/shared/api/axios.ts
+export const api = axios.create({
+    baseURL: '/api',  // Caddy routes this to the FastAPI backend
+});
+```
+
+All API calls go to `https://localhost/api/...`, which Caddy proxies to the backend container.
+
+> **Local dev (without Docker):** Change `baseURL` to `'http://localhost:8000'` in `src/shared/api/axios.ts`.
 
 ---
 

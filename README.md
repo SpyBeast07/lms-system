@@ -17,6 +17,68 @@ This is a full-stack monorepo:
 | Object Storage | MinIO (S3-compatible) |
 | Cache / Rate Limiting | Redis + SlowAPI |
 | Background Jobs | APScheduler |
+| Reverse Proxy / HTTPS | Caddy |
+
+---
+
+## 🐳 Docker Setup (Recommended)
+
+The entire stack runs with a single command:
+
+```bash
+docker compose up -d
+```
+
+This starts all containers:
+
+| Container | Role | Accessible At |
+|---|---|---|
+| `caddy` | Reverse proxy + HTTPS | https://localhost (port 80/443) |
+| `backend` | FastAPI API server | via Caddy (`/api/*`) |
+| `frontend` | Vite preview server | via Caddy (`/*`) |
+| `postgres` | PostgreSQL database | localhost:5432 |
+| `redis` | Cache + rate limiter | localhost:6379 |
+| `minio` | Object storage | localhost:9000 / 9001 |
+
+> ⚠️ The `backend` and `frontend` ports are **not exposed directly** to the host. All traffic goes through Caddy on port 80/443.
+
+### Caddy Reverse Proxy
+
+Caddy (`Caddyfile` in the root directory) handles:
+- **HTTPS on `localhost`** — automatically provisions a self-signed TLS cert via its internal CA.
+- **`/api/*`** — proxied to the FastAPI backend (with `/api` prefix stripped).
+- **`/*`** — proxied to the Vite frontend.
+
+**To trust the Caddy root CA on macOS** (eliminates browser security warnings):
+```bash
+docker exec lms-system-caddy-1 cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain caddy-root.crt
+```
+
+### Access Points
+
+| URL | Description |
+|---|---|
+| `https://localhost` | Frontend App |
+| `https://localhost/api/docs` | Backend Swagger UI |
+| `https://localhost/api/redoc` | Backend ReDoc |
+| `http://localhost:9001` | MinIO Console |
+
+---
+
+## 🔐 Default Super Admin
+
+A default super admin is **automatically seeded** on every fresh database initialization:
+
+| Field | Value |
+|---|---|
+| Name | Bade Sahab |
+| Email | admin@example.com |
+| Password | admin123 |
+| Role | super_admin |
+| School | None (system-wide access) |
+
+> The super admin is not tied to any school and has unrestricted access to all system resources.
 
 ---
 
@@ -106,10 +168,12 @@ Schools are given an access window (`subscription_start` → `subscription_end`)
 
 ```
 lms-system/
+├── Caddyfile                 # Caddy reverse proxy config (HTTPS + routing)
+├── docker-compose.yml        # Full stack orchestration
 ├── lms-BE/                   # FastAPI Backend
 │   ├── alembic/              # DB migration scripts
 │   ├── app/
-│   │   ├── core/             # Config, DB, Storage, SchoolGuard, Rate limiter
+│   │   ├── core/             # Config, DB, Storage, SchoolGuard, Rate limiter, Seeder
 │   │   ├── features/
 │   │   │   ├── auth/         # JWT auth, password change requests
 │   │   │   ├── schools/      # School CRUD, subscription, principal assignment
@@ -157,9 +221,21 @@ lms-system/
 ## 🚀 Getting Started
 
 ### Prerequisites
+- Docker & Docker Compose
+
+### Start the Full Stack
+```bash
+docker compose up -d
+```
+
+Migrations run automatically and the default super admin is seeded on first launch.
+
+### (Optional) Local Development Without Docker
+
+#### Prerequisites
 - Node.js v20+
 - Python 3.12+, `uv`
-- Docker (recommended for PostgreSQL, Redis, MinIO)
+- Running PostgreSQL, Redis, and MinIO instances
 
 ### 1. Start Infrastructure (Docker)
 ```bash
@@ -174,7 +250,7 @@ uv venv && source .venv/bin/activate
 uv sync
 cp .env.example .env   # fill in your credentials
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --root-path /api
 ```
 API docs: http://localhost:8000/docs
 
@@ -195,6 +271,9 @@ App: http://localhost:5173
 3. Follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, etc.
 ## ✨ Recent Highlights
 
+- **Dockerized Full Stack**: All services (backend, frontend, postgres, redis, minio, caddy) are containerized and orchestrated via Docker Compose with a single `docker compose up -d`.
+- **Caddy Reverse Proxy + HTTPS**: Caddy serves as the gateway, routing `/api/*` to FastAPI and `/*` to the frontend — with automatic local TLS certificate provisioning.
+- **Auto-Seeded Super Admin**: A default `super_admin` (`admin@example.com` / `admin123`) is automatically created on every fresh database initialization.
 - **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards, supporting threaded replies, post pinning, and type-based filtering (Announcements, Discussions, Questions).
 - **UI Standardization**: Refactored the internal component library to enforce consistent button variants and loading states across all new features.
 - **Enhanced Data Integrity**: Optimized backend eager loading and query normalization to ensure author identities and resource relationships are populated with zero additional roundtrips.

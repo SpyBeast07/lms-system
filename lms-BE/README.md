@@ -35,7 +35,8 @@ lms-BE/
 │   │   ├── cleanup_tasks.py  # APScheduler background jobs
 │   │   ├── exceptions.py     # Custom HTTP exception handlers
 │   │   ├── pagination.py     # PaginatedResponse generic
-│   │   └── response.py       # Standardized API envelope
+│   │   ├── response.py       # Standardized API envelope
+│   │   └── seed.py           # ← Default super admin seeder
 │   │
 │   ├── features/
 │   │   ├── auth/             # JWT login, token refresh, password change requests
@@ -63,6 +64,39 @@ feature/
 ├── service.py    # Business logic + DB queries
 └── router.py     # FastAPI route handlers
 ```
+
+---
+
+## 🐳 Running with Docker (Recommended)
+
+The backend is part of the full Docker Compose stack. From the repository root:
+
+```bash
+docker compose up -d
+```
+
+On startup the container automatically:
+1. Runs `alembic upgrade head` to apply all migrations.
+2. Seeds the default super admin via `app/core/seed.py`.
+3. Starts the Uvicorn server with `--root-path /api` (required for Caddy proxy compatibility).
+
+The backend is accessible via the Caddy reverse proxy at `https://localhost/api/`.
+
+---
+
+## 🔐 Default Super Admin
+
+Seeded automatically on every fresh database via `app/core/seed.py`:
+
+| Field | Value |
+|---|---|
+| Name | Bade Sahab |
+| Email | admin@example.com |
+| Password | admin123 |
+| Role | super_admin |
+| school_id | NULL (system-wide access) |
+
+The seeder is idempotent — it checks for an existing user before inserting and is safe to run repeatedly.
 
 ---
 
@@ -212,11 +246,13 @@ Swagger UI: http://127.0.0.1:8000/docs
 
 ## 🛡️ Production Hardening
 
-1. **Rate Limiting** — SlowAPI + Redis. Critical routes (`/auth`, `/files/upload`) restrict to 20 req/min.
+1. **Rate Limiting** — SlowAPI + Redis. Critical routes (`/auth`, `/files/upload`) restrict to 20 req/min. Redis URL is configured via `REDIS_URL` environment variable.
 2. **Background Cleanup** — APScheduler prunes expired refresh tokens and orphaned MinIO files every 12 hours.
 3. **Response Standardization** — Global exception handlers wrap all responses in `{ success, data, message, meta }`.
 4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.
-5. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
-6. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.
-7. **Discussion Eager Loading** — Implemented `selectinload` for author profiles to ensure community posts and replies are returned with full identity context in a single query.
-8. **School-Isolated Community** — Discussion threads are strictly scoped to course enrollments and school IDs, preventing cross-tenant information leaks.
+5. **Auto-Migration** — `alembic upgrade head` runs automatically inside the Docker container before the server starts.
+6. **Caddy Proxy Compatibility** — Server starts with `--root-path /api` so Swagger UI correctly resolves `/api/openapi.json` through the reverse proxy.
+7. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
+8. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.
+9. **Discussion Eager Loading** — Implemented `selectinload` for author profiles to ensure community posts and replies are returned with full identity context in a single query.
+10. **School-Isolated Community** — Discussion threads are strictly scoped to course enrollments and school IDs, preventing cross-tenant information leaks.

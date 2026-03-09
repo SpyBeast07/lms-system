@@ -12,10 +12,16 @@ from app.core.rate_limiter import limiter
 from app.core.cleanup_tasks import start_scheduler
 from app.core.exceptions import custom_http_exception_handler, validation_exception_handler
 
+from app.core.seed import seed_super_admin
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic (if any)
     start_scheduler()
+    
+    # Ensure default super admin exists
+    await seed_super_admin()
+    
     yield
     # Shutdown logic
     await engine.dispose()

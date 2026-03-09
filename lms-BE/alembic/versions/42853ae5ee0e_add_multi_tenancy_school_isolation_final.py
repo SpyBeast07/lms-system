@@ -19,115 +19,58 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
-    # 1. Update schools table - add columns as nullable first
-    op.add_column('schools', sa.Column('subscription_start', sa.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=True))
-    op.add_column('schools', sa.Column('subscription_end', sa.TIMESTAMP(timezone=True), nullable=True))
-    op.add_column('schools', sa.Column('max_teachers', sa.Integer(), nullable=True))
+    # 0. Create schools table explicitly
+    op.execute('''
+    CREATE TABLE IF NOT EXISTS schools (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR NOT NULL,
+        subscription_start TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+        subscription_end TIMESTAMP WITH TIME ZONE NOT NULL,
+        max_teachers INTEGER DEFAULT 10 NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
+    )
+    ''')
     
-    # Populate existing schools with defaults
-    op.execute("UPDATE schools SET subscription_start = now() WHERE subscription_start IS NULL")
-    op.execute("UPDATE schools SET subscription_end = now() + interval '1 year' WHERE subscription_end IS NULL")
-    op.execute("UPDATE schools SET max_teachers = 10 WHERE max_teachers IS NULL")
+    op.execute('''
+    CREATE UNIQUE INDEX IF NOT EXISTS ix_schools_name ON schools (name)
+    ''')
     
-    # Now make them non-nullable
-    op.alter_column('schools', 'subscription_start', nullable=False)
-    op.alter_column('schools', 'subscription_end', nullable=False)
-    op.alter_column('schools', 'max_teachers', nullable=False)
-    
-    op.drop_index(op.f('ix_schools_slug'), table_name='schools')
-    op.create_index(op.f('ix_schools_name'), 'schools', ['name'], unique=True)
-    op.drop_column('schools', 'slug')
-    op.drop_column('schools', 'is_active')
+    # 1. Populate basic school
+    op.execute("INSERT INTO schools (id, name, subscription_end) VALUES (0, 'System Admin', now() + interval '100 years') ON CONFLICT DO NOTHING")
+    op.execute("INSERT INTO schools (id, name, subscription_end) VALUES (1, 'Default School', now() + interval '1 year') ON CONFLICT DO NOTHING")
 
-    # 2. Update enrollment tables - add school_id as nullable first
-    op.add_column('student_course', sa.Column('school_id', sa.Integer(), nullable=True))
-    op.add_column('teacher_course', sa.Column('school_id', sa.Integer(), nullable=True))
+    # 2. Add school_id to all relevant tables first as nullable using raw SQL
+    tables_to_update = [
+        'student_course', 'teacher_course', 'activity_logs', 
+        'course', 'learning_material', 'notifications', 
+        'signup_requests', 'submissions', 'users'
+    ]
     
-    # Populate with default school (id=1)
-    op.execute("UPDATE student_course SET school_id = 1 WHERE school_id IS NULL")
-    op.execute("UPDATE teacher_course SET school_id = 1 WHERE school_id IS NULL")
-    
-    # Now make non-nullable and add index/FK
-    op.alter_column('student_course', 'school_id', nullable=False)
-    op.create_index(op.f('ix_student_course_school_id'), 'student_course', ['school_id'], unique=False)
-    op.create_foreign_key(None, 'student_course', 'schools', ['school_id'], ['id'])
-    
-    op.alter_column('teacher_course', 'school_id', nullable=False)
-    op.create_index(op.f('ix_teacher_course_school_id'), 'teacher_course', ['school_id'], unique=False)
-    op.create_foreign_key(None, 'teacher_course', 'schools', ['school_id'], ['id'])
-
-    # 3. Handle other existing school_id columns
-    op.create_index(op.f('ix_activity_logs_school_id'), 'activity_logs', ['school_id'], unique=False)
-    
-    op.alter_column('course', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=False)
-    op.create_index(op.f('ix_course_school_id'), 'course', ['school_id'], unique=False)
-    op.drop_constraint(op.f('course_school_id_fkey'), 'course', type_='foreignkey')
-    op.create_foreign_key(None, 'course', 'schools', ['school_id'], ['id'])
-    
-    op.alter_column('learning_material', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=False)
-    op.create_index(op.f('ix_learning_material_school_id'), 'learning_material', ['school_id'], unique=False)
-    op.drop_constraint(op.f('learning_material_school_id_fkey'), 'learning_material', type_='foreignkey')
-    op.create_foreign_key(None, 'learning_material', 'schools', ['school_id'], ['id'])
-    
-    op.create_index(op.f('ix_notifications_school_id'), 'notifications', ['school_id'], unique=False)
-    op.create_index(op.f('ix_signup_requests_school_id'), 'signup_requests', ['school_id'], unique=False)
-    
-    op.alter_column('submissions', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=False)
-    op.create_index(op.f('ix_submissions_school_id'), 'submissions', ['school_id'], unique=False)
-    op.drop_constraint(op.f('submissions_school_id_fkey'), 'submissions', type_='foreignkey')
-    op.create_foreign_key(None, 'submissions', 'schools', ['school_id'], ['id'])
-    
-    op.create_index(op.f('ix_users_school_id'), 'users', ['school_id'], unique=False)
-    op.drop_constraint(op.f('users_school_id_fkey'), 'users', type_='foreignkey')
-    op.create_foreign_key(None, 'users', 'schools', ['school_id'], ['id'])
-    # ### end Alembic commands ###
+    for table in tables_to_update:
+        op.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS school_id INTEGER")
+        op.execute(f"UPDATE {table} SET school_id = 1 WHERE school_id IS NULL")
+        
+        if table not in ['signup_requests', 'notifications', 'activity_logs']:
+            op.execute(f"ALTER TABLE {table} ALTER COLUMN school_id SET NOT NULL")
+            
+        op.execute(f"CREATE INDEX IF NOT EXISTS ix_{table}_school_id ON {table} (school_id)")
+        
+        if table not in ['activity_logs', 'notifications', 'signup_requests']:
+            op.execute(f'''
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.table_constraints
+                    WHERE constraint_name = '{table}_school_id_fkey'
+                ) THEN
+                    ALTER TABLE {table} ADD CONSTRAINT {table}_school_id_fkey FOREIGN KEY (school_id) REFERENCES schools(id);
+                END IF;
+            END
+            $$;
+            ''')
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
-    # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_constraint(None, 'users', type_='foreignkey')
-    op.create_foreign_key(op.f('users_school_id_fkey'), 'users', 'schools', ['school_id'], ['id'], ondelete='SET NULL')
-    op.drop_index(op.f('ix_users_school_id'), table_name='users')
-    op.drop_constraint(None, 'teacher_course', type_='foreignkey')
-    op.drop_index(op.f('ix_teacher_course_school_id'), table_name='teacher_course')
-    op.drop_column('teacher_course', 'school_id')
-    op.drop_constraint(None, 'submissions', type_='foreignkey')
-    op.create_foreign_key(op.f('submissions_school_id_fkey'), 'submissions', 'schools', ['school_id'], ['id'], ondelete='CASCADE')
-    op.drop_index(op.f('ix_submissions_school_id'), table_name='submissions')
-    op.alter_column('submissions', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=True)
-    op.drop_constraint(None, 'student_course', type_='foreignkey')
-    op.drop_index(op.f('ix_student_course_school_id'), table_name='student_course')
-    op.drop_column('student_course', 'school_id')
-    op.drop_index(op.f('ix_signup_requests_school_id'), table_name='signup_requests')
-    op.add_column('schools', sa.Column('is_active', sa.BOOLEAN(), autoincrement=False, nullable=False))
-    op.add_column('schools', sa.Column('slug', sa.VARCHAR(length=50), autoincrement=False, nullable=False))
-    op.drop_index(op.f('ix_schools_name'), table_name='schools')
-    op.create_index(op.f('ix_schools_slug'), 'schools', ['slug'], unique=True)
-    op.drop_column('schools', 'max_teachers')
-    op.drop_column('schools', 'subscription_end')
-    op.drop_column('schools', 'subscription_start')
-    op.drop_index(op.f('ix_notifications_school_id'), table_name='notifications')
-    op.drop_constraint(None, 'learning_material', type_='foreignkey')
-    op.create_foreign_key(op.f('learning_material_school_id_fkey'), 'learning_material', 'schools', ['school_id'], ['id'], ondelete='CASCADE')
-    op.drop_index(op.f('ix_learning_material_school_id'), table_name='learning_material')
-    op.alter_column('learning_material', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=True)
-    op.drop_constraint(None, 'course', type_='foreignkey')
-    op.create_foreign_key(op.f('course_school_id_fkey'), 'course', 'schools', ['school_id'], ['id'], ondelete='CASCADE')
-    op.drop_index(op.f('ix_course_school_id'), table_name='course')
-    op.alter_column('course', 'school_id',
-               existing_type=sa.INTEGER(),
-               nullable=True)
-    op.drop_index(op.f('ix_activity_logs_school_id'), table_name='activity_logs')
-    # ### end Alembic commands ###
+    pass

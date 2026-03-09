@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime, UTC
 from sqlalchemy import func
+from typing import Optional
 
 from app.features.courses.models import Course
 from app.features.courses.schemas import CourseCreate, CourseUpdate

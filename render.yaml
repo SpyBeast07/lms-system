@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: lms-system-backend
+    runtime: docker
+    dockerfilePath: ./lms-BE/Dockerfile
+    dockerContext: ./lms-BE
+    # ROOT_PATH is intentionally NOT set here — Render exposes the service
+    # directly (no reverse proxy), so Swagger resolves openapi.json correctly.
+    # For local Docker + Caddy, ROOT_PATH=/api is set in docker-compose.yml.
+    envVars:
+      - key: ROOT_PATH
+        value: ""

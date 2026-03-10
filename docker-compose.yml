@@ -27,6 +27,8 @@ services:
         condition: service_healthy
     env_file:
       - ./lms-BE/.env
+    environment:
+      - ROOT_PATH=/api
 
   frontend:
     build: ./lms-FE

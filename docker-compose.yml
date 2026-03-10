@@ -2,7 +2,9 @@ services:
 
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
+
       POSTGRES_USER: lms_user
       POSTGRES_PASSWORD: lms_password
       POSTGRES_DB: lms_db
@@ -18,12 +20,16 @@ services:
 
   redis:
     image: redis:7
+    restart: unless-stopped
     ports:
+
       - "6379:6379"
 
   minio:
     image: minio/minio:latest
+    restart: unless-stopped
     command: server /data --console-address ":9001"
+
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password
@@ -35,7 +41,9 @@ services:
 
   backend:
     build: ./lms-BE
+    restart: unless-stopped
     expose:
+
       - "8000"
     depends_on:
       postgres:
@@ -49,7 +57,9 @@ services:
 
   frontend:
     build: ./lms-FE
+    restart: unless-stopped
     expose:
+
       - "4173"
     depends_on:
       - backend

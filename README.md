@@ -33,36 +33,36 @@ This starts all containers:
 
 | Container | Role | Accessible At |
 |---|---|---|
-| `caddy` | Reverse proxy + HTTPS | https://localhost (port 80/443) |
+| `caddy` | Reverse proxy | http://localhost (port 80) |
 | `backend` | FastAPI API server | via Caddy (`/api/*`) |
 | `frontend` | Vite preview server | via Caddy (`/*`) |
 | `postgres` | PostgreSQL database | localhost:5432 |
 | `redis` | Cache + rate limiter | localhost:6379 |
 | `minio` | Object storage | localhost:9000 / 9001 |
 
-> ⚠️ The `backend` and `frontend` ports are **not exposed directly** to the host. All traffic goes through Caddy on port 80/443.
+> ⚠️ The `backend` and `frontend` ports are **not exposed directly** to the host. All traffic goes through Caddy on port 80.
+
 
 ### Caddy Reverse Proxy
 
 Caddy (`Caddyfile` in the root directory) handles:
-- **HTTPS on `localhost`** — automatically provisions a self-signed TLS cert via its internal CA.
+- **HTTP on `:80`** — Optimized for Cloudflare Tunnel handshakes.
 - **`/api/*`** — proxied to the FastAPI backend (with `/api` prefix stripped).
 - **`/*`** — proxied to the Vite frontend.
 
-**To trust the Caddy root CA on macOS** (eliminates browser security warnings):
-```bash
-docker exec lms-system-caddy-1 cat /data/caddy/pki/authorities/local/root.crt > caddy-root.crt
-sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain caddy-root.crt
-```
+> [!NOTE]
+> For local development with tunnel, Caddy is configured to use HTTP to simplify the setup with `cloudflared`.
+
 
 ### Access Points
 
 | URL | Description |
 |---|---|
-| `https://localhost` | Frontend App |
-| `https://localhost/api/docs` | Backend Swagger UI |
-| `https://localhost/api/redoc` | Backend ReDoc |
+| `http://localhost` | Frontend App |
+| `http://localhost/api/docs` | Backend Swagger UI |
+| `http://localhost/api/redoc` | Backend ReDoc |
 | `http://localhost:9001` | MinIO Console |
+
 
 ---
 
@@ -211,10 +211,27 @@ lms-system/
 │   │       ├── activityLogs/
 │   │       ├── ai/
 │   │       └── health/
+│   ├── vite.config.ts        # Vite config with allowedHosts
 │   └── .env.example
 ├── .gitignore
-└── README.md
+├── README.md
+└── Caddyfile
 ```
+
+---
+
+## ☁️ Cloudflare Tunnel Setup
+
+To host this system on Cloudflare using a tunnel:
+
+1.  **Configure Tunnel in Dashboard**:
+    - **Service Type**: `HTTP`
+    - **Service URL**: `http://127.0.0.1:80`
+2.  **Vite Configuration**:
+    - Ensure your public hostname (e.g., `lms.example.com`) is added to `preview.allowedHosts` in `lms-FE/vite.config.ts`.
+3.  **Caddy Configuration**:
+    - Caddy is pre-configured to handle traffic on `:80` without mandatory HTTPS redirects to allow the tunnel to connect.
+
 
 ---
 
@@ -271,12 +288,12 @@ App: http://localhost:5173
 3. Follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, etc.
 ## ✨ Recent Highlights
 
-- **Dockerized Full Stack**: All services (backend, frontend, postgres, redis, minio, caddy) are containerized and orchestrated via Docker Compose with a single `docker compose up -d`.
-- **Caddy Reverse Proxy + HTTPS**: Caddy serves as the gateway, routing `/api/*` to FastAPI and `/*` to the frontend — with automatic local TLS certificate provisioning.
+- **Dockerized Full Stack**: All services (backend, frontend, postgres, redis, minio, caddy) are containerized and orchestrated via Docker Compose.
+- **Improved Tunnel Compatibility**: Caddy and Vite are optimized for Cloudflare Tunnel, ensuring seamless hosting on public domains.
 - **Auto-Seeded Super Admin**: A default `super_admin` (`admin@example.com` / `admin123`) is automatically created on every fresh database initialization.
-- **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards, supporting threaded replies, post pinning, and type-based filtering (Announcements, Discussions, Questions).
-- **UI Standardization**: Refactored the internal component library to enforce consistent button variants and loading states across all new features.
-- **Enhanced Data Integrity**: Optimized backend eager loading and query normalization to ensure author identities and resource relationships are populated with zero additional roundtrips.
-- **Teacher Evaluation Dashboard**: A centralized, paginated interface for grading File, MCQ, and TEXT submissions across all assigned courses.
-- **Drag-and-Drop Questionnaire**: Interactive assignment creator allowing teachers to reorder questions and MCQ options via a premium DND interface.
-- **Unified Submissions**: Standardized API and Frontend components for handling diverse assessment types (MCQ, TEXT, FILE) with consistent feedback loops.
+- **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards.
+- **UI Standardization**: Refactored the internal component library to enforce consistent button variants and loading states.
+- **Enhanced Data Integrity**: Optimized backend eager loading for community posts and replies.
+- **Teacher Evaluation Dashboard**: A centralized interface for grading all types of submissions.
+- **Drag-and-Drop Questionnaire**: Interactive assignment creator with a premium DND interface.
+

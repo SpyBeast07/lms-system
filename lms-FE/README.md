@@ -79,7 +79,8 @@ The frontend is part of the full Docker Compose stack. From the repository root:
 docker compose up -d
 ```
 
-The frontend is built as a production bundle (`npm run build`) and served via `vite preview` inside the container. It is accessible through the Caddy reverse proxy at `https://localhost`.
+The frontend is built as a production bundle (`npm run build`) and served via `vite preview` inside the container. It is accessible through the Caddy reverse proxy at `http://localhost`.
+
 
 ---
 
@@ -94,7 +95,8 @@ export const api = axios.create({
 });
 ```
 
-All API calls go to `https://localhost/api/...`, which Caddy proxies to the backend container.
+All API calls go to `/api/...`, which Caddy proxies to the backend container.
+
 
 > **Local dev (without Docker):** Change `baseURL` to `'http://localhost:8000'` in `src/shared/api/axios.ts`.
 
@@ -200,17 +202,10 @@ App: http://localhost:5173
 
 ## 🔍 Code Quality
 
-Before pushing any changes:
-```bash
-npm run build          # must pass with 0 TypeScript errors
-npx react-doctor@latest .   # must score 100/100
-```
+Before pushing any changes, ensure there are no red lines in `vite.config.ts` or `tsconfig.node.json`. The `allowedHosts` must be correctly typed and the configuration must be valid.
 
-**Guidelines:**
-- Always use `useQuery` / `useMutation` for backend interactions — never `fetch`/`axios` directly in components.
-- Global Zustand stores are for **auth session and UI flags only** — not for server data.
-- Zod schemas must precisely mirror backend Pydantic models to prevent runtime type mismatches.
-- Avoid modifying `/shared/components/` unless the change is genuinely reusable across ≥3 features.
+**Testing public access:** Ensure your public hostname is in `preview.allowedHosts` for Cloudflare Tunnel to work.
+
 ## 💎 UI/UX Standards
 
 - **Exact Route Matching**: Sidebar active states utilize exact path matching to prevent overlapping highlights during nested navigation.

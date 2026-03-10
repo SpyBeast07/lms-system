@@ -80,7 +80,8 @@ On startup the container automatically:
 2. Seeds the default super admin via `app/core/seed.py`.
 3. Starts the Uvicorn server with `--root-path /api` (required for Caddy proxy compatibility).
 
-The backend is accessible via the Caddy reverse proxy at `https://localhost/api/`.
+The backend is accessible via the Caddy reverse proxy at `http://localhost/api/` (or via Cloudflare Tunnel).
+
 
 ---
 
@@ -251,7 +252,8 @@ Swagger UI: http://127.0.0.1:8000/docs
 3. **Response Standardization** — Global exception handlers wrap all responses in `{ success, data, message, meta }`.
 4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.
 5. **Auto-Migration** — `alembic upgrade head` runs automatically inside the Docker container before the server starts.
-6. **Caddy Proxy Compatibility** — Server starts with `--root-path /api` so Swagger UI correctly resolves `/api/openapi.json` through the reverse proxy.
+6. **Caddy Proxy Compatibility** — Server starts with `--root-path /api` so Swagger UI correctly resolves `/api/openapi.json` through the reverse proxy. Caddy is configured for HTTP/Tunnel compatibility.
+
 7. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
 8. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.
 9. **Discussion Eager Loading** — Implemented `selectinload` for author profiles to ensure community posts and replies are returned with full identity context in a single query.

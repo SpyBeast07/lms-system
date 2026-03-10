@@ -16,10 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
 
   minio:
     image: minio/minio:latest
@@ -40,8 +36,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
       minio:
         condition: service_started
     env_file:

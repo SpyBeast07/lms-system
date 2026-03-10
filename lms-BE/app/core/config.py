@@ -18,12 +18,12 @@ class Settings(BaseSettings):
             return url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
         return url
 
-    # MinIO
-    MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET_NAME: str = "lms-files"
-    MINIO_SECURE: bool = False
+    # Object Storage (Cloudflare R2 — S3-compatible)
+    MINIO_ENDPOINT: str = "ef55a69e0d5f5960729dffb9979f2f84.r2.cloudflarestorage.com"
+    MINIO_ACCESS_KEY: str = ""
+    MINIO_SECRET_KEY: str = ""
+    MINIO_BUCKET_NAME: str = "lms-storage"
+    MINIO_SECURE: bool = True
     MINIO_URL_EXPIRY: int = 3600
 
     # Auth

@@ -8,6 +8,7 @@ engine = create_async_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     echo=False, # Set to True for debugging SQL queries
+    connect_args={"ssl": True} if "neon.tech" in DATABASE_URL else {},
 )
 
 # Async Session Factory

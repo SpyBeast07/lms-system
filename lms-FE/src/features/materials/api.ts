@@ -6,7 +6,7 @@ export const materialsApi = {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post('/api/v1/files/upload', formData, {
+        const response = await api.post('/v1/files/upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             }

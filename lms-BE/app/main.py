@@ -26,7 +26,11 @@ async def lifespan(app: FastAPI):
     # Shutdown logic
     await engine.dispose()
 
-app = FastAPI(title="LMS Backend", lifespan=lifespan) # Object of fastAPI class
+app = FastAPI(
+    title="LMS Backend",
+    lifespan=lifespan,
+    root_path="/api"
+)
 
 # SlowAPI registration
 app.state.limiter = limiter

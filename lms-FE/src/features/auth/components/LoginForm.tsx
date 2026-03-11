@@ -31,7 +31,7 @@ export const LoginForm: React.FC = () => {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
                     LMS Portal
                 </h1>
-                <p className="text-slate-500 mt-2 text-sm">Sign in karo to access your dashboard</p>
+                <p className="text-slate-500 mt-2 text-sm">Sign in to access your dashboard</p>
             </div>
 
             {mutationError && (

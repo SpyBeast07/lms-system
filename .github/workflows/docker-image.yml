@@ -1,0 +1,22 @@
+name: Local Deployment CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    # CRITICAL: Change this to 'self-hosted' so it runs on your Debian machine
+    runs-on: self-hosted 
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build and Restart LMS
+        run: |
+          # Use docker-compose to rebuild and restart your specific services
+          docker compose up -d --build
+          
+          # Clean up old images to prevent your Debian disk from filling up
+          docker image prune -f

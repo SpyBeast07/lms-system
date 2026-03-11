@@ -12,6 +12,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+      
+      - name: Create .env file
+        run: |
+          echo "${{ secrets.BE_ENV_FILE }}" > ./lms-BE/.env
 
       - name: Build and Restart LMS
         run: |

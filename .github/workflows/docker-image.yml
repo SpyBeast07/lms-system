@@ -6,21 +6,25 @@ on:
 
 jobs:
   deploy:
-    # CRITICAL: Change this to 'self-hosted' so it runs on your Debian machine
-    runs-on: self-hosted 
+    runs-on: self-hosted
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: Create .env file
+      - name: Update Local Directory and Deploy
         run: |
+          # 1. Navigate to the local project folder
+          cd /home/kushagra/Documents/lms-system
+          
+          # 2. Stash any local uncommitted changes to prevent pull errors
+          git stash || true
+          
+          # 3. Pull the latest code (which triggered this action)
+          git pull
+          
+          # 4. Generate the backend .env file securely
           echo "${{ secrets.BE_ENV_FILE }}" > ./lms-BE/.env
-
-      - name: Build and Restart LMS
-        run: |
-          # Use docker-compose to rebuild and restart your specific services
+          
+          # 5. Build and Restart the Docker services from the local directory
           docker compose up -d --build
           
-          # Clean up old images to prevent your Debian disk from filling up
+          # 6. Clean up old images to save disk space
           docker image prune -f

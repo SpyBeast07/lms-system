@@ -22,16 +22,17 @@ async def create_user_api(
     current_user: User = Depends(require_role("super_admin", "principal", "teacher")),
     school_info = Depends(validate_school_subscription)
 ):
-    if current_user.role == "super_admin" and user_in.role not in ["super_admin", "principal"]:
+    active_role = getattr(current_user, 'active_role', current_user.role)
+    if active_role == "super_admin" and user_in.role not in ["super_admin", "principal"]:
         raise HTTPException(status_code=403, detail="Super Admins can only create Super Admins and Principals")
-    elif current_user.role == "principal" and user_in.role != "teacher":
+    elif active_role == "principal" and user_in.role != "teacher":
         raise HTTPException(status_code=403, detail="Principals can only create Teachers")
-    elif current_user.role == "teacher" and user_in.role != "student":
+    elif active_role == "teacher" and user_in.role != "student":
         raise HTTPException(status_code=403, detail="Teachers can only create Students")
 
     # Super admin can pass a school_id in the body (e.g. when creating a principal for a specific school).
     # For all other roles, fall back to the creator's own school_id.
-    effective_school_id = user_in.school_id if current_user.role == "super_admin" else current_user.school_id
+    effective_school_id = user_in.school_id if active_role == "super_admin" else current_user.school_id
     return await user_crud.create_user(db, user_in, school_id=effective_school_id)
 
 

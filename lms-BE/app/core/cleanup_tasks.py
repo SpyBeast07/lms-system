@@ -70,10 +70,73 @@ async def cleanup_orphan_submissions():
         except Exception as e:
             logger.error(f"Error cleaning up orphan submissions: {e}")
 
+from app.core.redis_client import get_redis
+from app.features.courses.models_discussion import CoursePost, PostReply
+import json
+from sqlalchemy import text
+
+async def sync_redis_discussions_to_db():
+    redis = await get_redis()
+    
+    # Sync posts
+    raw_posts = await redis.hgetall("pending_course_posts")
+    if raw_posts:
+        async with AsyncSessionLocal() as db:
+            try:
+                for pid, pdata in raw_posts.items():
+                    data = json.loads(pdata)
+                    new_post = CoursePost(
+                        id=data["id"],
+                        course_id=data["course_id"],
+                        school_id=data["school_id"],
+                        author_id=data["author_id"],
+                        title=data["title"],
+                        content=data["content"],
+                        type=data["type"],
+                        is_pinned=data["is_pinned"],
+                        # created_at and updated_at can be ignored or parsed from ISO
+                    )
+                    db.add(new_post)
+                await db.commit()
+                # Remove from redis after successful commit
+                await redis.hdel("pending_course_posts", *raw_posts.keys())
+                
+                # Update postgres sequence
+                await db.execute(text("SELECT setval('course_posts_id_seq', (SELECT MAX(id) FROM course_posts))"))
+                await db.commit()
+                logger.info(f"Sync job: inserted {len(raw_posts)} posts from Redis to DB")
+            except Exception as e:
+                logger.error(f"Error syncing pending posts to DB: {e}")
+
+    # Sync replies
+    raw_replies = await redis.hgetall("pending_post_replies")
+    if raw_replies:
+        async with AsyncSessionLocal() as db:
+            try:
+                for rid, rdata in raw_replies.items():
+                    data = json.loads(rdata)
+                    new_reply = PostReply(
+                        id=data["id"],
+                        post_id=data["post_id"],
+                        author_id=data["author_id"],
+                        parent_reply_id=data.get("parent_reply_id"),
+                        content=data["content"]
+                    )
+                    db.add(new_reply)
+                await db.commit()
+                await redis.hdel("pending_post_replies", *raw_replies.keys())
+                
+                await db.execute(text("SELECT setval('post_replies_id_seq', (SELECT MAX(id) FROM post_replies))"))
+                await db.commit()
+                logger.info(f"Sync job: inserted {len(raw_replies)} replies from Redis to DB")
+            except Exception as e:
+                logger.error(f"Error syncing pending replies to DB: {e}")
+
 scheduler = AsyncIOScheduler()
 scheduler.add_job(cleanup_refresh_tokens, 'interval', hours=12)
 scheduler.add_job(cleanup_old_notifications, 'interval', hours=12)
 scheduler.add_job(cleanup_orphan_submissions, 'interval', hours=12)
+scheduler.add_job(sync_redis_discussions_to_db, 'interval', seconds=30)
 
 def start_scheduler():
     scheduler.start()

@@ -1,4 +1,3 @@
-
 from typing import Optional, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import computed_field
@@ -25,6 +24,9 @@ class Settings(BaseSettings):
     MINIO_BUCKET_NAME: str = "lms-files"
     MINIO_SECURE: bool = False
     MINIO_URL_EXPIRY: int = 3600
+
+    # Redis
+    REDIS_URL: str = "redis://redis:6379/1"
 
     # Auth
     SECRET_KEY: str = "CHANGE_ME_SECRET"

@@ -140,3 +140,4 @@ uvicorn==0.41.0
     # via lms-system (pyproject.toml)
 wrapt==2.1.2
     # via deprecated
+websockets==12.0

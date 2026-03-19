@@ -168,7 +168,7 @@ async def get_student_submissions(db: AsyncSession, student_id: int, school_id: 
         })
 
     # Sort combined list by submitted_at desc
-    unified_results.sort(key=lambda x: x["submitted_at"], reverse=True)
+    unified_results.sort(key=lambda x: (x["submitted_at"].replace(tzinfo=None) if x["submitted_at"] else datetime.min), reverse=True)
     
     total_count = len(unified_results)
     # Apply pagination manually on the combined list
@@ -270,7 +270,7 @@ async def get_assignment_submissions(db: AsyncSession, assignment_id: int, teach
             "student": att.student
         })
 
-    unified_results.sort(key=lambda x: x["submitted_at"], reverse=True)
+    unified_results.sort(key=lambda x: (x["submitted_at"].replace(tzinfo=None) if x["submitted_at"] else datetime.min), reverse=True)
     
     total_count = len(unified_results)
     paged_results = unified_results[offset : offset + limit]
@@ -486,7 +486,7 @@ async def get_all_teacher_submissions(
         })
 
     # Sort combined list by submitted_at desc
-    unified_results.sort(key=lambda x: x["submitted_at"], reverse=True)
+    unified_results.sort(key=lambda x: (x["submitted_at"].replace(tzinfo=None) if x["submitted_at"] else datetime.min), reverse=True)
     
     total_count = len(unified_results)
     paged_results = unified_results[offset : offset + limit]

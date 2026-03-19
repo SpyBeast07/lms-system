@@ -6,12 +6,15 @@ import { PostForm } from './PostForm';
 import { PostThread } from './PostThread';
 import type { CoursePost } from '../api_discussion';
 import { Button } from '../../../shared/components/Button';
+import { useCourseWebSocket } from '../hooks/useCourseWebSocket';
 
 interface DiscussionPortalProps {
     courseId: string;
 }
 
 export const DiscussionPortal: React.FC<DiscussionPortalProps> = ({ courseId }) => {
+    useCourseWebSocket(courseId);
+    
     const { userRole } = useAuthStore();
     const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
     const [showPostForm, setShowPostForm] = useState(false);

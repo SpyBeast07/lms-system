@@ -14,6 +14,9 @@ from app.core.exceptions import custom_http_exception_handler, validation_except
 
 from app.core.seed import seed_super_admin
 
+from app.core.redis_client import get_redis
+from app.core.database import AsyncSessionLocal
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic (if any)
@@ -21,6 +24,24 @@ async def lifespan(app: FastAPI):
     
     # Ensure default super admin exists
     await seed_super_admin()
+    
+    # Initialize Redis counters for discussions
+    try:
+        redis = await get_redis()
+        async with AsyncSessionLocal() as db:
+            max_post = await db.scalar(text("SELECT MAX(id) FROM course_posts"))
+            if max_post is not None:
+                curr_post = await redis.get("discussion_global_post_id")
+                if not curr_post or int(curr_post) < max_post:
+                    await redis.set("discussion_global_post_id", max_post)
+            
+            max_reply = await db.scalar(text("SELECT MAX(id) FROM post_replies"))
+            if max_reply is not None:
+                curr_reply = await redis.get("discussion_global_reply_id")
+                if not curr_reply or int(curr_reply) < max_reply:
+                    await redis.set("discussion_global_reply_id", max_reply)
+    except Exception as e:
+        print(f"Error initializing redis counters: {e}")
     
     yield
     # Shutdown logic
@@ -62,6 +83,7 @@ from app.features.stats.router import router as stats_router
 from app.features.signup_requests.router import router as signup_requests_router
 from app.features.schools.router import router as schools_router
 from app.features.courses.router_discussion import router as discussion_router
+from app.features.courses.router_ws import router as ws_router
 
 app.include_router(users_router)
 app.include_router(courses_router)
@@ -79,6 +101,7 @@ app.include_router(stats_router)
 app.include_router(signup_requests_router)
 app.include_router(schools_router)
 app.include_router(discussion_router)
+app.include_router(ws_router)
 
 
 @app.get("/hello_world") # decorator - A function that wraps another function and adds behavior to it.

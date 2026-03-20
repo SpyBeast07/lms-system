@@ -1,7 +1,15 @@
-from sqlalchemy import Integer, ForeignKey, Text, Numeric, UniqueConstraint
+from sqlalchemy import Integer, ForeignKey, Text, Numeric, UniqueConstraint, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List
 
 from app.core.db_base import Base
+
+student_answer_options = Table(
+    "student_answer_options",
+    Base.metadata,
+    Column("student_answer_id", Integer, ForeignKey("student_answers.id", ondelete="CASCADE"), primary_key=True),
+    Column("mcq_option_id", Integer, ForeignKey("mcq_options.id", ondelete="CASCADE"), primary_key=True),
+)
 
 class StudentAnswer(Base):
     __tablename__ = "student_answers"
@@ -27,15 +35,10 @@ class StudentAnswer(Base):
 
     answer_text: Mapped[str | None] = mapped_column(Text)
 
-    selected_option_id: Mapped[int | None] = mapped_column(
-        Integer,
-        ForeignKey("mcq_options.id")
-    )
-
     marks_obtained: Mapped[float | None] = mapped_column(Numeric)
     
     student_assignment = relationship(
         "StudentAssignment", back_populates="answers"
     )
     question = relationship("Question")
-    selected_option = relationship("MCQOption")
+    selected_options = relationship("MCQOption", secondary=student_answer_options)

@@ -5,7 +5,7 @@ export const assignmentSubmissionSchema = z.object({
     comments: z.string().optional(),
     answers: z.array(z.object({
         question_id: z.number(),
-        selected_option_id: z.coerce.number().optional(),
+        selected_option_ids: z.array(z.number()).optional(),
         answer_text: z.string().optional(),
     })).optional()
 });

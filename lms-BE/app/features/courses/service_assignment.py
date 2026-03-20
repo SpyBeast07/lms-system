@@ -158,9 +158,13 @@ async def create_student_attempt(
         answer = StudentAnswer(
             student_assignment_id=attempt.id,
             question_id=ans_data.question_id,
-            selected_option_id=ans_data.selected_option_id,
             answer_text=ans_data.answer_text,
         )
+        if ans_data.selected_option_ids:
+            stmt = select(MCQOption).where(MCQOption.id.in_(ans_data.selected_option_ids))
+            opts_res = await db.execute(stmt)
+            options = opts_res.scalars().all()
+            answer.selected_options = list(options)
         db.add(answer)
 
     await db.flush()
@@ -175,9 +179,8 @@ async def create_student_attempt(
     stmt = (
         select(StudentAssignment)
         .options(
-            selectinload(StudentAssignment.answers)
-            .selectinload(StudentAnswer.question)
-            .selectinload(Question.options)
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.question).selectinload(Question.options),
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.selected_options)
         )
         .filter(StudentAssignment.id == attempt.id)
     )
@@ -199,9 +202,8 @@ async def evaluate_mcq_submission(db: AsyncSession, student_assignment_id: int):
     stmt = (
         select(StudentAssignment)
         .options(
-            selectinload(StudentAssignment.answers)
-            .selectinload(StudentAnswer.question)
-            .selectinload(Question.options)
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.question).selectinload(Question.options),
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.selected_options)
         )
         .filter(StudentAssignment.id == student_assignment_id)
     )
@@ -215,19 +217,21 @@ async def evaluate_mcq_submission(db: AsyncSession, student_assignment_id: int):
     all_mcq = True
     for answer in attempt.answers:
         if answer.question.question_type == "MCQ":
-            if answer.selected_option_id:
-                # Find correct option
-                correct_opt = next((o for o in answer.question.options if o.is_correct), None)
-                if correct_opt and answer.selected_option_id == correct_opt.id:
-                    answer.marks_obtained = answer.question.marks
-                    total_score += answer.question.marks
+            if answer.selected_options:
+                correct_selected = sum(1 for o in answer.selected_options if o.is_correct)
+                wrong_selected = len(answer.selected_options) - correct_selected
+                total_correct = sum(1 for o in answer.question.options if o.is_correct)
+                
+                if total_correct > 0:
+                    score_factor = max(0.0, (correct_selected - wrong_selected) / total_correct)
+                    answer.marks_obtained = score_factor * float(answer.question.marks)
+                    total_score += answer.marks_obtained
                 else:
                     answer.marks_obtained = 0
             else:
                 answer.marks_obtained = 0
         else:
             all_mcq = False
-            # For non-MCQ, we don't auto-grade, but we ensure marks_obtained is None/0 until teacher grades
             if answer.marks_obtained is None:
                 answer.marks_obtained = 0
         

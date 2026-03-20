@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional, Literal
@@ -38,6 +38,15 @@ class QuestionBase(BaseModel):
 
 class QuestionCreate(QuestionBase):
     options: Optional[List[MCQOptionCreate]] = None
+
+    @model_validator(mode='after')
+    def validate_mcq_options(self) -> 'QuestionCreate':
+        if self.question_type == QuestionType.MCQ:
+            if not self.options or len(self.options) == 0:
+                raise ValueError("MCQ must have at least one option")
+            if not any(o.is_correct for o in self.options):
+                raise ValueError("MCQ must have at least one correct option")
+        return self
 
 class QuestionRead(QuestionBase):
     id: int
@@ -86,7 +95,7 @@ class AssignmentTeacherRead(AssignmentRead):
 
 class StudentAnswerSubmission(BaseModel):
     question_id: int
-    selected_option_id: Optional[int] = None
+    selected_option_ids: List[int] = []
     answer_text: Optional[str] = None
 
 class StudentAssignmentCreate(BaseModel):
@@ -95,11 +104,15 @@ class StudentAssignmentCreate(BaseModel):
 
 class StudentAnswerRead(BaseModel):
     question_id: int
-    selected_option_id: Optional[int] = None
     answer_text: Optional[str] = None
     marks_obtained: Optional[float] = None
     question: Optional[QuestionRead] = None
+    selected_options: List[MCQOptionRead] = []
     model_config = ConfigDict(from_attributes=True)
+
+    @computed_field
+    def selected_option_ids(self) -> List[int]:
+        return [o.id for o in getattr(self, "selected_options", [])]
 
 class StudentAnswerTeacherRead(StudentAnswerRead):
     question: Optional[QuestionTeacherRead] = None

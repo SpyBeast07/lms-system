@@ -46,16 +46,21 @@ export const AssessmentAnswersModal: React.FC<AssessmentAnswersModalProps> = ({
                     <div className="space-y-6">
                         {attemptDetails.answers?.map((answer: AttemptAnswer, index: number) => (
                             <div key={answer.question_id} className="bg-slate-50 border border-slate-200 rounded-xl p-5">
-                                <h4 className="font-bold text-slate-800 flex gap-2">
-                                    <span className="text-slate-400">{index + 1}.</span>
-                                    {answer.question?.question_text}
-                                </h4>
+                                <div className="flex justify-between items-start gap-4">
+                                    <h4 className="font-bold text-slate-800 flex gap-2">
+                                        <span className="text-slate-400">{index + 1}.</span>
+                                        {answer.question?.question_text}
+                                    </h4>
+                                    <span className="text-xs font-bold bg-white px-2 py-1 rounded-lg border border-slate-200 text-slate-400 uppercase tracking-tight whitespace-nowrap">
+                                        Score: {answer.marks_obtained || 0} / {answer.question?.marks || 0}
+                                    </span>
+                                </div>
 
                                 <div className="mt-4">
                                     {answer.question?.question_type === 'MCQ' ? (
                                         <div className="space-y-2">
                                             {answer.question.options?.map(opt => {
-                                                const isSelected = answer.selected_option_id === opt.id;
+                                                const isSelected = answer.selected_option_ids?.includes(opt.id) || false;
                                                 const isCorrect = opt.is_correct;
 
                                                 let bgColor = 'bg-white border-slate-200';

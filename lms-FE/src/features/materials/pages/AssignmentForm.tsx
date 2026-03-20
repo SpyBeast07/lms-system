@@ -165,6 +165,9 @@ const QuestionRow: React.FC<QuestionRowProps> = ({ control, register, index, rem
                             </div>
                         </SortableContext>
                     </DndContext>
+                    {(errors as any).questions?.[index]?.options && (
+                        <p className="text-xs text-red-500 mt-1">{(errors as any).questions?.[index]?.options?.message}</p>
+                    )}
                 </div>
             )}
         </div>

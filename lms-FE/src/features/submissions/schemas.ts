@@ -48,12 +48,13 @@ export type SubmissionGradeData = z.infer<typeof submissionGradeSchema>;
 export interface AttemptAnswer {
     question_id: number;
     answer_text?: string;
-    selected_option_id?: number;
+    selected_option_ids?: number[];
     marks_obtained?: number;
     question?: {
         id: number;
         question_text: string;
         question_type: string;
+        marks?: number;
         options?: {
             id: number;
             option_text: string;

@@ -7,6 +7,7 @@ export const submissionsService = {
     getAssignmentSubmissions: (assignmentId: number) => submissionsApi.getAssignmentSubmissions(assignmentId),
     gradeSubmission: (submissionId: number, data: SubmissionGradeData) => submissionsApi.gradeSubmission(submissionId, data),
     getAttemptDetails: (attemptId: number) => submissionsApi.getAttemptDetails(attemptId),
+    getAssignmentAttempts: (assignmentId: number) => submissionsApi.getAssignmentAttempts(assignmentId),
     getTeacherSubmissions: (params: { course_id?: string, student_name?: string, limit?: number, offset?: number }) =>
         submissionsApi.getTeacherSubmissions(params),
 };

@@ -26,6 +26,11 @@ export const submissionsApi = {
         const response = await api.get(`/assignments/attempts/${attemptId}`);
         return response.data;
     },
+    
+    getAssignmentAttempts: async (assignmentId: number) => {
+        const response = await api.get(`/assignments/${assignmentId}/attempts`);
+        return response.data;
+    },
 
     getTeacherSubmissions: async (params: { course_id?: string, student_name?: string, limit?: number, offset?: number }): Promise<PaginatedSubmissions> => {
         const response = await api.get('/submissions/teacher', { params });

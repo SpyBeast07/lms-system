@@ -49,6 +49,36 @@ export const assignmentFormSchema = z.object({
             is_correct: z.boolean()
         })).optional()
     })).optional()
+}).superRefine((data, ctx) => {
+    if (data.assignment_type === 'MCQ' || data.assignment_type === 'TEXT') {
+        if (!data.questions || data.questions.length === 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Please add at least one question',
+                path: ['questions']
+            });
+        }
+    }
+
+    if (data.questions) {
+        data.questions.forEach((q, idx) => {
+            if (q.question_type === 'MCQ') {
+                if (!q.options || q.options.length === 0) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'MCQ must have at least one option',
+                        path: ['questions', idx, 'options']
+                    });
+                } else if (!q.options.some(opt => opt.is_correct)) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'At least one option must be marked correct',
+                        path: ['questions', idx, 'options']
+                    });
+                }
+            }
+        });
+    }
 });
 
 export type MaterialNote = z.infer<typeof materialNoteSchema>;

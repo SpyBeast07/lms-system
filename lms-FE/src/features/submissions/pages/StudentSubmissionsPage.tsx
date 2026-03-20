@@ -6,6 +6,8 @@ import { Table } from '../../../shared/components/ui/Table';
 import { SkeletonTable } from '../../../shared/components/skeleton/Skeletons';
 import { DownloadButton } from '../../student/components/DownloadButton';
 import type { Submission } from '../schemas';
+import { AssessmentAnswersModal } from '../../teacher/components/AssessmentAnswersModal';
+import { Button } from '../../../shared/components/Button';
 
 export const StudentSubmissionsPage: React.FC = () => {
     const { accessToken } = useAuthStore();
@@ -13,6 +15,7 @@ export const StudentSubmissionsPage: React.FC = () => {
     const studentId = tokenData?.sub ? parseInt(tokenData.sub, 10) : undefined;
 
     const { data: submissions, isLoading, isError, error } = useStudentSubmissionsQuery(studentId);
+    const [selectedAttempt, setSelectedAttempt] = React.useState<any>(null);
 
     const columns = [
         {
@@ -82,6 +85,22 @@ export const StudentSubmissionsPage: React.FC = () => {
                 if (!feedbackText) return <span className="text-slate-400">-</span>;
                 return <p className="text-sm text-slate-600 max-w-xs break-words">{feedbackText}</p>;
             }
+        },
+        {
+            header: 'Actions',
+            cell: ({ row }: { row: Submission }) => {
+                if (row.submission_type === 'FILE_UPLOAD') return <span className="text-slate-400">-</span>;
+                return (
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setSelectedAttempt(row)}
+                        className="py-1 px-3 text-xs"
+                    >
+                        Review Answers
+                    </Button>
+                );
+            }
         }
     ];
     if (isLoading) {
@@ -120,6 +139,12 @@ export const StudentSubmissionsPage: React.FC = () => {
                     emptyMessage="You haven't submitted any assignments yet."
                 />
             </div>
+
+            <AssessmentAnswersModal
+                attemptId={selectedAttempt?.id || null}
+                studentName="Your"
+                onClose={() => setSelectedAttempt(null)}
+            />
         </div>
     );
 };

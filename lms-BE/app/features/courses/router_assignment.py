@@ -73,9 +73,8 @@ async def get_attempt_details_api(
     stmt = (
         select(StudentAssignment)
         .options(
-            selectinload(StudentAssignment.answers)
-            .selectinload(StudentAnswer.question)
-            .selectinload(Question.options),
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.question).selectinload(Question.options),
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.selected_options),
             selectinload(StudentAssignment.assignment)
         )
         .filter(StudentAssignment.id == attempt_id)
@@ -94,4 +93,52 @@ async def get_attempt_details_api(
         from app.features.courses.schemas_assignment import StudentAssignmentTeacherRead
         return StudentAssignmentTeacherRead.model_validate(attempt)
     
+    # Check if student is allowed to see correct answers
+    can_see_answers = False
+    if attempt.assignment:
+        from datetime import date
+        if attempt.assignment.due_date and date.today() > attempt.assignment.due_date:
+            can_see_answers = True
+            
+        if not can_see_answers and attempt.assignment.max_attempts:
+            from sqlalchemy import func
+            stmt_count = select(func.count(StudentAssignment.id)).filter_by(
+                student_id=current_user.id,
+                assignment_id=attempt.assignment_id
+            )
+            count_result = await db.execute(stmt_count)
+            attempts_made = count_result.scalar() or 0
+            if attempts_made >= attempt.assignment.max_attempts:
+                can_see_answers = True
+                
+    if can_see_answers:
+        from app.features.courses.schemas_assignment import StudentAssignmentTeacherRead
+        return StudentAssignmentTeacherRead.model_validate(attempt)
+        
     return StudentAssignmentRead.model_validate(attempt)
+
+@router.get("/{assignment_id}/attempts", response_model=list[StudentAssignmentRead])
+async def get_assignment_attempts_api(
+    assignment_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("teacher", "student", "admin", "principal")),
+    school_info = Depends(validate_school_subscription)
+):
+    stmt = (
+        select(StudentAssignment)
+        .options(
+            selectinload(StudentAssignment.answers).selectinload(StudentAnswer.selected_options),
+            selectinload(StudentAssignment.assignment)
+        )
+        .filter(StudentAssignment.assignment_id == assignment_id)
+    )
+    if current_user.role == "student":
+        stmt = stmt.filter(StudentAssignment.student_id == current_user.id)
+        
+    result = await db.execute(stmt)
+    attempts = result.scalars().all()
+    # Manually attach total_marks for Pydantic schema
+    for attempt in attempts:
+        if attempt.assignment:
+            attempt.total_marks = attempt.assignment.total_marks
+    return attempts

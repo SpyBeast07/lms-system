@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { assignmentSubmissionSchema } from '../schemas';
 import { useCourseQuery } from '../../courses/hooks/useCourses';
 import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materials/hooks/useMaterials';
-import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
+import { useCreateSubmissionMutation, useAssignmentAttemptsQuery } from '../../submissions/hooks/useSubmissions';
+import { AssessmentAnswersModal } from '../../teacher/components/AssessmentAnswersModal';
 import { useToastStore } from '../../../app/store/toastStore';
 import { materialsApi } from '../../materials/api';
 import { DownloadButton } from '../components/DownloadButton';
@@ -27,6 +28,8 @@ export const AssignmentDetailPage: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [showResult, setShowResult] = useState(false);
     const [resultData, setResultData] = useState<any>(null);
+    const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
+    const { data: attempts } = useAssignmentAttemptsQuery(Number(assignmentId));
     const queryClient = useQueryClient();
     const createSubmission = useCreateSubmissionMutation();
 
@@ -54,7 +57,7 @@ export const AssignmentDetailPage: React.FC = () => {
         if (assignmentDetails && assignmentDetails.questions) {
             const initialAnswers = assignmentDetails.questions.map((q: any) => ({
                 question_id: q.id,
-                selected_option_id: undefined,
+                selected_option_ids: [],
                 answer_text: '',
             }));
             setValue('answers', initialAnswers);
@@ -281,17 +284,47 @@ export const AssignmentDetailPage: React.FC = () => {
                 {/* Submission Form Pane */}
                 <div className="lg:col-span-7">
                     {noAttemptsLeft || isPastDue ? (
-                        <div className="h-full bg-rose-50 border border-rose-100 rounded-[2rem] p-12 flex flex-col items-center justify-center text-center">
-                            <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-4xl shadow-sm mb-6 border border-rose-100 transform -rotate-6">🧩</div>
-                            <h3 className="text-2xl font-black text-rose-900">Submission Window Closed</h3>
-                            <p className="text-rose-700 text-sm max-w-sm mt-4 leading-relaxed font-medium">
-                                {noAttemptsLeft
-                                    ? "You have exhausted all available attempts for this assignment. Please review your previous submissions or contact your instructor for an extension."
-                                    : "The designated deadline for this assignment has elapsed. Late submissions are not being accepted at this stage."}
-                            </p>
-                            <Link to="/student/courses/$courseId" params={{ courseId }} className="mt-8 text-rose-900 font-bold hover:underline bg-rose-200/50 px-6 py-2 rounded-full transition-colors">
-                                Return to Dashboard
-                            </Link>
+                        <div className="space-y-6">
+                            <div className="bg-rose-50 border border-rose-100 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center">
+                                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-4xl shadow-sm mb-6 border border-rose-100 transform -rotate-6">🧩</div>
+                                <h3 className="text-2xl font-black text-rose-900">Submission Window Closed</h3>
+                                <p className="text-rose-700 text-sm max-w-sm mt-4 leading-relaxed font-medium">
+                                    {noAttemptsLeft
+                                        ? "You have exhausted all available attempts for this assignment. Review your previous attempts below."
+                                        : "The designated deadline for this assignment has elapsed."}
+                                </p>
+                            </div>
+
+                            {attempts && attempts.length > 0 && (
+                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xl space-y-4">
+                                    <h4 className="text-lg font-bold text-slate-800">Previous Attempts</h4>
+                                    <div className="space-y-3">
+                                        {attempts.map((attempt: any) => (
+                                            <div key={attempt.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-slate-100/50 transition-colors">
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800">Attempt #{attempt.attempt_number}</p>
+                                                    <p className="text-xs text-slate-500">{new Date(attempt.submitted_at).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-bold text-indigo-600">{attempt.total_score} <span className="text-slate-400 text-xs">/ {attempt.total_marks || 100}</span></p>
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        onClick={() => {
+                                                            setSelectedAttempt(attempt);
+                                                        }}
+                                                        className="py-1 px-3 text-xs"
+                                                    >
+                                                        Review
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : showResult ? (
                         <div className="bg-white p-10 rounded-[2rem] border border-slate-200 shadow-xl space-y-8 animate-in zoom-in-95 duration-500">
@@ -321,10 +354,10 @@ export const AssignmentDetailPage: React.FC = () => {
                                 </Link>
                                 <button
                                     type="button"
-                                    onClick={() => setShowResult(false)}
-                                    className="w-full py-4 text-indigo-600 font-bold hover:bg-indigo-50 rounded-2xl transition-all"
+                                    onClick={() => setSelectedAttempt(resultData)}
+                                    className="w-full py-4 text-indigo-600 font-bold hover:bg-indigo-50 rounded-2xl transition-all border border-indigo-200"
                                 >
-                                    Review Assessment Form
+                                    Review Submitted Answers
                                 </button>
                             </div>
 
@@ -414,16 +447,23 @@ export const AssignmentDetailPage: React.FC = () => {
                                                         {q.options?.map((opt: any) => (
                                                             <label
                                                                 key={opt.id}
-                                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${watch(`answers.${idx}.selected_option_id`) === opt.id
+                                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${watch(`answers.${idx}.selected_option_ids`)?.includes(opt.id)
                                                                     ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10'
                                                                     : 'border-white bg-white hover:border-slate-200'
                                                                     }`}
                                                             >
                                                                 <input
-                                                                    type="radio"
+                                                                    type="checkbox"
                                                                     value={opt.id}
-                                                                    {...register(`answers.${idx}.selected_option_id` as any)}
-                                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                                    checked={watch(`answers.${idx}.selected_option_ids`)?.includes(opt.id) || false}
+                                                                    onChange={(e) => {
+                                                                        const current = watch(`answers.${idx}.selected_option_ids`) || [];
+                                                                        const next = e.target.checked
+                                                                            ? [...current, opt.id]
+                                                                            : current.filter((id: number) => id !== opt.id);
+                                                                        setValue(`answers.${idx}.selected_option_ids`, next);
+                                                                    }}
+                                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
                                                                 />
                                                                 <span className="text-sm font-medium text-slate-700">{opt.option_text}</span>
                                                             </label>
@@ -467,6 +507,11 @@ export const AssignmentDetailPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            <AssessmentAnswersModal
+                attemptId={selectedAttempt?.id || null}
+                studentName="Your"
+                onClose={() => setSelectedAttempt(null)}
+            />
         </div >
     );
 };

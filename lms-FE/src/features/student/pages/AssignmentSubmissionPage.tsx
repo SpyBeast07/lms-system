@@ -12,6 +12,8 @@ import { useCourseMaterialsQuery, useAssignmentDetailsQuery } from '../../materi
 import { useCreateSubmissionMutation } from '../../submissions/hooks/useSubmissions';
 import { DownloadButton } from '../components/DownloadButton';
 import { materialsApi } from '../../materials/api';
+import { useAssignmentAttemptsQuery } from '../../submissions/hooks/useSubmissions';
+import { AssessmentAnswersModal } from '../../teacher/components/AssessmentAnswersModal';
 import { api } from '../../../shared/api/axios';
 
 export const AssignmentSubmissionPage: React.FC = () => {
@@ -26,6 +28,7 @@ export const AssignmentSubmissionPage: React.FC = () => {
     const assignments = materials?.filter((m: any) => m.type === 'assignment') || [];
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [selectedAttempt, setSelectedAttempt] = useState<any>(null);
     const createSubmission = useCreateSubmissionMutation();
 
     const {
@@ -41,6 +44,7 @@ export const AssignmentSubmissionPage: React.FC = () => {
 
     const selectedAssignmentId = watch('assignment_id');
     const { data: assignmentDetails, isLoading: isDetailsLoading } = useAssignmentDetailsQuery(selectedAssignmentId);
+    const { data: attempts } = useAssignmentAttemptsQuery(selectedAssignmentId ? Number(selectedAssignmentId) : undefined);
 
     // Find the summarized version from materials list to check status/attempts
     const assignmentSummary = assignments.find((a: any) => a.id.toString() === selectedAssignmentId);
@@ -107,7 +111,7 @@ export const AssignmentSubmissionPage: React.FC = () => {
                 comments: '',
                 answers: assignmentDetails.questions.map((q: any) => ({
                     question_id: q.id,
-                    selected_option_id: undefined,
+                    selected_option_ids: [],
                     answer_text: '',
                 }))
             });
@@ -144,18 +148,19 @@ export const AssignmentSubmissionPage: React.FC = () => {
         addToast(`Validation failed: ${detailMsg || 'Invalid field format'}`, 'error');
     };
 
-    const isPastDue = assignmentSummary ? new Date() > new Date(assignmentSummary.due_date) : false;
-    const noAttemptsLeft = assignmentSummary ? (assignmentSummary.attempts_made || 0) >= (assignmentSummary.max_attempts || 1) : false;
-
     // Determine type from summary first, then details
     const currentAssignmentType = (assignmentDetails?.assignment_type || assignmentSummary?.assignment_type || 'FILE_UPLOAD').toString().toUpperCase();
+    const isPastDue = assignmentSummary?.due_date ? new Date() > new Date(assignmentSummary.due_date) : false;
+    const maxAttempts = assignmentSummary?.max_attempts || 1;
+    const attemptsMade = assignmentSummary?.attempts_made || 0;
+    const noAttemptsLeft = attemptsMade >= maxAttempts;
 
     // Initialize answers when assignment changes
     useEffect(() => {
         if (assignmentDetails && assignmentDetails.questions) {
             const initialAnswers = assignmentDetails.questions.map((q: any) => ({
                 question_id: q.id,
-                selected_option_id: undefined,
+                selected_option_ids: [],
                 answer_text: '',
             }));
             setValue('answers', initialAnswers);
@@ -288,15 +293,44 @@ export const AssignmentSubmissionPage: React.FC = () => {
                             <p className="text-slate-500 text-sm mt-2">Choose a course and assignment from the sidebar to begin.</p>
                         </div>
                     ) : (isDetailsLoading || !assignmentDetails) ? (
-                        <div className="h-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                        </div>
-                    ) : noAttemptsLeft || isPastDue ? (
-                        <div className="h-full bg-rose-50 border border-rose-100 rounded-2xl p-12 text-center">
-                            <h3 className="text-xl font-bold text-rose-900">Submission Blocked</h3>
-                            <p className="text-rose-700 text-sm mt-3">
-                                {noAttemptsLeft ? "Maximum attempts reached." : "The deadline has passed."}
-                            </p>
+                        <div className="p-8"><div className="animate-pulse bg-slate-100 h-64 rounded-xl"></div></div>
+                    ) : (noAttemptsLeft || isPastDue) ? (
+                        <div className="space-y-6">
+                            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-8 flex flex-col items-center justify-center text-center">
+                                <h3 className="text-xl font-bold text-rose-900">Submission Window Closed</h3>
+                                <p className="text-rose-700 text-sm mt-2">
+                                    {noAttemptsLeft
+                                        ? "You have exhausted all available attempts."
+                                        : "The designated deadline has elapsed."}
+                                </p>
+                            </div>
+
+                            {attempts && attempts.length > 0 && (
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl space-y-4">
+                                    <h4 className="text-lg font-bold text-slate-800">Previous Attempts</h4>
+                                    <div className="space-y-3">
+                                        {attempts.map((attempt: any) => (
+                                            <div key={attempt.id} className="flex justify-between items-center p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100/50 transition-colors">
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-800">Attempt #{attempt.attempt_number}</p>
+                                                    <p className="text-xs text-slate-500">{new Date(attempt.submitted_at).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <p className="text-sm font-bold text-indigo-600">{attempt.total_score} <span className="text-slate-400 text-xs">/ {attempt.total_marks || 100}</span></p>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        onClick={() => setSelectedAttempt(attempt)}
+                                                        className="py-1 px-3 text-xs"
+                                                    >
+                                                        Review
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -349,16 +383,23 @@ export const AssignmentSubmissionPage: React.FC = () => {
                                                         {q.options?.map((opt: any) => (
                                                             <label
                                                                 key={opt.id}
-                                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${watch(`answers.${idx}.selected_option_id`) === opt.id
+                                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer ${watch(`answers.${idx}.selected_option_ids`)?.includes(opt.id)
                                                                     ? 'border-indigo-500 bg-indigo-50/50 ring-2 ring-indigo-500/10'
                                                                     : 'border-white bg-white hover:border-slate-200'
                                                                     }`}
                                                             >
                                                                 <input
-                                                                    type="radio"
+                                                                    type="checkbox"
                                                                     value={opt.id}
-                                                                    {...register(`answers.${idx}.selected_option_id` as any)}
-                                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                                                                    checked={watch(`answers.${idx}.selected_option_ids`)?.includes(opt.id) || false}
+                                                                    onChange={(e) => {
+                                                                        const current = watch(`answers.${idx}.selected_option_ids`) || [];
+                                                                        const next = e.target.checked
+                                                                            ? [...current, opt.id]
+                                                                            : current.filter((id: number) => id !== opt.id);
+                                                                        setValue(`answers.${idx}.selected_option_ids`, next);
+                                                                    }}
+                                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
                                                                 />
                                                                 <span className="text-sm font-medium text-slate-700">{opt.option_text}</span>
                                                             </label>
@@ -397,6 +438,11 @@ export const AssignmentSubmissionPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            <AssessmentAnswersModal
+                attemptId={selectedAttempt?.id || null}
+                studentName="Your"
+                onClose={() => setSelectedAttempt(null)}
+            />
         </div>
     );
 };

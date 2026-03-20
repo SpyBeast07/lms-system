@@ -37,6 +37,14 @@ export const useAttemptDetailsQuery = (attemptId: number | undefined) => {
     });
 };
 
+export const useAssignmentAttemptsQuery = (assignmentId: number | undefined) => {
+    return useQuery({
+        queryKey: [...SUBMISSIONS_KEY, 'attempts', assignmentId],
+        queryFn: () => submissionsService.getAssignmentAttempts(assignmentId!),
+        enabled: !!assignmentId,
+    });
+};
+
 // Student submits an assignment
 export const useCreateSubmissionMutation = () => {
     const queryClient = useQueryClient();

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -24,6 +25,30 @@ from app.features.users.models import User
 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+@router.get("/google")
+async def google_login():
+    """
+    Redirect to Google OAuth2 consent screen.
+    """
+    url = AuthService.get_google_auth_url()
+    return RedirectResponse(url)
+
+@router.get("/google/callback")
+async def google_callback(
+    code: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Handle Google OAuth2 callback.
+    """
+    result = await AuthService.handle_google_callback(db, code)
+    if "redirect" in result:
+        return RedirectResponse(result["redirect"])
+        
+    from app.core.config import settings
+    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={result['access_token']}&refresh_token={result['refresh_token']}"
+    return RedirectResponse(redirect_url)
 
 @router.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")

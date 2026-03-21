@@ -19,8 +19,8 @@ class Settings(BaseSettings):
 
     # MinIO
     MINIO_ENDPOINT: str = "localhost:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_ACCESS_KEY: str
+    MINIO_SECRET_KEY: str
     MINIO_BUCKET_NAME: str = "lms-files"
     MINIO_SECURE: bool = False
     MINIO_URL_EXPIRY: int = 3600
@@ -29,12 +29,18 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/1"
 
     # Auth
-    SECRET_KEY: str = "CHANGE_ME_SECRET"
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Google OAuth2
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: Optional[str] = None
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173", "http://localhost", "https://localhost"]
+    FRONTEND_URL: str = "https://localhost"
 
     # AI Configuration
     AI_PROVIDER: str = "ollama"  # or openai, gemini

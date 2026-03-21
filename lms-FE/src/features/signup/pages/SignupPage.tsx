@@ -12,17 +12,24 @@ export const SignupPage: React.FC = () => {
     const { addToast } = useToastStore();
     const submitSignup = useSubmitSignupMutation();
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const googleEmail = searchParams.get('email');
+    const googleName = searchParams.get('name');
+    const isGoogle = searchParams.get('google') === 'true';
+
     const {
         register,
         handleSubmit,
-        watch,
         formState: { errors, isSubmitting },
     } = useForm<SignupFormData>({
         resolver: zodResolver(signupSchema),
-        defaultValues: { requested_role: 'student' },
+        defaultValues: { 
+            requested_role: 'student',
+            email: googleEmail || '',
+            name: googleName || '',
+        },
     });
 
-    const role = watch('requested_role');
     const { data: schoolsData, isLoading: isLoadingSchools } = usePublicSchools();
     const schools = schoolsData?.items || [];
 
@@ -81,7 +88,8 @@ export const SignupPage: React.FC = () => {
                                 id="signup-email"
                                 type="email"
                                 placeholder="jane@example.com"
-                                className="w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className={`w-full bg-white/5 border border-white/10 text-white placeholder-slate-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${isGoogle ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                readOnly={isGoogle}
                             />
                             {errors.email && (
                                 <p className="text-rose-400 text-xs mt-1.5 font-medium">{errors.email.message}</p>
@@ -120,29 +128,27 @@ export const SignupPage: React.FC = () => {
                             )}
                         </div>
 
-                        {/* School Dropdown (Conditional) */}
-                        {role === 'principal' && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                <label htmlFor="signup-school" className="block text-sm font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                                    <span>Select School</span>
-                                    {isLoadingSchools && <span className="text-xs text-indigo-400 animate-pulse">Loading schools...</span>}
-                                </label>
-                                <select
-                                    {...register('school_id', { valueAsNumber: true })}
-                                    id="signup-school"
-                                    className="w-full bg-slate-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none"
-                                    disabled={isLoadingSchools}
-                                >
-                                    <option value="">-- Choose your school --</option>
-                                    {schools.map((s: any) => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
-                                </select>
-                                {errors.school_id && (
-                                    <p className="text-rose-400 text-xs mt-1.5 font-medium">{errors.school_id.message}</p>
-                                )}
-                            </div>
-                        )}
+                        {/* School Dropdown */}
+                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <label htmlFor="signup-school" className="block text-sm font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                                <span>Select School</span>
+                                {isLoadingSchools && <span className="text-xs text-indigo-400 animate-pulse">Loading schools...</span>}
+                            </label>
+                            <select
+                                {...register('school_id', { valueAsNumber: true })}
+                                id="signup-school"
+                                className="w-full bg-slate-800 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all appearance-none"
+                                disabled={isLoadingSchools}
+                            >
+                                <option value="">-- Choose your school --</option>
+                                {schools.map((s: any) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                            {errors.school_id && (
+                                <p className="text-rose-400 text-xs mt-1.5 font-medium">{errors.school_id.message}</p>
+                            )}
+                        </div>
 
                         <div className="pt-2">
                             <button

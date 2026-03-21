@@ -2,6 +2,7 @@ import { createRouter, createRoute, createRootRoute, Navigate, redirect } from '
 import { ToastRenderer } from '../../shared/components/ui/ToastRenderer';
 import { Outlet } from '@tanstack/react-router';
 import { LoginForm } from '../../features/auth/components/LoginForm';
+import { CallbackPage } from '../../features/auth/pages/CallbackPage';
 import { useAuthStore } from '../store/authStore';
 import { decodeToken } from '../../shared/utils/jwt';
 import { AdminLayout } from '../../features/admin/layout/AdminLayout';
@@ -77,6 +78,13 @@ const loginRoute = createRoute({
             </div>
         );
     },
+});
+
+// 2c. Auth Callback Route
+const authCallbackRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/auth/callback',
+    component: CallbackPage,
 });
 
 // 2b. Signup Route (public)
@@ -485,6 +493,7 @@ const studentCommunityRoute = createRoute({
 const routeTree = rootRoute.addChildren([
     loginRoute,
     signupRoute,
+    authCallbackRoute,
     indexRoute,
     adminRoute.addChildren([
         adminIndexRoute,

@@ -40,10 +40,10 @@ async def _notify_admins(db: AsyncSession, request: SignupRequest, school_id: Op
 async def create_signup_request(
     db: AsyncSession, data: SignupRequestCreate
 ) -> SignupRequest:
-    if data.requested_role == "principal" and not data.school_id:
+    if not data.school_id:
         raise HTTPException(
             status_code=400,
-            detail="Principals must select a school to manage.",
+            detail="You must select a school to manage or join.",
         )
     # Check for duplicate email in users table
     existing_user = await db.scalar(

@@ -23,6 +23,138 @@ REFRESH_TOKEN_DAYS = 2
 
 class AuthService:
     @staticmethod
+    def get_google_auth_url() -> str:
+        """
+        Generate Google OAuth2 authorization URL.
+        """
+        from app.core.config import settings
+        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_REDIRECT_URI:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Google OAuth2 is not configured"
+            )
+        
+        base_url = "https://accounts.google.com/o/oauth2/v2/auth"
+        params = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "consent"
+        }
+        from urllib.parse import urlencode
+        return f"{base_url}?{urlencode(params)}"
+
+    @staticmethod
+    async def handle_google_callback(db: AsyncSession, code: str) -> dict:
+        """
+        Exchange authorize code for tokens, fetch user, and log in.
+        """
+        from app.core.config import settings
+        import httpx
+        
+        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET or not settings.GOOGLE_REDIRECT_URI:
+             raise HTTPException(status_code=500, detail="Google configuration missing")
+
+        # 1. Exchange code for access_token
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            token_resp = await client.post(token_url, data=token_data)
+            if token_resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to exchange code for token")
+            tokens = token_resp.json()
+            
+            # 2. Fetch User Profile
+            access_token = tokens.get("access_token")
+            userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+            headers = {"Authorization": f"Bearer {access_token}"}
+            profile_resp = await client.get(userinfo_url, headers=headers)
+            if profile_resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to fetch user profile")
+            profile = profile_resp.json()
+
+        email = profile.get("email")
+        name = profile.get("name")
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email not provided by Google")
+
+        # 3. Find or Create User
+        result = await db.execute(
+            select(User)
+            .options(joinedload(User.school))
+            .filter(User.email == email, User.is_deleted == False)
+        )
+        user = result.scalars().first()
+
+        if not user:
+            from app.features.signup_requests.models import SignupRequest
+            from urllib.parse import urlencode
+
+            # Check if there is already a signup request for this email
+            req_result = await db.execute(select(SignupRequest).filter(SignupRequest.email == email))
+            existing_req = req_result.scalars().first()
+
+            if existing_req:
+                if existing_req.status == "pending":
+                    params = urlencode({"error": "Your signup request is pending approval. Please wait for an administrator to approve it."})
+                    return {"redirect": f"{settings.FRONTEND_URL}/login?{params}"}
+                elif existing_req.status == "rejected":
+                    params = urlencode({"error": "Your signup request was rejected. Please contact support."})
+                    return {"redirect": f"{settings.FRONTEND_URL}/login?{params}"}
+                
+                # If approved but user not found (rare edge case), fall through to new signup
+            
+            # Redirect to frontend signup page with pre-filled details
+            params = urlencode({
+                "email": email,
+                "name": name or email.split("@")[0],
+                "google": "true"
+            })
+            return {"redirect": f"{settings.FRONTEND_URL}/signup?{params}"}
+
+        # 4. Generate JWT Tokens
+        access_token_jwt = create_access_token(
+            data={
+                "sub": str(user.id),
+                "role": user.role,
+                "base_role": user.role,
+                "name": user.name,
+                "school_id": user.school_id,
+                "school_name": user.school.name if user.school else None,
+                "subscription_end": user.school.subscription_end.isoformat() if user.school else None
+            }
+        )
+
+        import secrets
+        raw_refresh_token = secrets.token_urlsafe(64)
+        await AuthService._create_refresh_token(db, user, raw_refresh_token)
+
+        from app.features.auth.service import log_action, ActivityLogCreate
+        await log_action(db, ActivityLogCreate(
+            user_id=user.id,
+            action="google_login",
+            entity_type="user",
+            entity_id=user.id,
+            details=f"User {user.email} logged in via Google"
+        ))
+
+        return {
+            "access_token": access_token_jwt,
+            "refresh_token": raw_refresh_token,
+            "token_type": "bearer",
+        }
+
+    @staticmethod
     async def login(db: AsyncSession, form_data) -> TokenResponse:
         """
         Authenticate user and issue new access & refresh tokens.

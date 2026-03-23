@@ -27,27 +27,30 @@ from app.features.users.models import User
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.get("/google")
-async def google_login():
+async def google_login(request: Request):
     """
     Redirect to Google OAuth2 consent screen.
     """
-    url = AuthService.get_google_auth_url()
+    redirect_uri = str(request.url_for('google_callback'))
+    url = AuthService.get_google_auth_url(redirect_uri=redirect_uri)
     return RedirectResponse(url)
 
 @router.get("/google/callback")
 async def google_callback(
+    request: Request,
     code: str,
     db: AsyncSession = Depends(get_db)
 ):
     """
     Handle Google OAuth2 callback.
     """
-    result = await AuthService.handle_google_callback(db, code)
+    redirect_uri = str(request.url_for('google_callback'))
+    result = await AuthService.handle_google_callback(db, code, redirect_uri=redirect_uri)
+    
     if "redirect" in result:
         return RedirectResponse(result["redirect"])
         
-    from app.core.config import settings
-    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?access_token={result['access_token']}&refresh_token={result['refresh_token']}"
+    redirect_url = f"/auth/callback?access_token={result['access_token']}&refresh_token={result['refresh_token']}"
     return RedirectResponse(redirect_url)
 
 @router.post("/login", response_model=TokenResponse)

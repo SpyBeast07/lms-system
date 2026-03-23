@@ -32,10 +32,13 @@ async def google_login(request: Request):
     Redirect to Google OAuth2 consent screen.
     """
     redirect_uri = str(request.url_for('google_callback'))
+    if "localhost" not in redirect_uri and redirect_uri.startswith("http://"):
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
+    
     url = AuthService.get_google_auth_url(redirect_uri=redirect_uri)
     return RedirectResponse(url)
 
-@router.get("/google/callback")
+@router.get("/google/callback", name="google_callback")
 async def google_callback(
     request: Request,
     code: str,
@@ -45,6 +48,9 @@ async def google_callback(
     Handle Google OAuth2 callback.
     """
     redirect_uri = str(request.url_for('google_callback'))
+    if "localhost" not in redirect_uri and redirect_uri.startswith("http://"):
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
+
     result = await AuthService.handle_google_callback(db, code, redirect_uri=redirect_uri)
     
     if "redirect" in result:

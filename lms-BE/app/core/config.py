@@ -36,7 +36,6 @@ class Settings(BaseSettings):
     # Google OAuth2
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None
-    GOOGLE_REDIRECT_URI: Optional[str] = None
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://192.168.29.84:5173", "http://localhost", "https://localhost"]

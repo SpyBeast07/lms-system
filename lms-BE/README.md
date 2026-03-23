@@ -188,6 +188,7 @@ When a super_admin creates a principal, they can pass `school_id` in the request
 2. JWT payload includes `user_id`, `role`, `school_id` — used by all downstream isolation logic.
 3. `POST /auth/refresh` — issues new access token.
 4. **Password change requests**: Users request a password change; principal/admin approves or rejects via `/auth/password-requests`.
+5. **Google OAuth**: Native Single Sign-On integration handling user login, signup mapping, and automatic redirect URI resolution seamlessly behind reverse proxies.
 
 ---
 
@@ -252,7 +253,7 @@ Swagger UI: http://127.0.0.1:8000/docs
 4. **SchoolGuard** — FastAPI dependency enforcing subscription validity on every school-scoped request.
 5. **Auto-Migration** — `alembic upgrade head` runs automatically inside the Docker container before the server starts.
 6. **Caddy Proxy Compatibility** — Server starts with `--root-path /api` so Swagger UI correctly resolves `/api/openapi.json` through the reverse proxy.
-7. **Refined Auto-Grading** — Strict logic ensuring only pure MCQ submissions are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
+7. **Refined Auto-Grading & Assessments** — Strict logic ensuring only pure MCQ submissions (including multiple-selection answers) are auto-evaluated, while mixed assessments (MCQ+TEXT) are held for teacher review.
 8. **JSONB Reference Materials** — PostgreSQL JSONB storage used for an extensible array of reference files and external links per assignment.
 9. **Discussion Eager Loading** — Implemented `selectinload` for author profiles to ensure community posts and replies are returned with full identity context in a single query.
 10. **School-Isolated Community** — Discussion threads are strictly scoped to course enrollments and school IDs, preventing cross-tenant information leaks.

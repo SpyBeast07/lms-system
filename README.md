@@ -280,3 +280,5 @@ App: http://localhost:5173
 - **Teacher Evaluation Dashboard**: A centralized, paginated interface for grading File, MCQ, and TEXT submissions across all assigned courses.
 - **Drag-and-Drop Questionnaire**: Interactive assignment creator allowing teachers to reorder questions and MCQ options via a premium DND interface.
 - **Unified Submissions**: Standardized API and Frontend components for handling diverse assessment types (MCQ, TEXT, FILE) with consistent feedback loops.
+- **Google OAuth Integration**: Native Single Sign-On (SSO) support for seamless user login and signup, featuring dynamically resolved redirect URIs and active proxy header support.
+- **Advanced Assessment & Review**: Built-in support for multiple-selection answers in assignments along with a comprehensive interface enabling students to review their previous submission attempts in detail.

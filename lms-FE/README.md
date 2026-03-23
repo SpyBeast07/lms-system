@@ -163,12 +163,14 @@ The auth store (`authStore.ts`) decodes the JWT on login and stores `role` and `
 3. TanStack Router's `beforeLoad` on the index route inspects the role and redirects the user to their appropriate dashboard (`/admin/dashboard`, `/principal/dashboard`, etc.).
 4. Axios request interceptor attaches `Authorization: Bearer <token>` automatically. On 401, it calls `POST /auth/refresh` and retries.
 5. On logout, **all TanStack Query caches are fully purged** to prevent stale data from leaking across sessions.
+6. **Google OAuth**: Integrated Single Sign-On allows users to log in or register via their Google accounts, complete with dedicated callback handling that securely pre-fills session forms.
 
 ---
 
 ## 📋 Signup Flow
 
 Principals, teachers, and students register via the public `/signup` page:
+- **Google OAuth**: Users can opt to register via Google SSO, securely pre-filling their details to streamline the signup and approval workflow.
 - Principals may optionally select a school from the public school list.
 - Teachers and students must select a school.
 - On submission, a `SignupRequest` is created in `pending` state.
@@ -216,7 +218,7 @@ npx react-doctor@latest .   # must score 100/100
 - **Exact Route Matching**: Sidebar active states utilize exact path matching to prevent overlapping highlights during nested navigation.
 - **Event Integrity**: Interactive elements (like Download buttons) implement strict event propagation control to ensure zero accidental parent-triggering.
 - **Interactive Reordering**: Sortable lists use `@dnd-kit` with optimized collision detection and smooth animations.
-- **Automated Flow**: Students are automatically redirected to the course dashboard upon completing their final assignment attempt, reducing friction.
+- **Automated Flow & Review**: Students are automatically redirected to the course dashboard upon completing their final assignment attempt, reducing friction. Moreover, robust UI enables students to easily review their previous assignment submission attempts.
 - **Standardized UI Components**: Enforced a project-wide `Button` component with pre-defined variants (`primary`, `success`, `warning`, `ghost`, etc.) to ensure color consistency and predictable interaction feedback.
 - **State-Aware Navigation**: Implemented automatic clearing of active discussion threads and form states when transitioning between course contexts in the community portal.
 - **Role-Aware Fetching**: Optimized enrollment hooks to bypass redundant/unauthorized metadata requests for teacher roles, eliminating console spam.

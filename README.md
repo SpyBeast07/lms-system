@@ -89,8 +89,14 @@ Every entity in the system is **scoped to a School**.
 
 ## ✨ Recent Highlights
 
-- **Cloud Migration**: Successfully moved from local MinIO/Redis/Postgres to Cloudflare R2, Upstash, and Neon.
-- **Vercel + Render Deployment**: Optimized for zero-prefix routing in production while maintaining `/api` prefix compatibility for local Caddy dev.
-- **Multi-Stage Builds**: Optimized backend Docker image for low-memory (512MB) environments like Render.
-- **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards.
-- **Unified Evaluation**: Centralized grading for File, MCQ, and TEXT submissions.
+- **Dockerized Full Stack**: All services (backend, frontend, postgres, redis, minio, caddy) are containerized and orchestrated via Docker Compose with a single `docker compose up -d`.
+- **Caddy Reverse Proxy + HTTPS**: Caddy serves as the gateway, routing `/api/*` to FastAPI and `/*` to the frontend — with automatic local TLS certificate provisioning.
+- **Auto-Seeded Super Admin**: A default `super_admin` (`admin@example.com` / `admin123`) is automatically created on every fresh database initialization.
+- **Course Community Portal**: A real-time discussion system integrated into both Teacher and Student dashboards, supporting threaded replies, post pinning, and type-based filtering (Announcements, Discussions, Questions).
+- **UI Standardization**: Refactored the internal component library to enforce consistent button variants and loading states across all new features.
+- **Enhanced Data Integrity**: Optimized backend eager loading and query normalization to ensure author identities and resource relationships are populated with zero additional roundtrips.
+- **Teacher Evaluation Dashboard**: A centralized, paginated interface for grading File, MCQ, and TEXT submissions across all assigned courses.
+- **Drag-and-Drop Questionnaire**: Interactive assignment creator allowing teachers to reorder questions and MCQ options via a premium DND interface.
+- **Unified Submissions**: Standardized API and Frontend components for handling diverse assessment types (MCQ, TEXT, FILE) with consistent feedback loops.
+- **Google OAuth Integration**: Native Single Sign-On (SSO) support for seamless user login and signup, featuring dynamically resolved redirect URIs and active proxy header support.
+- **Advanced Assessment & Review**: Built-in support for multiple-selection answers in assignments along with a comprehensive interface enabling students to review their previous submission attempts in detail.

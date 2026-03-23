@@ -23,12 +23,12 @@ REFRESH_TOKEN_DAYS = 2
 
 class AuthService:
     @staticmethod
-    def get_google_auth_url() -> str:
+    def get_google_auth_url(redirect_uri: str) -> str:
         """
         Generate Google OAuth2 authorization URL.
         """
         from app.core.config import settings
-        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_REDIRECT_URI:
+        if not settings.GOOGLE_CLIENT_ID:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Google OAuth2 is not configured"
@@ -37,7 +37,7 @@ class AuthService:
         base_url = "https://accounts.google.com/o/oauth2/v2/auth"
         params = {
             "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "response_type": "code",
             "scope": "openid email profile",
             "access_type": "offline",
@@ -47,14 +47,14 @@ class AuthService:
         return f"{base_url}?{urlencode(params)}"
 
     @staticmethod
-    async def handle_google_callback(db: AsyncSession, code: str) -> dict:
+    async def handle_google_callback(db: AsyncSession, code: str, redirect_uri: str) -> dict:
         """
         Exchange authorize code for tokens, fetch user, and log in.
         """
         from app.core.config import settings
         import httpx
         
-        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET or not settings.GOOGLE_REDIRECT_URI:
+        if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
              raise HTTPException(status_code=500, detail="Google configuration missing")
 
         # 1. Exchange code for access_token
@@ -63,7 +63,7 @@ class AuthService:
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "redirect_uri": redirect_uri,
             "grant_type": "authorization_code"
         }
         
@@ -107,10 +107,10 @@ class AuthService:
             if existing_req:
                 if existing_req.status == "pending":
                     params = urlencode({"error": "Your signup request is pending approval. Please wait for an administrator to approve it."})
-                    return {"redirect": f"{settings.FRONTEND_URL}/login?{params}"}
+                    return {"redirect": f"/login?{params}"}
                 elif existing_req.status == "rejected":
                     params = urlencode({"error": "Your signup request was rejected. Please contact support."})
-                    return {"redirect": f"{settings.FRONTEND_URL}/login?{params}"}
+                    return {"redirect": f"/login?{params}"}
                 
                 # If approved but user not found (rare edge case), fall through to new signup
             
@@ -120,7 +120,7 @@ class AuthService:
                 "name": name or email.split("@")[0],
                 "google": "true"
             })
-            return {"redirect": f"{settings.FRONTEND_URL}/signup?{params}"}
+            return {"redirect": f"/signup?{params}"}
 
         # 4. Generate JWT Tokens
         access_token_jwt = create_access_token(

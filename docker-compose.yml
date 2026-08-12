@@ -80,3 +80,4 @@ volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  minio_data:

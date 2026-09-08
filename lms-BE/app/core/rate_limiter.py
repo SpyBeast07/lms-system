@@ -2,7 +2,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 import os
 
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
 
 # Upstash uses TLS (rediss://). Pass ssl_cert_reqs=None to allow
 # Upstash's self-managed cert without full chain verification.

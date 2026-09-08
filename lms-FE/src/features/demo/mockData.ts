@@ -244,13 +244,13 @@ const logsForRole = (role: DemoRole, page: number, size: number) => {
         },
         {
             id: 5,
-            user_id: 1000,
+            user_id: 1001,
             action: 'school_updated',
             entity_type: 'school',
             entity_id: 1,
             details: 'Updated subscription for Eurobliz International School',
             created_at: daysAgo(0, 7),
-            user: { id: 1000, name: 'Demo Super Admin', email: 'super.admin@demo.lms', role: 'super_admin' },
+            user: { id: 1001, name: 'Demo Principal', email: 'principal@demo.lms', role: 'principal' },
         },
     ];
     const filtered = baseLogs.filter((log) =>

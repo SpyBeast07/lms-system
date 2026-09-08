@@ -6,16 +6,40 @@ The frontend layer of the LMS System. A type-safe, feature-driven React applicat
 
 ## 🛠️ Technologies
 
-| Concern | Library |
+| Concern | Library / Service |
 |---|---|
 | Framework | React 18 + Vite |
 | Language | TypeScript |
+| Hosting | Vercel |
 | Routing | TanStack Router (type-safe) |
 | Data Fetching | TanStack Query (React Query) |
-| Global State | Zustand (auth session + UI flags only) |
+| Global State | Zustand |
 | Forms | React Hook Form + Zod |
-| Drag & Drop | @dnd-kit |
 | Styling | TailwindCSS |
+
+---
+
+## 🚀 Production Deployment (Vercel)
+
+The frontend is deployed on Vercel and configured for high-performance delivery.
+
+- **URL**: `https://lms-system-blush.vercel.app`
+- **Environment**: Node.js 20+
+
+### API Configuration
+The frontend uses a dynamic `baseURL` for Axios to support both production and local development:
+
+```typescript
+// lms-FE/src/shared/api/axios.ts
+export const api = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || '/api',
+});
+```
+
+- **Production**: Uses `VITE_API_URL` (set to `https://lms-system-ecuw.onrender.com`).
+- **Local Dev**: Falls back to `/api` which is proxied by Caddy to the backend.
+
+**Note**: In production, the `/api` prefix is stripped from request paths to match the direct Render deployment.
 
 ---
 
@@ -58,20 +82,17 @@ lms-FE/src/
     └── health/                # System health check page (admin-only)
 ```
 
-Each feature contains:
+Each feature in `src/features/` follows this clean architecture:
 ```
 feature/
-├── api.ts        # Axios endpoint calls
-├── hooks/        # TanStack Query (useQuery, useMutation) wrappers
-├── schemas.ts    # Zod types
-├── services.ts   # Optional service layer between api.ts and hooks
-├── components/   # Feature-specific components
-└── pages/        # Full-page route views
+├── api.ts        # Axios endpoint calls (Direct root calls, no hardcoded prefixes).
+├── hooks/        # TanStack Query wrappers for data management.
+└── pages/        # Role-guarded route views.
 ```
 
 ---
 
-## 🐳 Running with Docker (Recommended)
+## 🐳 Local Development (Docker)
 
 The frontend is part of the full Docker Compose stack. From the repository root:
 
@@ -186,7 +207,7 @@ When a super_admin creates a user with **role = Principal**, an animated **"Assi
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started (Standalone)
 
 ### Requirements
 - Node.js v20+
@@ -195,7 +216,7 @@ When a super_admin creates a user with **role = Principal**, an animated **"Assi
 ### Install & Run
 ```bash
 npm install
-cp .env.example .env   # set VITE_API_URL=http://localhost:8000
+cp .env.example .env   # Set VITE_API_URL=http://localhost:8000 for local dev
 npm run dev
 ```
 App: http://localhost:5173

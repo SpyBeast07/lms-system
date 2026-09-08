@@ -6,73 +6,54 @@ The backend layer of the LMS System. Built with FastAPI + async SQLAlchemy, it e
 
 ## 🛠️ Technologies
 
-| Concern | Library |
+| Concern | Library / Service |
 |---|---|
 | Framework | FastAPI (async) |
-| Language | Python 3.12+ (`uv`) |
-| Database | PostgreSQL via AsyncPG + SQLAlchemy ORM |
-| Migrations | Alembic |
-| Object Storage | MinIO (S3-compatible) |
+| Language | Python 3.12+ |
+| Database | PostgreSQL (Neon - Serverless) via AsyncPG |
+| ORM | SQLAlchemy 2.0 |
+| Cache | Redis (Upstash) |
+| Object Storage | Cloudflare R2 (S3-Compatible) |
 | Rate Limiting | SlowAPI + Redis |
-| Background Jobs | APScheduler (AsyncIOScheduler) |
+| Background Jobs | APScheduler |
 
 ---
 
-## 📂 Backend Structure
+## 🚀 Production Deployment (Render)
 
-```text
-lms-BE/
-├── alembic/
-│   └── versions/             # All migration scripts
-├── app/
-│   ├── core/
-│   │   ├── config.py         # Pydantic settings (env vars)
-│   │   ├── database.py       # Async SQLAlchemy engine + get_db
-│   │   ├── db_base.py        # Declarative Base
-│   │   ├── school_guard.py   # ← SchoolGuard dependency
-│   │   ├── storage.py        # MinIOClient wrapper
-│   │   ├── rate_limiter.py   # SlowAPI + Redis limiter
-│   │   ├── cleanup_tasks.py  # APScheduler background jobs
-│   │   ├── exceptions.py     # Custom HTTP exception handlers
-│   │   ├── pagination.py     # PaginatedResponse generic
-│   │   ├── response.py       # Standardized API envelope
-│   │   └── seed.py           # ← Default super admin seeder
-│   │
-│   ├── features/
-│   │   ├── auth/             # JWT login, token refresh, password change requests
-│   │   ├── schools/          # School CRUD + subscription + principal assignment
-│   │   ├── users/            # User management (role-hierarchy scoped)
-│   │   ├── courses/          # Course CRUD, soft & hard delete, materials
-│   │   ├── enrollments/      # Teacher-course & student-course assignments
-│   │   ├── files/            # MinIO upload + DB-backed file registry
-│   │   ├── submissions/      # Student submission processing + grading
-│   │   ├── notifications/    # Event-driven, deduplicated notification system
-│   │   ├── activity_logs/    # System-wide audit logging
-│   │   ├── signup_requests/  # Public registration + approval workflow
-│   │   ├── ai/               # AI course content generation (Ollama/OpenAI)
-│   │   ├── stats/            # Aggregate dashboard statistics
-│   │   └── discussion/       # Course-based community & discussion system
-│   │
-│   └── main.py               # App factory, middleware, router registration
-```
+The backend is deployed as a Docker service on Render.
 
-Each feature follows this internal layout:
-```
-feature/
-├── models.py     # SQLAlchemy ORM model
-├── schemas.py    # Pydantic request/response models
-├── service.py    # Business logic + DB queries
-└── router.py     # FastAPI route handlers
-```
+- **URL**: `https://lms-system-ecuw.onrender.com`
+- **Auto-Scale**: Configured for low-memory environments (512MB).
+- **Auto-Migrations**: `alembic upgrade head` runs automatically on boot.
+
+### Environment Variables
+Key variables required for production:
+- `DATABASE_URL`: Neon PostgreSQL connection string.
+- `REDIS_URL`: Upstash Redis connection string.
+- `MINIO_ENDPOINT`: Cloudflare R2 endpoint.
+- `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY`: R2 credentials.
+- `ROOT_PATH`: Should be empty for direct Render deployment.
 
 ---
 
-## 🐳 Running with Docker (Recommended)
+## 🗄️ File Storage — Cloudflare R2
 
-The backend is part of the full Docker Compose stack. From the repository root:
+We migrated from local MinIO to **Cloudflare R2** for production-grade reliability.
+
+**Workflow:**
+1. Files are uploaded via the `/v1/files/upload` endpoint.
+2. The system stores metadata in the `file_records` table, scoped by `school_id`.
+3. Files are stored and retrieved using HTTPS presigned URLs with an expiry window of 3600 seconds.
+
+---
+
+## 🐳 Running Locally (Docker)
+
+From the root directory:
 
 ```bash
-docker compose up -d
+docker compose up -d --build backend
 ```
 
 On startup the container automatically:

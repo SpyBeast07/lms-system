@@ -6,32 +6,9 @@ A multi-tenant, school-isolated Learning Management System (LMS) for educational
 
 ## 🏗️ Architecture Overview
 
-This is a full-stack monorepo:
+This project is deployed using a modern, distributed architecture:
 
-| Layer | Tech |
-|---|---|
-| Frontend | React 18 + TypeScript + Vite |
-| Backend | FastAPI + Python 3.12 |
-| Database | PostgreSQL (async SQLAlchemy) |
-| Migrations | Alembic |
-| Object Storage | MinIO (S3-compatible) |
-| Cache / Rate Limiting | Redis + SlowAPI |
-| Background Jobs | APScheduler |
-| Reverse Proxy / HTTPS | Caddy |
-
----
-
-## 🐳 Docker Setup (Recommended)
-
-The entire stack runs with a single command:
-
-```bash
-docker compose up -d
-```
-
-This starts all containers:
-
-| Container | Role | Accessible At |
+| Component | Platform | URL |
 |---|---|---|
 | `caddy` | Reverse proxy | http://localhost (port 80) |
 | `backend` | FastAPI API server | via Caddy (`/api/*`) |
@@ -147,25 +124,27 @@ Schools are given an access window (`subscription_start` → `subscription_end`)
 ## 🛠️ Technology Stack
 
 ### Frontend (`/lms-FE`)
-- **Core:** React 18, TypeScript, Vite
-- **Routing:** TanStack Router (type-safe, file-based)
+- **Core:** React 18 + TypeScript + Vite
+- **Routing:** TanStack Router (type-safe)
 - **Data Fetching:** TanStack Query (React Query)
-- **State:** Zustand (auth session, UI flags only)
-- **Forms:** React Hook Form + Zod
 - **Styling:** TailwindCSS
+- **State:** Zustand
 
 ### Backend (`/lms-BE`)
-- **Framework:** FastAPI (async)
-- **ORM:** SQLAlchemy (async) + PostgreSQL
-- **Migrations:** Alembic
-- **Storage:** MinIO (school-isolated, DB-tracked)
-- **Rate Limiting:** SlowAPI + Redis
+- **Framework:** FastAPI (Python 3.12)
+- **ORM:** SQLAlchemy (Async) + PostgreSQL (Neon)
+- **Object Storage:** Cloudflare R2 (Boto3/S3 Client)
+- **Cache / Rate Limiting:** Redis (Upstash) + SlowAPI
 - **Background Jobs:** APScheduler
 
 ---
 
-## 📂 Project Structure
+## 🐳 Docker Setup (Local Development)
 
+For local development, we use Docker Compose to orchestrate the environment.
+
+```bash
+docker compose up -d --build
 ```
 lms-system/
 ├── Caddyfile                 # Caddy reverse proxy config (HTTPS + routing)
@@ -237,55 +216,33 @@ To host this system on Cloudflare using a tunnel:
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Docker & Docker Compose
+The system handles seeding via startup scripts. In production, this is managed during the first deployment.
 
-### Start the Full Stack
-```bash
-docker compose up -d
-```
+| Field | Value |
+|---|---|
+| Email | `admin@example.com` |
+| Password | `admin123` |
+| Role | `super_admin` |
 
-Migrations run automatically and the default super admin is seeded on first launch.
+---
 
-### (Optional) Local Development Without Docker
+## 🏢 School-Based Multitenancy
 
-#### Prerequisites
-- Node.js v20+
-- Python 3.12+, `uv`
-- Running PostgreSQL, Redis, and MinIO instances
-
-### 1. Start Infrastructure (Docker)
-```bash
-cd lms-BE
-docker compose up -d
-```
-
-### 2. Backend Setup
-```bash
-cd lms-BE
-uv venv && source .venv/bin/activate
-uv sync
-cp .env.example .env   # fill in your credentials
-uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --root-path /api
-```
-API docs: http://localhost:8000/docs
-
-### 3. Frontend Setup
-```bash
-cd lms-FE
-npm install
-cp .env.example .env
-npm run dev
-```
-App: http://localhost:5173
+Every entity in the system is **scoped to a School**. 
+- **Database:** Rows are isolated via `school_id`.
+- **Storage:** Files are stored in school-prefixed paths in Cloudflare R2.
+- **Subscription:** Access is controlled by an active subscription window per school.
 
 ---
 
 ## 🤝 Contribution Guidelines
-1. Run `npm run build` and `npx react-doctor@latest .` — both must pass with zero errors before opening a PR.
-2. All SQLAlchemy model changes require an Alembic migration: `uv run alembic revision --autogenerate -m "description"`.
-3. Follow conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, etc.
+
+1. **Production Tests**: Ensure `npm run build` and `uv sync` pass before opening PRs.
+2. **Migrations**: All DB changes must include an Alembic migration.
+3. **CORS**: When adding new domains, update `BACKEND_CORS_ORIGINS` in `lms-BE/app/core/config.py`.
+
+---
+
 ## ✨ Recent Highlights
 
 - **Dockerized Full Stack**: All services (backend, frontend, postgres, redis, minio, caddy) are containerized and orchestrated via Docker Compose.

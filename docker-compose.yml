@@ -48,12 +48,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
-      minio:
-        condition: service_started
     env_file:
       - ./lms-BE/.env
+    environment:
+      - ROOT_PATH=/api
 
   frontend:
     build: ./lms-FE
@@ -80,6 +78,5 @@ services:
 
 volumes:
   postgres_data:
-  minio_data:
   caddy_data:
   caddy_config:

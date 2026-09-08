@@ -56,9 +56,111 @@ From the root directory:
 docker compose up -d --build backend
 ```
 
-In the local environment:
-- The server starts with `--root-path /api` to work with the Caddy reverse proxy.
-- Database and storage default to the local Docker services unless overridden in `.env`.
+On startup the container automatically:
+1. Runs `alembic upgrade head` to apply all migrations.
+2. Seeds the default super admin via `app/core/seed.py`.
+3. Starts the Uvicorn server with `--root-path /api` (required for Caddy proxy compatibility).
+
+The backend is accessible via the Caddy reverse proxy at `http://localhost/api/` (or via Cloudflare Tunnel).
+
+
+---
+
+## 🔐 Default Super Admin
+
+Seeded automatically on every fresh database via `app/core/seed.py`:
+
+| Field | Value |
+|---|---|
+| Name | Bade Sahab |
+| Email | admin@example.com |
+| Password | admin123 |
+| Role | super_admin |
+| school_id | NULL (system-wide access) |
+
+The seeder is idempotent — it checks for an existing user before inserting and is safe to run repeatedly.
+
+---
+
+## 🏢 School Model & Multitenancy
+
+### School Fields
+
+```python
+class School(Base):
+    id: int
+    name: str                  # unique
+    subscription_start: datetime
+    subscription_end: datetime  # access expires here
+    max_teachers: int           # hard cap on teachers per school
+    created_at: datetime
+    updated_at: datetime
+```
+
+### Relationships
+`School` has one-to-many relationships with: `User`, `Course`, `LearningMaterial`, `Submission`, `StudentAssignment` (for MCQ/TEXT), `TeacherCourse`, `StudentCourse`.
+
+### School Isolation in Queries
+All service functions accept an optional `school_id` parameter. When provided (for principal/teacher/student roles), queries automatically filter by that column:
+```python
+school_id = current_user.school_id if current_user.role != "super_admin" else None
+return await user_crud.list_users(db, ..., school_id=school_id)
+```
+Super admins receive `school_id=None`, seeing all data globally.
+
+---
+
+## 🔐 Subscription Enforcement — SchoolGuard
+
+`app/core/school_guard.py` exports a FastAPI `Depends` that is applied to **every non-public, non-super-admin endpoint**:
+
+```python
+async def validate_school_subscription(current_user, db) -> School:
+    if current_user.role == "super_admin":
+        return None                        # bypass
+    if not current_user.school_id:
+        raise 403                          # not assigned to school
+    school = await db.get(School, current_user.school_id)
+    if school.subscription_end < datetime.now(UTC):
+        raise 403 "School subscription has expired."
+    return school
+```
+
+When a school's subscription expires every API call from its principals, teachers, and students returns `403 Forbidden` immediately. Data is retained; only active access is blocked.
+
+---
+
+## 🗄️ File Storage — School Isolation
+
+Files are stored in MinIO and tracked in a `file_records` database table:
+
+```
+file_records
+├── id, object_name (unique)
+├── original_filename          # human-readable name
+├── size, content_type
+├── school_id (FK → schools)   # NULL for super_admin uploads
+├── uploaded_by (FK → users)
+└── created_at
+```
+
+**Upload flow:**  
+Non-super-admin uploads are prefixed `schools/{school_id}/{folder}/uuid_filename.ext` in MinIO and a `FileRecord` row is created with `school_id`.
+
+**List/access flow:**  
+The list endpoint queries `FileRecord` filtered by `school_id`. Principals only see their school's files. Super admins see all. Presigned URL and delete endpoints verify ownership via DB before acting on MinIO.
+
+---
+
+## 👥 Role Hierarchy & User Creation
+
+| Creator | Can create |
+|---|---|
+| `super_admin` | `super_admin`, `principal` (with optional `school_id`) |
+| `principal` | `teacher` (auto-scoped to principal's school) |
+| `teacher` | `student` (auto-scoped to teacher's school) |
+
+When a super_admin creates a principal, they can pass `school_id` in the request body to immediately assign the principal to a school.
 
 ---
 

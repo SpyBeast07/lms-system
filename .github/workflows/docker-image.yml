@@ -1,0 +1,30 @@
+name: Local Deployment CI/CD
+
+on:
+  push:
+    branches: [ "vps-deployment" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Update Local Directory and Deploy
+        run: |
+          # 1. Navigate to the local project folder
+          cd /home/kushagra/Documents/lms-system
+          
+          # 2. Stash any local uncommitted changes to prevent pull errors
+          git stash || true
+          
+          # 3. Pull the latest code (which triggered this action)
+          git pull
+          
+          # 4. Generate the backend .env file securely
+          echo "${{ secrets.BE_ENV_FILE }}" > ./lms-BE/.env
+          
+          # 5. Build and Restart the Docker services from the local directory
+          docker compose up -d --build
+          
+          # 6. Clean up old images to save disk space
+          docker image prune -f

@@ -1,8 +1,8 @@
 """
-MinIO Object Storage Configuration and Helper Functions
+S3-Compatible Object Storage — Cloudflare R2
 
-This module provides S3-compatible object storage functionality using MinIO.
-It handles file uploads, downloads, and URL generation for the LMS system.
+This module provides object storage functionality using Cloudflare R2 (S3-compatible API).
+It handles file uploads, presigned URLs, and file management for the LMS system.
 """
 
 from app.core.config import settings
@@ -58,24 +58,25 @@ class MinIOClient:
         # Ensure default bucket exists
         self._ensure_bucket_exists(self.bucket_name)
         
-        logger.info(f"MinIO client initialized: endpoint={self.endpoint}, bucket={self.bucket_name}")
+        logger.info(f"Storage client initialized: endpoint={self.endpoint}, bucket={self.bucket_name}")
     
     def _ensure_bucket_exists(self, bucket_name: str) -> None:
         """
-        Create bucket if it doesn't exist.
-        
-        Args:
-            bucket_name: Name of the bucket to create
+        Verify bucket exists. For Cloudflare R2, buckets are pre-created in the
+        dashboard, so we just check and log — never attempt to create.
         """
         try:
-            if not self.client.bucket_exists(bucket_name):
-                self.client.make_bucket(bucket_name)
-                logger.info(f"Created bucket: {bucket_name}")
+            exists = self.client.bucket_exists(bucket_name)
+            if exists:
+                logger.debug(f"Bucket verified: {bucket_name}")
             else:
-                logger.debug(f"Bucket already exists: {bucket_name}")
+                logger.warning(
+                    f"Bucket '{bucket_name}' not found in R2. "
+                    "Please create it in the Cloudflare dashboard."
+                )
         except S3Error as e:
-            logger.error(f"Error ensuring bucket exists: {e}")
-            raise
+            logger.warning(f"Could not verify bucket '{bucket_name}': {e}")
+            # Non-fatal — proceed and let actual operations fail with a clear error
     
     def _generate_unique_filename(self, original_filename: str, folder: str = "") -> str:
         """
@@ -154,9 +155,8 @@ class MinIOClient:
                 content_type=file.content_type or "application/octet-stream"
             )
             
-            # Generate public URL
-            protocol = "https" if self.secure else "http"
-            file_url = f"{protocol}://{self.endpoint}/{bucket}/{object_name}"
+            # Generate public URL (always HTTPS for R2)
+            file_url = f"https://{self.endpoint}/{bucket}/{object_name}"
             
             logger.info(f"File uploaded successfully: {object_name} ({file_size} bytes)")
             

@@ -647,12 +647,10 @@ export const resolveDemoMock = (method: string, path: string, params?: Record<st
     }
 
     // ---- Users ----
-    // The demo Super Admin account itself is never a managed user, so it must
-    // not appear in any user listing (active or deleted).
     if (method === 'get' && path === '/users/') {
         const deleted = (params as any)?.deleted === true || (params as any)?.deleted === 'true';
-        const active = DEMO_USERS.filter((u) => !u.is_deleted && u.role !== 'super_admin');
-        const source = deleted ? DEMO_USERS.filter((u) => u.is_deleted && u.role !== 'super_admin') : active;
+        const active = DEMO_USERS.filter((u) => !u.is_deleted);
+        const source = deleted ? DEMO_USERS.filter((u) => u.is_deleted) : active;
         const filtered = role === 'student' ? source.filter((u) => u.role === 'student') : source;
         return paginate(filtered, page, limit);
     }

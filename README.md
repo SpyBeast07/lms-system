@@ -30,6 +30,9 @@ Caddy (`Caddyfile` in the root directory) handles:
 > [!NOTE]
 > For local development with tunnel, Caddy is configured to use HTTP to simplify the setup with `cloudflared`.
 
+### Diagram
+
+![Architecture Diagram](images/archDiagram.png)
 
 ### Access Points
 

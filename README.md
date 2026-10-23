@@ -1,6 +1,6 @@
 # LMS System
 
-A multi-tenant, school-isolated Learning Management System (LMS) for educational institutions. The system enforces **school-based data isolation**, **subscription-gated access**, and a strict **role hierarchy** across all operations.
+This is a multi-tenant, school-isolated LMS with role- and subscription-gated access. Users enter through role-specific React interfaces, authenticate, and use capabilities such as course management, learning materials, assignments, submissions, and grading; principals and super admins also manage school operations. The FastAPI backend persists domain data in PostgreSQL and uses object storage, Redis, and other supporting services. The README documents the major capabilities and deployment boundaries; source excerpts confirm selected backend wiring and storage behavior, but not every feature’s runtime call path.
 
 ---
 
